@@ -1,0 +1,13 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "Payload CMS Dev Container",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "payload",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [3000],
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}
