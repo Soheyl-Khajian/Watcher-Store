@@ -9,6 +9,8 @@ import sharp from 'sharp'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { Categories } from './collections/Categories'
+import { Products } from './collections/Products'
 
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
@@ -27,7 +29,7 @@ export default buildConfig({
   i18n: {
     supportedLanguages: { en, fa },
   },
-  collections: [Users, Media],
+  collections: [Users, Categories, Products, Media],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
