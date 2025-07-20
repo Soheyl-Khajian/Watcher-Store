@@ -1,4 +1,3 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -6,22 +5,25 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { join } from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
-    // اتصال به دیتابیس را اینجا پیکربندی می‌کنیم
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: join(process.cwd(), '.env'), // ← فایل ریشه
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (cs: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DATABASE_HOST'),
-        port: configService.get<number>('DATABASE_PORT'),
-        username: configService.get<string>('DATABASE_USERNAME'),
-        password: configService.get<string>('DATABASE_PASSWORD'),
-        database: configService.get<string>('DATABASE_NAME'),
-        entities: [__dirname + '/users/entities/user.entity.{ts,js}'],
-        synchronize: true, // در محیط توسعه، به صورت خودکار جداول را می‌سازد
+        host: cs.get('DATABASE_HOST'),
+        port: cs.get<number>('DATABASE_PORT'),
+        username: cs.get('POSTGRES_USER'),
+        password: cs.get('POSTGRES_PASSWORD'),
+        database: cs.get('POSTGRES_DB'),
+        entities: [__dirname + '/users/entities/*.entity.{ts,js}'],
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),

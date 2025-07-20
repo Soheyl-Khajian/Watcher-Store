@@ -1,28 +1,37 @@
 # .devcontainer/docker-compose.yml
-version: '3.8'
 
 services:
-  # سرویس اصلی که کد Payload و VS Code در آن اجرا می‌شود
   payload:
-    image: mcr.microsoft.com/devcontainers/typescript-node:20
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: custom-payload-devcontainer:latest # ← اسم ایمیج شخصی‌سازی شده
+    working_dir: /workspace
+    user: node # ← تضمین اجرای همه چیز به عنوان node user
     volumes:
       - ..:/workspace:cached
+      - dev_node_modules:/workspace/node_modules
+    env_file:
+      - ../.env
     depends_on:
       - db
     command: sleep infinity
 
-  # سرویس دیتابیس PostgreSQL
   db:
     image: postgres:14-alpine
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: payloadb
+    env_file:
+      - ../.env
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 10s
+      retries: 5
     ports:
-      - '5433:5432'
+      - "5433:5432"
 
 volumes:
   postgres-data:
+  dev_node_modules: {}

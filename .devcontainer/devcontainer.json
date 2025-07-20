@@ -1,13 +1,14 @@
-// .devcontainer/devcontainer.json
 {
-  "name": "Payload CMS Dev Container",
+  "name": "Store Backend DevContainer",
   "dockerComposeFile": "docker-compose.yml",
   "service": "payload",
   "workspaceFolder": "/workspace",
+  "remoteUser": "node",
   "forwardPorts": [3000, 3001],
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
     }
-  }
+  },
+  "postCreateCommand": "npm install"
 }
