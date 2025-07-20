@@ -1,9 +1,9 @@
 # .devcontainer/docker-compose.yml
 
 services:
-  payload:
-    build:
-      context: .
+  app:
+    build: # ← مسیر ساخت ایمیج شخصی‌سازی شده
+      context: . # ← مسیر دایرکتوری فعلی
       dockerfile: Dockerfile
     image: custom-payload-devcontainer:latest # ← اسم ایمیج شخصی‌سازی شده
     working_dir: /workspace
@@ -13,22 +13,22 @@ services:
       - dev_node_modules:/workspace/node_modules
     env_file:
       - ../.env
-    depends_on:
+    depends_on: #صبر کن دیتابیس کاملا آماه شه، بعد شروع به کار کن
       - db
     command: sleep infinity
 
   db:
     image: postgres:14-alpine
-    restart: unless-stopped
+    restart: unless-stopped # ← ریستارت خودکار در صورت توقف
     volumes:
       - postgres-data:/var/lib/postgresql/data
     env_file:
       - ../.env
-    healthcheck:
-      test:
-        ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
-      interval: 10s
-      retries: 5
+    # healthcheck:
+    #   test:
+    #     ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+    #   interval: 10s
+    #   retries: 5
     ports:
       - "5433:5432"
 

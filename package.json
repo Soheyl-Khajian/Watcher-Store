@@ -9,7 +9,7 @@
     "bootstrap": "npm install",
     "start:payload": "npm --workspace=payload-cms run dev",
     "start:nest": "npm --workspace=nest-api run start:dev",
-    "start:all": "concurrently \\\"npm run start:payload\\\" \\\"npm run start:nest\\\"",
+    "start:all": "concurrently \"npm run start:payload\" \"npm run start:nest\"",
     "dev": "npm run bootstrap && npm run start:all"
   },
   "devDependencies": {

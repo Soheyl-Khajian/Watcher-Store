@@ -1,8 +1,9 @@
+//دفترچه راهنمای خود ادیتور
 {
   "name": "Store Backend DevContainer",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "payload",
-  "workspaceFolder": "/workspace",
+  "service": "app", //اتاق کار اصلی
+  "workspaceFolder": "/workspace", //مسیر پیش فرض ترمینال
   "remoteUser": "node",
   "forwardPorts": [3000, 3001],
   "customizations": {
@@ -10,5 +11,6 @@
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
     }
   },
-  "postCreateCommand": "npm install"
+  "postCreateCommand": "npm install", //فقط یکبار اجرا میشود
+  "postStartCommand": "npm run start:all"
 }
