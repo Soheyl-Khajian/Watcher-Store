@@ -4,7 +4,7 @@ version: '3.8'
 services:
   # سرویس اصلی که کد Payload و VS Code در آن اجرا می‌شود
   payload:
-    image: mcr.microsoft.com/devcontainers/typescript-node:18
+    image: mcr.microsoft.com/devcontainers/typescript-node:20
     volumes:
       - ..:/workspace:cached
     depends_on:
@@ -21,8 +21,8 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: payloadb
-    expose:
-      - 5432 # فقط برای ارتباط داخلی با سرویس payload
+    ports:
+      - '5433:5432'
 
 volumes:
   postgres-data:

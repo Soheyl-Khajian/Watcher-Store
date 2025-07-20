@@ -4,7 +4,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "payload",
   "workspaceFolder": "/workspace",
-  "forwardPorts": [3000],
+  "forwardPorts": [3000, 3001],
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]

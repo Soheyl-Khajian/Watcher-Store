@@ -1,50 +1,22 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 /node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+/nest-api/node_modules
+/payload-project/node_modules
 
-/.idea/*
-!/.idea/runConfigurations
+# Build files
+/nest-api/dist
+/payload-project/build
 
-# testing
-/coverage
+# Env files
+.env
+/nest-api/.env
+/payload-project/.env
 
-# next.js
-/.next/
-/out/
+# Docker
+/data
+/postgres-data
 
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-.env
-
-/media
-
-# Playwright
-node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
