@@ -1,12 +1,12 @@
 {
-  "name": "",
+  "name": "payload-cms",
   "version": "1.0.0",
   "description": "A blank template to get started with Payload 3.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev -p 3000",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
@@ -28,6 +28,7 @@
     "dotenv": "16.4.7",
     "graphql": "^16.8.1",
     "next": "15.3.2",
+    "payload": "^3.47.0",
     "react": "19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "0.34.2"

@@ -3,14 +3,14 @@
 services:
   app:
     build: # ← مسیر ساخت ایمیج شخصی‌سازی شده
-      context: . # ← مسیر دایرکتوری فعلی
+      context: ../backend # ← مسیر دایرکتوری فعلی
       dockerfile: Dockerfile
-    image: custom-payload-devcontainer:latest # ← اسم ایمیج شخصی‌سازی شده
+    image: custom-devcontainer:latest # ← اسم ایمیج شخصی‌سازی شده
     working_dir: /workspace
     user: node # ← تضمین اجرای همه چیز به عنوان node user
     volumes:
       - ..:/workspace:cached
-      - dev_node_modules:/workspace/node_modules
+      - dev_node_modules:/workspace/backend/node_modules
     env_file:
       - ../.env
     depends_on: #صبر کن دیتابیس کاملا آماه شه، بعد شروع به کار کن

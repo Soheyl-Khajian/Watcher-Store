@@ -1,16 +1,12 @@
 {
-  "name": "my-platform",
+  "name": "watcher-store",
   "private": true,
-  "workspaces": [
-    "payload-cms",
-    "nest-api"
-  ],
   "scripts": {
-    "bootstrap": "npm install",
-    "start:payload": "npm --workspace=payload-cms run dev",
-    "start:nest": "npm --workspace=nest-api run start:dev",
-    "start:all": "concurrently \"npm run start:payload\" \"npm run start:nest\"",
-    "dev": "npm run bootstrap && npm run start:all"
+    "bootstrap": "pnpm install",
+    "start:payload": "pnpm --filter payload-cms dev",
+    "start:nest": "pnpm --filter nest-api start:dev",
+    "start:frontend": "pnpm --filter frontend dev",
+    "start:all": "npx concurrently \"pnpm start:payload\" \"pnpm start:nest\" \"pnpm start:frontend\""
   },
   "devDependencies": {
     "concurrently": "^8.0.0"

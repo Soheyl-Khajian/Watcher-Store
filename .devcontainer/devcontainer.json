@@ -11,6 +11,6 @@
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
     }
   },
-  "postCreateCommand": "npm install", //فقط یکبار اجرا میشود
+  "postCreateCommand": "npm install -g pnpm && pnpm install", //فقط یکبار اجرا میشود
   "postStartCommand": "npm run start:all"
 }
