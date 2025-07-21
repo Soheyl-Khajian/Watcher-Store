@@ -1,32 +1,39 @@
 // src/auth/auth.service.ts
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { UsersService } from 'src/users/users.service';
 import { LoginUserDto } from './dto/login-user.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
+import e from 'express';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService, // <-- UsersService را تزریق کنید
-    private jwtService: JwtService,
-  ) {}
+  constructor(private jwtService: JwtService) {}
 
+  //این متود در استراتژی محلی در حال استفاده شدن هست
   async validateUser(loginDto: LoginUserDto): Promise<any> {
-    const user = await this.usersService.findOneByEmail(loginDto.email);
-    if (user && (await bcrypt.compare(loginDto.password, user.password_hash))) {
-      const { password_hash, ...result } = user;
-      return result;
-    }
-    return null;
-  }
+    try {
+      const response = await fetch('http://localhost:3000/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: loginDto.email,
+          password: loginDto.password,
+        }),
+      });
 
-  async register(registerDto: RegisterUserDto): Promise<any> {
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    const user = await this.usersService.create(registerDto, hashedPassword);
-    const { password_hash, ...result } = user;
-    return result;
+      const data = await response.json();
+
+      if (!response.ok) {
+        return null; // اگر لاگین در Payload ناموفق بود
+      }
+
+      // اطلاعات کاربر تایید شده را از پاسخ Payload برمی‌گردانیم
+      return data.user;
+    } catch (error) {
+      console.error('Error validating user with Payload:', error);
+      return null;
+    }
   }
 
   async login(user: any) {

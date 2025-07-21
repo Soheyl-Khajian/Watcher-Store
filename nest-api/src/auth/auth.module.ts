@@ -7,11 +7,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config'; //برای خواندن مقادیر از فایل‌های .env یا تنظیمات محیطی (مثل JWT_SECRET).
 import { LocalStrategy } from './local.strategy'; // استراتژی محلی برای ورود با ایمیل و رمز عبور
 import { JwtStrategy } from './jwt.strategy'; // استراتژی JWT برای اعتبارسنجی توکن‌های JWT
-import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
-    UsersModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule], //اینجا کانفیگ ماژول را ایمپورت می‌کند چون کانفیگ سرویس به آن نیاز دارد
