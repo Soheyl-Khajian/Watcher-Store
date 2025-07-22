@@ -61,6 +61,13 @@ export class CartService {
     return cart;
   }
 
+  async clearCart(userId: number): Promise<void> {
+    const cart = await this.getCart(userId);
+    if (cart && cart.items.length > 0) {
+      await this.cartItemRepository.remove(cart.items);
+    }
+  }
+
   async removeFromCart(userId: number, productId: string): Promise<Cart> {
     const cart = await this.getCart(userId);
     const itemToRemove = cart.items.find(
