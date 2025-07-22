@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { join } from 'path';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -21,12 +22,13 @@ import { join } from 'path';
         username: cs.get('POSTGRES_USER'),
         password: cs.get('POSTGRES_PASSWORD'),
         database: cs.get('POSTGRES_DB'),
-        entities: [__dirname + '/users/entities/*.entity.{ts,js}'],
+        entities: [__dirname + '/cart/entities/*.entity.{ts,js}'],
         synchronize: true,
       }),
       inject: [ConfigService],
     }),
     AuthModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
