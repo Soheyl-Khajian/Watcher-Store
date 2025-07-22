@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { join } from 'path';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { join } from 'path';
       inject: [ConfigService],
     }),
     AuthModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
