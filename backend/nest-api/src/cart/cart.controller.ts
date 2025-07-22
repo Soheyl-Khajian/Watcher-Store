@@ -21,19 +21,19 @@ export class CartController {
 
   @Post()
   addToCart(@Request() req, @Body() addToCartDto: AddToCartDto) {
-    const userId = req.user.sub; // آیدی کاربر را از توکن جی دبلیو تی می‌خوانیم
+    const userId = req.user.userId; // آیدی کاربر را از توکن جی دبلیو تی می‌خوانیم
     return this.cartService.addToCart(userId, addToCartDto);
   }
 
   @Get()
   getCart(@Request() req) {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     return this.cartService.getCart(userId);
   }
 
   @Delete(':productId')
   removeFromCart(@Request() req, @Param('productId') productId: string) {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     return this.cartService.removeFromCart(userId, productId);
   }
 }
