@@ -14,5 +14,6 @@ import { CartModule } from '../cart/cart.module'; // ماژول سبد خرید 
   ],
   controllers: [OrdersController],
   providers: [OrdersService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}

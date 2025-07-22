@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { join } from 'path';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { OrdersModule } from './orders/orders.module';
     AuthModule,
     CartModule,
     OrdersModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

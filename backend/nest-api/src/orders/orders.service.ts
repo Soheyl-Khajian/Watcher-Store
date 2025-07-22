@@ -64,6 +64,23 @@ export class OrdersService {
     return savedOrder;
   }
 
+  async findOne(id: number, userId: number): Promise<Order> {
+    const order = await this.orderRepository.findOne({ where: { id, userId } });
+    if (!order) {
+      throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+    }
+    return order;
+  }
+
+  async updateOrderStatus(id: number, status: OrderStatus): Promise<Order> {
+    const order = await this.orderRepository.findOne({ where: { id } });
+    if (!order) {
+      throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+    }
+    order.status = status;
+    return this.orderRepository.save(order);
+  }
+
   async findUserOrders(userId: number): Promise<Order[]> {
     return this.orderRepository.find({
       where: { userId },
