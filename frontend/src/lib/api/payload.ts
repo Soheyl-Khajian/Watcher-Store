@@ -65,3 +65,15 @@ export async function fetchProductsByCategoryId(categoryId: string) {
   );
   return data?.docs || [];
 }
+
+// تابع جدید برای ثبت‌نام کاربر
+export async function registerUser(credentials: {
+  email: string;
+  password: string;
+}) {
+  const data = await fetchPayloadAPI('/users', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  });
+  return data;
+}

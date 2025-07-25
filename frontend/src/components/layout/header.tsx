@@ -5,6 +5,7 @@ import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/theme-toggle';
+import { UserNav } from './user-nav'; // ۱. کامپوننت جدید را وارد می‌کنیم
 
 const mainNavLinks = [
   { href: '/shop', label: 'فروشگاه' },
@@ -15,10 +16,9 @@ const mainNavLinks = [
 
 export function Header() {
   return (
-    // ۱. تگ header برای سئوی بهتر
-    <header className="sticky top-0 z-5 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-2">
-        {/* ۲. لوگوی سایت با لینک به صفحه اصلی */}
+        {/* بخش لوگوی سایت با لینک به صفحه اصلی */}
         <div className="mr-4 ml-10 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             {/* <Icons.logo className="h-6 w-6" /> */}
@@ -28,7 +28,7 @@ export function Header() {
           </Link>
         </div>
 
-        {/* ۳. منوی اصلی برای دسکتاپ (در موبایل مخفی است) */}
+        {/* منوی اصلی برای دسکتاپ */}
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
           {mainNavLinks.map((link) => (
             <Link
@@ -41,7 +41,7 @@ export function Header() {
           ))}
         </nav>
 
-        {/* ۴. منوی همبرگری برای موبایل (در دسکتاپ مخفی است) */}
+        {/* منوی همبرگری برای موبایل */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -65,9 +65,10 @@ export function Header() {
           </Sheet>
         </div>
 
-        {/* ۵. دکمه تغییر تم و سبد خرید در سمت چپ */}
+        {/* دکمه تغییر تم و بخش کاربر در سمت چپ */}
         <div className="flex flex-1 items-center justify-end space-x-4">
           <ModeToggle />
+          <UserNav /> {/* ۲. کامپوننت جدید را اینجا قرار می‌دهیم */}
           {/* دکمه سبد خرید در مراحل بعدی اضافه می شود */}
         </div>
       </div>
