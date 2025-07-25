@@ -24,6 +24,7 @@ import { PaymentModule } from './payment/payment.module';
         username: cs.get('POSTGRES_USER'),
         password: cs.get('POSTGRES_PASSWORD'),
         database: cs.get('POSTGRES_DB'),
+        schema: cs.get('NEST_SCHEMA'),
         entities: [
           __dirname + '/cart/entities/*.entity.{ts,js}',
           __dirname + '/orders/entities/*.entity.{ts,js}',

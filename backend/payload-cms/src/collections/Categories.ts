@@ -18,5 +18,27 @@ export const Categories: CollectionConfig = {
       type: 'text',
       required: true,
     },
+    {
+      name: 'slug',
+      label: 'اسلاگ (برای URL)',
+      type: 'text',
+      admin: {
+        position: 'sidebar',
+      },
+      required: true,
+      unique: true,
+    },
+    {
+      name: 'parent',
+      label: 'دسته‌بندی والد',
+      type: 'relationship',
+      relationTo: 'categories',
+    },
+    {
+      name: 'image',
+      label: 'تصویر دسته‌بندی',
+      type: 'upload',
+      relationTo: 'media',
+    },
   ],
 }
