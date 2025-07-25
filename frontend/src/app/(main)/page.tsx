@@ -7,28 +7,24 @@ import { FeaturedProducts } from '@/components/sections/featured-products';
 import { ArticlesSection } from '@/components/sections/articles-section';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { fetchProducts, fetchCategories } from '@/lib/api/payload';
+import type { Product } from '@/types';
 
-// داده‌های آزمایشی برای یک محصول
-const sampleProduct = {
-  slug: 'camera-model-xyz',
-  name: 'دوربین امنیتی هوشمند مدل A5 Pro 4K',
-  price: 2500000,
-  imageUrl: '/images/sample-product.png', // یک عکس آزمایشی در پوشه public/images قرار بده
-};
+export default async function HomePage() {
+  const products = await fetchProducts();
+  const categories = await fetchCategories();
 
-export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <FeaturedProducts />
-      <CategoryGrid />
+      <FeaturedProducts products={products} />
+      <CategoryGrid categories={categories} />
 
-      {/* بخش آزمایشی برای نمایش کارت محصول */}
-      <section className=" py-12">
+      <section className="py-12">
         <div className="flex items-center mb-2">
           <h2 className="mr-4 ml-1 my-2 text-3xl font-bold">همه محصولات</h2>
           <Link
-            href="/blog"
+            href="/products" // لینک به صفحه آرشیو محصولات
             className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
           >
             مشاهده همه
@@ -36,10 +32,10 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-2 m-2 sm:grid-cols-3 lg:grid-cols-4 ">
-          <ProductCard product={sampleProduct} />
-          <ProductCard product={sampleProduct} />
-          <ProductCard product={sampleProduct} />
-          <ProductCard product={sampleProduct} />
+          {/* ۵. به جای تکرار داده‌های تستی، روی داده‌های واقعی حلقه می‌زنیم */}
+          {products?.map((product: Product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
         </div>
       </section>
       <ArticlesSection />

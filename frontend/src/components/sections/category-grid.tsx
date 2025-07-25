@@ -1,33 +1,16 @@
-// مسیر فایل: src/components/sections/category-grid.tsx
+// src/components/sections/category-grid.tsx
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
+import type { Category } from '@/types';
 
-const categories = [
-  {
-    name: 'دوربین‌های مداربسته',
-    href: '/category/cctv',
-    imageUrl: '/images/cat-cctv.png',
-  },
-  {
-    name: 'خانه هوشمند',
-    href: '/category/smart-home',
-    imageUrl: '/images/cat-smart-home.png',
-  },
-  {
-    name: 'پنل‌های خورشیدی',
-    href: '/category/solar',
-    imageUrl: '/images/cat-solar.png',
-  },
-  {
-    name: 'کنترل تردد و کرکره',
-    href: '/category/access-control',
-    imageUrl: '/images/cat-access.png',
-  },
-];
+interface CategoryGridProps {
+  categories: Category[];
+}
 
-export function CategoryGrid() {
+export function CategoryGrid({ categories }: CategoryGridProps) {
+  const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL;
   return (
     <section className="bg-muted/40 py-12">
       <div className="container mx-auto px-4">
@@ -35,31 +18,38 @@ export function CategoryGrid() {
           خرید بر اساس دسته‌بندی
         </h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map((category) => (
-            <Link
-              href={category.href}
-              key={category.name}
-              className="group block"
-            >
-              <Card className="overflow-hidden p-0">
-                <div className="relative h-64 w-full">
-                  <Image
-                    src={category.imageUrl}
-                    alt={category.name}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-black/40" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <h3 className="text-2xl font-bold text-white">
-                      {category.name}
-                    </h3>
+          {categories?.map((category) => {
+            // ۱. ابتدا آدرس تصویر را به صورت امن می‌سازیم
+            const imageUrl = category.image?.url
+              ? `${payloadUrl}${category.image.url}`
+              : '/images/placeholder.png';
+
+            return (
+              <Link
+                href={`/categories/${category.slug}`}
+                key={category.id}
+                className="group block"
+              >
+                <Card className="overflow-hidden p-0">
+                  <div className="relative h-64 w-full">
+                    <Image
+                      src={imageUrl} // ۲. از آدرس ساخته شده استفاده می‌کنیم
+                      alt={category.name}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <h3 className="text-2xl font-bold text-white">
+                        {category.name}
+                      </h3>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
