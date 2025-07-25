@@ -12,5 +12,5 @@
     }
   },
   "postCreateCommand": "npm install -g pnpm && pnpm install", //فقط یکبار اجرا میشود
-  "postStartCommand": "npm run start:all"
+  "postStartCommand": "pnpm --filter payload-cms run migrate && pnpm run start:all"
 }

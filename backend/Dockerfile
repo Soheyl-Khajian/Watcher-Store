@@ -1,12 +1,12 @@
-# .devcontainer/Dockerfile
+# backend/Dockerfile
 FROM mcr.microsoft.com/devcontainers/typescript-node:20
 
-# Switch to root to adjust ownership
+# به کاربر روت سوییچ می‌کنیم تا بتوانیم دسترسی‌ها را تغییر دهیم
 USER root
 
-# Create node_modules folder with proper permissions if not exists
-RUN mkdir -p /workspace/node_modules && \
+# پوشه‌های لازم را ساخته و مالکیت آن‌ها را به کاربر node می‌دهیم
+RUN mkdir -p /workspace/node_modules /workspace/backend/payload-cms/.next /workspace/frontend/.next && \
     chown -R node:node /workspace
 
-# Switch back to node user for normal operations
+# برای بقیه عملیات به کاربر عادی node برمی‌گردیم
 USER node

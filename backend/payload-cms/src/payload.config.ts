@@ -41,6 +41,8 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI!, // از متغیر مرکزی
     },
+    schemaName: process.env.PAYLOAD_SCHEMA,
+    push: false, //غیرفعال کردن بروزرسانی خودکار پایگاه داده
   }),
   sharp,
   plugins: [

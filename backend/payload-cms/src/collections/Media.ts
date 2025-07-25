@@ -7,6 +7,9 @@ export const Media: CollectionConfig = {
   admin: {
     description: 'فایل‌های رسانه‌ای مانند تصاویر محصولات',
   },
+  access: {
+    read: () => true,
+  },
   upload: {
     // فقط پوشه ذخیره‌سازی را مشخص می‌کنیم. Payload بقیه موارد را مدیریت می‌کند.
     staticDir: 'media',

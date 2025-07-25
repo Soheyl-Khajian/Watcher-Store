@@ -149,18 +149,9 @@ export interface User {
 export interface Category {
   id: number;
   name: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products".
- */
-export interface Product {
-  id: number;
-  name: string;
-  price: number;
-  categories?: (number | Category)[] | null;
+  slug: string;
+  parent?: (number | null) | Category;
+  image?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
 }
@@ -202,6 +193,48 @@ export interface Media {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  status?: ('published' | 'draft') | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  price: number;
+  stock?: number | null;
+  thumbnail: number | Media;
+  gallery?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  categories?: (number | Category)[] | null;
+  specifications?: {
+    resolution?: ('2MP' | '4MP' | '5MP' | '8MP (4K)') | null;
+    nightVisionRange?: number | null;
+    ipRating?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -297,6 +330,9 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface CategoriesSelect<T extends boolean = true> {
   name?: T;
+  slug?: T;
+  parent?: T;
+  image?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -306,8 +342,26 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface ProductsSelect<T extends boolean = true> {
   name?: T;
+  slug?: T;
+  status?: T;
+  description?: T;
   price?: T;
+  stock?: T;
+  thumbnail?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
   categories?: T;
+  specifications?:
+    | T
+    | {
+        resolution?: T;
+        nightVisionRange?: T;
+        ipRating?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
