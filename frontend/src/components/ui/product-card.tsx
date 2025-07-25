@@ -1,5 +1,5 @@
 // مسیر فایل: src/components/ui/product-card.tsx
-'use client'; // <---  قدم اول: این کامپوننت را به یک کلاینت کامپوننت تبدیل کن
+'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,20 +12,24 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import type { Product } from '@/types';
 
 interface ProductCardProps {
-  product: {
-    slug: string;
-    name: string;
-    price: number;
-    imageUrl: string;
-  };
+  product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  // ۱. آدرس پایه سرور Payload را از متغیرهای محیطی بخوانید
+  const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL;
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
   };
+
+  // ۲. آدرس کامل تصویر را با ترکیب آدرس پایه و آدرس نسبی بسازید
+  const imageUrl = product.thumbnail?.url
+    ? `${payloadUrl}${product.thumbnail.url}`
+    : '/images/placeholder.png';
 
   return (
     <Link href={`/products/${product.slug}`} className="group block">
@@ -33,7 +37,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="relative h-36 sm:h-70 w-full">
             <Image
-              src={product.imageUrl}
+              src={imageUrl} // <-- حالا از آدرس کامل و صحیح استفاده می‌شود
               alt={product.name}
               fill
               className="object-cover"
@@ -43,7 +47,6 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardHeader>
 
         <CardContent className="flex-grow p-1 sm:px-4 sm:py-1">
-          {/* قدم دوم: تگ h3 را داخل کامپوننت قرار بده */}
           <CardTitle className="text-sm sm:text-lg font-semibold leading-tight">
             <h3>{product.name}</h3>
           </CardTitle>
