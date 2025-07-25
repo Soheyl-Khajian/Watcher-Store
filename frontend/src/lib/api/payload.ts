@@ -36,3 +36,32 @@ export async function fetchCategories() {
   const data = await fetchPayloadAPI('/categories?limit=4');
   return data?.docs || [];
 }
+
+// تابع برای دریافت یک محصول خاص بر اساس اسلاگ
+export async function fetchProductBySlug(slug: string) {
+  noStore();
+  const data = await fetchPayloadAPI(
+    `/products?where[slug][equals]=${slug}&depth=2`,
+  );
+  // ای پی آی یک آرایه برمی‌گرداند، پس ما آیتم اول آن را انتخاب می‌کنیم
+  return data?.docs?.[0] || null;
+}
+
+//  یک دسته‌بندی خاص را بر اساس اسلاگ پیدا می‌کند
+export async function fetchCategoryBySlug(slug: string) {
+  noStore();
+  const data = await fetchPayloadAPI(
+    `/categories?where[slug][equals]=${slug}&limit=1`,
+  );
+  return data?.docs?.[0] || null;
+}
+
+// محصولات را بر اساس شناسه دسته‌بندی فیلتر می‌کند
+export async function fetchProductsByCategoryId(categoryId: string) {
+  noStore();
+  // از where[categories][in] برای فیلتر بر اساس ID استفاده می‌کنیم
+  const data = await fetchPayloadAPI(
+    `/products?where[categories][in]=${categoryId}&depth=1`,
+  );
+  return data?.docs || [];
+}
