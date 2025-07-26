@@ -5,7 +5,8 @@ import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/theme-toggle';
-import { UserNav } from './user-nav'; // ۱. کامپوننت جدید را وارد می‌کنیم
+import { UserNav } from './user-nav';
+import { CartSheet } from './cart-sheet';
 
 const mainNavLinks = [
   { href: '/shop', label: 'فروشگاه' },
@@ -68,8 +69,8 @@ export function Header() {
         {/* دکمه تغییر تم و بخش کاربر در سمت چپ */}
         <div className="flex flex-1 items-center justify-end space-x-4">
           <ModeToggle />
-          <UserNav /> {/* ۲. کامپوننت جدید را اینجا قرار می‌دهیم */}
-          {/* دکمه سبد خرید در مراحل بعدی اضافه می شود */}
+          <UserNav />
+          <CartSheet />
         </div>
       </div>
     </header>

@@ -77,3 +77,12 @@ export async function registerUser(credentials: {
   });
   return data;
 }
+
+// تابع جدید برای دریافت اطلاعات چندین محصول بر اساس آیدی
+export async function fetchProductsByIds(ids: string[]) {
+  noStore();
+  const data = await fetchPayloadAPI(
+    `/products?where[id][in]=${ids.join(',')}&depth=1`,
+  );
+  return data?.docs || [];
+}

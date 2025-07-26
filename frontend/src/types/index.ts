@@ -49,3 +49,15 @@ export interface Product {
   categories?: Category[];
   // ... سایر فیلدهایی که در Payload تعریف کرده‌اید
 }
+
+export interface CartItem {
+  id: number;
+  productId: string;
+  quantity: number;
+}
+
+export interface Cart {
+  id: number;
+  userId: number;
+  items: CartItem[];
+}

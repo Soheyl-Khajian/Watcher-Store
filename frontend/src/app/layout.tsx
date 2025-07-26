@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { Vazirmatn } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils'; // ابزار کمکی از shadcn
-import { ThemeProvider } from '@/components/theme-provider'; // کامپوننت مدیریت تم
+import { Providers } from '@/components/providers';
 
 // ۱. تنظیمات بهینه فونت وزیرمتن
 const vazirFont = Vazirmatn({
@@ -42,15 +42,7 @@ export default function RootLayout({
           vazirFont.variable,
         )}
       >
-        {/* ۳. فعال‌سازی قابلیت تم تیره و روشن */}
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark" // تم پیش‌فرض را تیره قرار می‌دهیم
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

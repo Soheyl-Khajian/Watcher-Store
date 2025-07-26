@@ -52,3 +52,64 @@ export async function fetchUserProfile(token: string) {
     return null;
   }
 }
+
+// تابع برای دریافت سبد خرید کاربر
+export async function fetchCart(token: string) {
+  try {
+    const res = await fetch(`${NESTJS_API_URL}/cart`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch cart:', error);
+    return null;
+  }
+}
+
+// تابع برای افزودن محصول به سبد خرید
+export async function addToCart(
+  productId: string,
+  quantity: number,
+  token: string,
+) {
+  try {
+    const res = await fetch(`${NESTJS_API_URL}/cart`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        productId: String(productId), // مطمئن می‌شویم رشته است
+        quantity: Number(quantity), // مطمئن می‌شویم عدد است
+      }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to add to cart:', error);
+    return null;
+  }
+}
+
+// تابع برای حذف یک محصول از سبد خرید
+export async function removeFromCart(productId: string, token: string) {
+  try {
+    const res = await fetch(`${NESTJS_API_URL}/cart/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json(); // سبد خرید به‌روز شده را برمی‌گرداند
+  } catch (error) {
+    console.error('Failed to remove from cart:', error);
+    return null;
+  }
+}

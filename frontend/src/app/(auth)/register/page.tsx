@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { registerUser } from '@/lib/api/payload'; // تابع API را وارد می‌کنیم
+import { registerUser } from '@/lib/api/payload';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -20,11 +21,11 @@ export default function RegisterPage() {
     const result = await registerUser({ email, password });
 
     if (result && !result.errors) {
-      alert('ثبت‌نام با موفقیت انجام شد! لطفاً وارد شوید.');
+      toast.success('ثبت‌نام با موفقیت انجام شد! لطفاً وارد شوید.');
       router.push('/login'); // کاربر را به صفحه ورود هدایت می‌کند
     } else {
       // در اینجا می‌توانید پیغام خطای بهتری نمایش دهید
-      alert('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.');
+      toast.error('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.');
     }
   };
 

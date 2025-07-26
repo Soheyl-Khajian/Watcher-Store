@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { loginUser } from '@/lib/api/nestjs'; // تابع API ورود را وارد می‌کنیم
+import { loginUser } from '@/lib/api/nestjs';
 import { useAuthStore } from '@/lib/store/auth'; // انبار وضعیت را وارد می‌کنیم
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -26,11 +27,11 @@ export default function LoginPage() {
     if (result && result.access_token) {
       // ۱. توکن را در store ذخیره می‌کنیم
       setToken(result.access_token);
-      alert('ورود با موفقیت انجام شد!');
+      toast.success('ورود با موفقیت انجام شد!');
       // ۲. کاربر را به صفحه اصلی هدایت می‌کنیم
       router.push('/');
     } else {
-      alert('ایمیل یا رمز عبور اشتباه است.');
+      toast.error('ایمیل یا رمز عبور اشتباه است.');
     }
   };
 
