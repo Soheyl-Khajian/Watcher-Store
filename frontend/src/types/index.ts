@@ -61,3 +61,19 @@ export interface Cart {
   userId: number;
   items: CartItem[];
 }
+
+export interface OrderItem {
+  id: number;
+  productId: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  id: number;
+  userId: number;
+  total: number;
+  status: string; // یا OrderStatus enum اگر آن را تعریف کرده‌اید
+  createdAt: string; // تاریخ به صورت رشته‌ای از ای پی آی می‌آید
+  items: OrderItem[];
+}

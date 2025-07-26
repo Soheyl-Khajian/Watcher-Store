@@ -113,3 +113,81 @@ export async function removeFromCart(productId: string, token: string) {
     return null;
   }
 }
+
+// تابع برای ثبت نهایی سفارش
+export async function createOrder(token: string) {
+  try {
+    const res = await fetch(`${NESTJS_API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to create order:', error);
+    return null;
+  }
+}
+
+// تابع برای شروع فرآیند پرداخت
+export async function initiatePayment(orderId: number, token: string) {
+  try {
+    const res = await fetch(`${NESTJS_API_URL}/payment/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderId }),
+    });
+    if (!res.ok) return null;
+    return await res.json(); // باید حاوی paymentUrl باشد
+  } catch (error) {
+    console.error('Failed to initiate payment:', error);
+    return null;
+  }
+}
+
+// تابع برای تأیید نهایی پرداخت
+export async function verifyPayment(
+  orderId: string,
+  status: string,
+  token: string,
+) {
+  try {
+    const res = await fetch(
+      `${NESTJS_API_URL}/payment/verify?orderId=${orderId}&status=${status}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to verify payment:', error);
+    return null;
+  }
+}
+
+// تابع برای دریافت تاریخچه سفارشات کاربر
+export async function fetchUserOrders(token: string) {
+  try {
+    const res = await fetch(`${NESTJS_API_URL}/orders`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch user orders:', error);
+    return null;
+  }
+}

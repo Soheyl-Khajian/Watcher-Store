@@ -8,6 +8,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
+import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { fetchCart, removeFromCart } from '@/lib/api/nestjs';
 import { fetchProductsByIds } from '@/lib/api/payload';
@@ -17,7 +18,11 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
-export function CartContent() {
+interface CartContentProps {
+  onClose: () => void;
+}
+
+export function CartContent({ onClose }: CartContentProps) {
   const { token, cart, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -142,7 +147,9 @@ export function CartContent() {
               <p>جمع کل</p>
               <p>{formatPrice(cartTotal)}</p>
             </div>
-            <Button className="w-full">ادامه و تسویه حساب</Button>
+            <Button asChild className="w-full mt-6" onClick={onClose}>
+              <Link href="/checkout">ادامه و تسویه حساب</Link>
+            </Button>
           </div>
         </SheetFooter>
       )}
