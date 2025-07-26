@@ -13,23 +13,43 @@ import {
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import type { Product } from '@/types';
+import { useAuthStore } from '@/lib/store/auth';
+import { addToCart } from '@/lib/api/nestjs';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  // ۱. آدرس پایه سرور Payload را از متغیرهای محیطی بخوانید
   const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL;
+  const { token, setCart } = useAuthStore();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
   };
 
-  // ۲. آدرس کامل تصویر را با ترکیب آدرس پایه و آدرس نسبی بسازید
   const imageUrl = product.thumbnail?.url
     ? `${payloadUrl}${product.thumbnail.url}`
     : '/images/placeholder.png';
+
+  const handleAddToCart = async () => {
+    if (!token) {
+      toast.error('برای افزودن محصول به سبد خرید، لطفاً ابتدا وارد شوید.');
+      // در اینجا می‌توان کاربر را به صفحه ورود هدایت کرد
+      // router.push('/login');
+      return;
+    }
+
+    const updatedCart = await addToCart(product.id, 1, token);
+
+    if (updatedCart) {
+      setCart(updatedCart);
+      toast.success(`${product.name} به سبد خرید اضافه شد.`);
+    } else {
+      toast.error('خطا در افزودن محصول به سبد خرید.');
+    }
+  };
 
   return (
     <Link href={`/products/${product.slug}`} className="group block">
@@ -37,7 +57,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="relative h-36 sm:h-70 w-full">
             <Image
-              src={imageUrl} // <-- حالا از آدرس کامل و صحیح استفاده می‌شود
+              src={imageUrl}
               alt={product.name}
               fill
               className="object-cover"
@@ -60,7 +80,7 @@ export function ProductCard({ product }: ProductCardProps) {
             size="icon"
             onClick={(e) => {
               e.preventDefault();
-              console.log(`${product.name} به سبد خرید اضافه شد`);
+              handleAddToCart();
             }}
           >
             <ShoppingCart className="h-5 w-5" />

@@ -9,11 +9,9 @@ export default function MainLayout({
 }>) {
   return (
     <div className="flex min-h-screen flex-col">
-      {/* هدر سایت در اینجا قرار می گیرد */}
       <Header />
-      {/* محتوای اصلی هر صفحه در اینجا رندر می شود */}
       <main className="flex-grow">{children}</main>
-      <Footer /> {/* <-- اضافه کردن فوتر به چیدمان */}
+      <Footer />
     </div>
   );
 }
