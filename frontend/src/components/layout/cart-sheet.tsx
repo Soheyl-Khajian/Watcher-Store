@@ -1,23 +1,25 @@
 // src/components/layout/cart-sheet.tsx
-'use client'; // ۱. این کامپوننت را به کلاینت کامپوننت تبدیل می‌کنیم
+'use client';
 
-import { useMemo } from 'react';
+import { useState } from 'react'; // ۱. useState را وارد کنید
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ShoppingCart } from 'lucide-react';
 import { CartContent } from './cart-content';
-import { useAuthStore } from '@/lib/store/auth'; // ۲. store را وارد می‌کنیم
+import { useAuthStore } from '@/lib/store/auth';
+import { useMemo } from 'react';
 
 export function CartSheet() {
   const { cart } = useAuthStore();
+  const [isOpen, setIsOpen] = useState(false); // ۲. state را اضافه کنید
 
-  // ۳. تعداد کل محصولات را محاسبه می‌کنیم
   const totalQuantity = useMemo(() => {
     return cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
   }, [cart]);
 
   return (
-    <Sheet>
+    // ۳. وضعیت باز/بسته بودن را به Sheet متصل کنید
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           {totalQuantity > 0 && (
@@ -30,7 +32,8 @@ export function CartSheet() {
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col p-4 sm:p-6">
-        <CartContent />
+        {/* ۴. تابع بستن را به عنوان پراپ ارسال کنید */}
+        <CartContent onClose={() => setIsOpen(false)} />
       </SheetContent>
     </Sheet>
   );

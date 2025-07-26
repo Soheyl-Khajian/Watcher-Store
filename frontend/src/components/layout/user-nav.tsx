@@ -20,29 +20,29 @@ export function UserNav() {
   const { token, user, setUser, logout } = useAuthStore();
 
   useEffect(() => {
-    // اگر توکن وجود داشت اما اطلاعات کاربر هنوز دریافت نشده بود
     if (token && !user) {
       const getUserProfile = async () => {
         const userProfile = await fetchUserProfile(token);
         if (userProfile) {
-          setUser(userProfile); // اطلاعات کاربر را در store ذخیره کن
+          setUser(userProfile);
         } else {
-          // اگر توکن معتبر نبود، کاربر را خارج کن
           logout();
         }
       };
       getUserProfile();
     }
+    // اگر توکن حذف شد (کاربر خارج شد)، اطلاعات کاربر را هم پاک می‌کنیم
+    if (!token && user) {
+      setUser(null);
+    }
   }, [token, user, setUser, logout]);
 
-  // اگر کاربر لاگین کرده باشد
   if (user) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              {/* در اینجا می‌توانید تصویر پروفایل کاربر را قرار دهید */}
               <AvatarImage src="" alt={user.email} />
               <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -58,13 +58,16 @@ export function UserNav() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {/* این آیتم اضافه شده است */}
+          <DropdownMenuItem asChild>
+            <Link href="/profile">پروفایل من</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => logout()}>خروج</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
   }
 
-  // اگر کاربر لاگین نکرده باشد
   return (
     <div className="flex items-center gap-2">
       <Button asChild variant="ghost">
