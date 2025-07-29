@@ -1,9 +1,9 @@
-import * as migration_20250725_011657_AddUserRole from './20250725_011657_AddUserRole';
+import * as migration_20250728_010457_FinalProductSchema from './20250728_010457_FinalProductSchema';
 
 export const migrations = [
   {
-    up: migration_20250725_011657_AddUserRole.up,
-    down: migration_20250725_011657_AddUserRole.down,
-    name: '20250725_011657_AddUserRole'
+    up: migration_20250728_010457_FinalProductSchema.up,
+    down: migration_20250728_010457_FinalProductSchema.down,
+    name: '20250728_010457_FinalProductSchema'
   },
 ];

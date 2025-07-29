@@ -56,3 +56,7 @@ Thumbs.db
 .pnpm-store/
 # ===================================================================
 /structure
+
+# Data and utility scripts
+products.json
+import-script.mjs
