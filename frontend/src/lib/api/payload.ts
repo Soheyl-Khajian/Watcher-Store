@@ -61,7 +61,7 @@ export async function fetchProductsByCategoryId(categoryId: string) {
   noStore();
   // از where[categories][in] برای فیلتر بر اساس ID استفاده می‌کنیم
   const data = await fetchPayloadAPI(
-    `/products?where[categories][in]=${categoryId}&depth=1`,
+    `/products?where[categories][in]=${categoryId}&depth=1&limit=1000`,
   );
   return data?.docs || [];
 }

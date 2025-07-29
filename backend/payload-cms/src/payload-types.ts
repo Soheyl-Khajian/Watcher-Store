@@ -201,8 +201,7 @@ export interface Media {
 export interface Product {
   id: number;
   name: string;
-  slug: string;
-  status?: ('published' | 'draft') | null;
+  sku: string;
   description?: {
     root: {
       type: string;
@@ -218,21 +217,35 @@ export interface Product {
     };
     [k: string]: unknown;
   } | null;
+  resolution?:
+    | (
+        | '2MP'
+        | '4MP'
+        | '5MP'
+        | '6MP'
+        | '8MP'
+        | '8x2MP (پانورامیک)'
+        | '4x2MP (پانورامیک)'
+        | '3x2MP (پانورامیک)'
+        | '2MP Full HD'
+      )
+    | null;
+  lensType?: ('ثابت' | 'وری‌فوکال' | 'موتورایز' | 'اپتیکال') | null;
+  focalLength?: string | null;
+  wdr?: string | null;
+  nightVisionRange?: number | null;
+  nightVisionType?: ('IR' | 'Warm Light' | 'Warm Light/IR' | 'نور دوگانه هوشمند' | 'نور دوگانه فعال/گرم') | null;
+  ipRating?: string | null;
+  hasMicrophone?: boolean | null;
+  supportsSDCard?: boolean | null;
+  isPoE?: boolean | null;
+  isStarlight?: boolean | null;
+  slug: string;
+  status?: ('published' | 'draft') | null;
   price: number;
   stock?: number | null;
   thumbnail: number | Media;
-  gallery?:
-    | {
-        image: number | Media;
-        id?: string | null;
-      }[]
-    | null;
   categories?: (number | Category)[] | null;
-  specifications?: {
-    resolution?: ('2MP' | '4MP' | '5MP' | '8MP (4K)') | null;
-    nightVisionRange?: number | null;
-    ipRating?: string | null;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -342,26 +355,25 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface ProductsSelect<T extends boolean = true> {
   name?: T;
+  sku?: T;
+  description?: T;
+  resolution?: T;
+  lensType?: T;
+  focalLength?: T;
+  wdr?: T;
+  nightVisionRange?: T;
+  nightVisionType?: T;
+  ipRating?: T;
+  hasMicrophone?: T;
+  supportsSDCard?: T;
+  isPoE?: T;
+  isStarlight?: T;
   slug?: T;
   status?: T;
-  description?: T;
   price?: T;
   stock?: T;
   thumbnail?: T;
-  gallery?:
-    | T
-    | {
-        image?: T;
-        id?: T;
-      };
   categories?: T;
-  specifications?:
-    | T
-    | {
-        resolution?: T;
-        nightVisionRange?: T;
-        ipRating?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
 }

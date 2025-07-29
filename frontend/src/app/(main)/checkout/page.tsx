@@ -79,8 +79,32 @@ export default function CheckoutPage() {
         (p: Product) => String(p.id) === String(item.productId),
       );
       return total + (product?.price || 0) * item.quantity;
-    }, 0);
+    }, 0); //مقدار اولیه تابع ردیوس
   }, [cart, products]);
+
+  /* 
+  syntax of using reduce:
+
+  array.reduce((accumulator, currentItem, index, array) => {
+    // logic here
+    return updatedAccumulator;
+  }, initialValue);
+
+  <========================================================>
+
+  Example of calculating total price in a cart:
+
+  const cart = [
+  { name: 'A', price: 100, quantity: 2 },
+  { name: 'B', price: 200, quantity: 1 },
+  ];
+
+  const total = cart.reduce((sum, item) => {
+    return sum + item.price * item.quantity;
+  }, 0);
+  console.log(total); // 400
+
+  */
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';

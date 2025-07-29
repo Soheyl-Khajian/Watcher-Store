@@ -1,5 +1,5 @@
 {
-  "id": "4eadde1f-7d0e-4db8-9605-4a9156c1ade3",
+  "id": "35bc9f98-05af-4427-8a88-15c984899283",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -385,118 +385,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "payload_schema.products_gallery": {
-      "name": "products_gallery",
-      "schema": "payload_schema",
-      "columns": {
-        "_order": {
-          "name": "_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "_parent_id": {
-          "name": "_parent_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "image_id": {
-          "name": "image_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "products_gallery_order_idx": {
-          "name": "products_gallery_order_idx",
-          "columns": [
-            {
-              "expression": "_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "products_gallery_parent_id_idx": {
-          "name": "products_gallery_parent_id_idx",
-          "columns": [
-            {
-              "expression": "_parent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "products_gallery_image_idx": {
-          "name": "products_gallery_image_idx",
-          "columns": [
-            {
-              "expression": "image_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "products_gallery_image_id_media_id_fk": {
-          "name": "products_gallery_image_id_media_id_fk",
-          "tableFrom": "products_gallery",
-          "tableTo": "media",
-          "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "products_gallery_parent_id_fk": {
-          "name": "products_gallery_parent_id_fk",
-          "tableFrom": "products_gallery",
-          "tableTo": "products",
-          "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "payload_schema.products": {
       "name": "products",
       "schema": "payload_schema",
@@ -513,6 +401,91 @@
           "primaryKey": false,
           "notNull": true
         },
+        "sku": {
+          "name": "sku",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "enum_products_resolution",
+          "typeSchema": "payload_schema",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lens_type": {
+          "name": "lens_type",
+          "type": "enum_products_lens_type",
+          "typeSchema": "payload_schema",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "focal_length": {
+          "name": "focal_length",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wdr": {
+          "name": "wdr",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "night_vision_range": {
+          "name": "night_vision_range",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "night_vision_type": {
+          "name": "night_vision_type",
+          "type": "enum_products_night_vision_type",
+          "typeSchema": "payload_schema",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_rating": {
+          "name": "ip_rating",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "has_microphone": {
+          "name": "has_microphone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "supports_s_d_card": {
+          "name": "supports_s_d_card",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "is_po_e": {
+          "name": "is_po_e",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "is_starlight": {
+          "name": "is_starlight",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
         "slug": {
           "name": "slug",
           "type": "varchar",
@@ -526,12 +499,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'draft'"
-        },
-        "description": {
-          "name": "description",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         },
         "price": {
           "name": "price",
@@ -552,25 +519,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "specifications_resolution": {
-          "name": "specifications_resolution",
-          "type": "enum_products_specifications_resolution",
-          "typeSchema": "payload_schema",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "specifications_night_vision_range": {
-          "name": "specifications_night_vision_range",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "specifications_ip_rating": {
-          "name": "specifications_ip_rating",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -587,6 +535,21 @@
         }
       },
       "indexes": {
+        "products_sku_idx": {
+          "name": "products_sku_idx",
+          "columns": [
+            {
+              "expression": "sku",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "products_slug_idx": {
           "name": "products_slug_idx",
           "columns": [
@@ -1677,22 +1640,48 @@
         "customer"
       ]
     },
+    "payload_schema.enum_products_resolution": {
+      "name": "enum_products_resolution",
+      "schema": "payload_schema",
+      "values": [
+        "2MP",
+        "4MP",
+        "5MP",
+        "6MP",
+        "8MP",
+        "8x2MP (پانورامیک)",
+        "4x2MP (پانورامیک)",
+        "3x2MP (پانورامیک)",
+        "2MP Full HD"
+      ]
+    },
+    "payload_schema.enum_products_lens_type": {
+      "name": "enum_products_lens_type",
+      "schema": "payload_schema",
+      "values": [
+        "ثابت",
+        "وری‌فوکال",
+        "موتورایز",
+        "اپتیکال"
+      ]
+    },
+    "payload_schema.enum_products_night_vision_type": {
+      "name": "enum_products_night_vision_type",
+      "schema": "payload_schema",
+      "values": [
+        "IR",
+        "Warm Light",
+        "Warm Light/IR",
+        "نور دوگانه هوشمند",
+        "نور دوگانه فعال/گرم"
+      ]
+    },
     "payload_schema.enum_products_status": {
       "name": "enum_products_status",
       "schema": "payload_schema",
       "values": [
         "published",
         "draft"
-      ]
-    },
-    "payload_schema.enum_products_specifications_resolution": {
-      "name": "enum_products_specifications_resolution",
-      "schema": "payload_schema",
-      "values": [
-        "2MP",
-        "4MP",
-        "5MP",
-        "8MP (4K)"
       ]
     }
   },

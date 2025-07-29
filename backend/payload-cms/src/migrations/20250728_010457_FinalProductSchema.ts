@@ -3,8 +3,10 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
    CREATE TYPE "payload_schema"."enum_users_role" AS ENUM('admin', 'customer');
+  CREATE TYPE "payload_schema"."enum_products_resolution" AS ENUM('2MP', '4MP', '5MP', '6MP', '8MP', '8x2MP (پانورامیک)', '4x2MP (پانورامیک)', '3x2MP (پانورامیک)', '2MP Full HD');
+  CREATE TYPE "payload_schema"."enum_products_lens_type" AS ENUM('ثابت', 'وری‌فوکال', 'موتورایز', 'اپتیکال');
+  CREATE TYPE "payload_schema"."enum_products_night_vision_type" AS ENUM('IR', 'Warm Light', 'Warm Light/IR', 'نور دوگانه هوشمند', 'نور دوگانه فعال/گرم');
   CREATE TYPE "payload_schema"."enum_products_status" AS ENUM('published', 'draft');
-  CREATE TYPE "payload_schema"."enum_products_specifications_resolution" AS ENUM('2MP', '4MP', '5MP', '8MP (4K)');
   CREATE TABLE "payload_schema"."users_sessions" (
   	"_order" integer NOT NULL,
   	"_parent_id" integer NOT NULL,
@@ -37,25 +39,27 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
   
-  CREATE TABLE "payload_schema"."products_gallery" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" integer NOT NULL,
-  	"id" varchar PRIMARY KEY NOT NULL,
-  	"image_id" integer NOT NULL
-  );
-  
   CREATE TABLE "payload_schema"."products" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"name" varchar NOT NULL,
+  	"sku" varchar NOT NULL,
+  	"description" jsonb,
+  	"resolution" "payload_schema"."enum_products_resolution",
+  	"lens_type" "payload_schema"."enum_products_lens_type",
+  	"focal_length" varchar,
+  	"wdr" varchar,
+  	"night_vision_range" numeric,
+  	"night_vision_type" "payload_schema"."enum_products_night_vision_type",
+  	"ip_rating" varchar,
+  	"has_microphone" boolean DEFAULT false,
+  	"supports_s_d_card" boolean DEFAULT false,
+  	"is_po_e" boolean DEFAULT false,
+  	"is_starlight" boolean DEFAULT false,
   	"slug" varchar NOT NULL,
   	"status" "payload_schema"."enum_products_status" DEFAULT 'draft',
-  	"description" jsonb,
   	"price" numeric NOT NULL,
   	"stock" numeric DEFAULT 0,
   	"thumbnail_id" integer NOT NULL,
-  	"specifications_resolution" "payload_schema"."enum_products_specifications_resolution",
-  	"specifications_night_vision_range" numeric,
-  	"specifications_ip_rating" varchar,
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
@@ -141,8 +145,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_schema"."users_sessions" ADD CONSTRAINT "users_sessions_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "payload_schema"."users"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."categories" ADD CONSTRAINT "categories_parent_id_categories_id_fk" FOREIGN KEY ("parent_id") REFERENCES "payload_schema"."categories"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "payload_schema"."categories" ADD CONSTRAINT "categories_image_id_media_id_fk" FOREIGN KEY ("image_id") REFERENCES "payload_schema"."media"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "payload_schema"."products_gallery" ADD CONSTRAINT "products_gallery_image_id_media_id_fk" FOREIGN KEY ("image_id") REFERENCES "payload_schema"."media"("id") ON DELETE set null ON UPDATE no action;
-  ALTER TABLE "payload_schema"."products_gallery" ADD CONSTRAINT "products_gallery_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "payload_schema"."products"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."products" ADD CONSTRAINT "products_thumbnail_id_media_id_fk" FOREIGN KEY ("thumbnail_id") REFERENCES "payload_schema"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "payload_schema"."products_rels" ADD CONSTRAINT "products_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "payload_schema"."products"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."products_rels" ADD CONSTRAINT "products_rels_categories_fk" FOREIGN KEY ("categories_id") REFERENCES "payload_schema"."categories"("id") ON DELETE cascade ON UPDATE no action;
@@ -163,9 +165,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "categories_image_idx" ON "payload_schema"."categories" USING btree ("image_id");
   CREATE INDEX "categories_updated_at_idx" ON "payload_schema"."categories" USING btree ("updated_at");
   CREATE INDEX "categories_created_at_idx" ON "payload_schema"."categories" USING btree ("created_at");
-  CREATE INDEX "products_gallery_order_idx" ON "payload_schema"."products_gallery" USING btree ("_order");
-  CREATE INDEX "products_gallery_parent_id_idx" ON "payload_schema"."products_gallery" USING btree ("_parent_id");
-  CREATE INDEX "products_gallery_image_idx" ON "payload_schema"."products_gallery" USING btree ("image_id");
+  CREATE UNIQUE INDEX "products_sku_idx" ON "payload_schema"."products" USING btree ("sku");
   CREATE UNIQUE INDEX "products_slug_idx" ON "payload_schema"."products" USING btree ("slug");
   CREATE INDEX "products_thumbnail_idx" ON "payload_schema"."products" USING btree ("thumbnail_id");
   CREATE INDEX "products_updated_at_idx" ON "payload_schema"."products" USING btree ("updated_at");
@@ -205,7 +205,6 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
    DROP TABLE "payload_schema"."users_sessions" CASCADE;
   DROP TABLE "payload_schema"."users" CASCADE;
   DROP TABLE "payload_schema"."categories" CASCADE;
-  DROP TABLE "payload_schema"."products_gallery" CASCADE;
   DROP TABLE "payload_schema"."products" CASCADE;
   DROP TABLE "payload_schema"."products_rels" CASCADE;
   DROP TABLE "payload_schema"."media" CASCADE;
@@ -215,6 +214,8 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "payload_schema"."payload_preferences_rels" CASCADE;
   DROP TABLE "payload_schema"."payload_migrations" CASCADE;
   DROP TYPE "payload_schema"."enum_users_role";
-  DROP TYPE "payload_schema"."enum_products_status";
-  DROP TYPE "payload_schema"."enum_products_specifications_resolution";`)
+  DROP TYPE "payload_schema"."enum_products_resolution";
+  DROP TYPE "payload_schema"."enum_products_lens_type";
+  DROP TYPE "payload_schema"."enum_products_night_vision_type";
+  DROP TYPE "payload_schema"."enum_products_status";`)
 }
