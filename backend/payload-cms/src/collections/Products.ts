@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { slateEditor } from '@payloadcms/richtext-slate'
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -14,6 +14,9 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: ({ req: { user } }) => user?.role === 'admin',
+    update: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
     {
@@ -40,7 +43,25 @@ export const Products: CollectionConfig = {
               name: 'description',
               label: 'نقد و بررسی کامل',
               type: 'richText',
-              editor: lexicalEditor({}),
+              editor: slateEditor({
+                admin: {
+                  elements: [
+                    'h1',
+                    'h2',
+                    'h3',
+                    'h4',
+                    'h5',
+                    'h6',
+                    'blockquote',
+                    'link',
+                    'ol',
+                    'ul',
+                    'textAlign',
+                    'indent',
+                  ],
+                  leaves: ['bold', 'code', 'italic', 'strikethrough', 'underline'],
+                },
+              }),
             },
           ],
         },

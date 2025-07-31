@@ -1,0 +1,21 @@
+@import '~@payloadcms/ui/scss';
+
+@layer payload {
+  .payload-rich-text {
+    border: 1px solid #999;
+    border-radius: 6px;
+    padding: 14px;
+    min-height: 180px;
+  }
+
+  .payload-rich-text-toolbar button {
+    font-size: 1.2rem;
+    padding: 8px 10px;
+    margin: 0 3px;
+  }
+
+  .payload-rich-text-toolbar button svg {
+    width: 24px;
+    height: 24px;
+  }
+}

@@ -7,6 +7,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE TYPE "payload_schema"."enum_products_lens_type" AS ENUM('ثابت', 'وری‌فوکال', 'موتورایز', 'اپتیکال');
   CREATE TYPE "payload_schema"."enum_products_night_vision_type" AS ENUM('IR', 'Warm Light', 'Warm Light/IR', 'نور دوگانه هوشمند', 'نور دوگانه فعال/گرم');
   CREATE TYPE "payload_schema"."enum_products_status" AS ENUM('published', 'draft');
+  CREATE TYPE "payload_schema"."enum_posts_status" AS ENUM('draft', 'published');
   CREATE TABLE "payload_schema"."users_sessions" (
   	"_order" integer NOT NULL,
   	"_parent_id" integer NOT NULL,
@@ -72,6 +73,19 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"categories_id" integer
   );
   
+  CREATE TABLE "payload_schema"."posts" (
+  	"id" serial PRIMARY KEY NOT NULL,
+  	"title" varchar NOT NULL,
+  	"content" jsonb,
+  	"status" "payload_schema"."enum_posts_status" DEFAULT 'draft',
+  	"published_date" timestamp(3) with time zone,
+  	"author_id" integer NOT NULL,
+  	"thumbnail_id" integer NOT NULL,
+  	"slug" varchar NOT NULL,
+  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+  );
+  
   CREATE TABLE "payload_schema"."media" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"alt" varchar NOT NULL,
@@ -115,6 +129,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"users_id" integer,
   	"categories_id" integer,
   	"products_id" integer,
+  	"posts_id" integer,
   	"media_id" integer
   );
   
@@ -148,10 +163,13 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_schema"."products" ADD CONSTRAINT "products_thumbnail_id_media_id_fk" FOREIGN KEY ("thumbnail_id") REFERENCES "payload_schema"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "payload_schema"."products_rels" ADD CONSTRAINT "products_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "payload_schema"."products"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."products_rels" ADD CONSTRAINT "products_rels_categories_fk" FOREIGN KEY ("categories_id") REFERENCES "payload_schema"."categories"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_schema"."posts" ADD CONSTRAINT "posts_author_id_users_id_fk" FOREIGN KEY ("author_id") REFERENCES "payload_schema"."users"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "payload_schema"."posts" ADD CONSTRAINT "posts_thumbnail_id_media_id_fk" FOREIGN KEY ("thumbnail_id") REFERENCES "payload_schema"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "payload_schema"."payload_locked_documents"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_users_fk" FOREIGN KEY ("users_id") REFERENCES "payload_schema"."users"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_categories_fk" FOREIGN KEY ("categories_id") REFERENCES "payload_schema"."categories"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_products_fk" FOREIGN KEY ("products_id") REFERENCES "payload_schema"."products"("id") ON DELETE cascade ON UPDATE no action;
+  ALTER TABLE "payload_schema"."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_posts_fk" FOREIGN KEY ("posts_id") REFERENCES "payload_schema"."posts"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_media_fk" FOREIGN KEY ("media_id") REFERENCES "payload_schema"."media"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_preferences_rels" ADD CONSTRAINT "payload_preferences_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "payload_schema"."payload_preferences"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_schema"."payload_preferences_rels" ADD CONSTRAINT "payload_preferences_rels_users_fk" FOREIGN KEY ("users_id") REFERENCES "payload_schema"."users"("id") ON DELETE cascade ON UPDATE no action;
@@ -174,6 +192,11 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "products_rels_parent_idx" ON "payload_schema"."products_rels" USING btree ("parent_id");
   CREATE INDEX "products_rels_path_idx" ON "payload_schema"."products_rels" USING btree ("path");
   CREATE INDEX "products_rels_categories_id_idx" ON "payload_schema"."products_rels" USING btree ("categories_id");
+  CREATE INDEX "posts_author_idx" ON "payload_schema"."posts" USING btree ("author_id");
+  CREATE INDEX "posts_thumbnail_idx" ON "payload_schema"."posts" USING btree ("thumbnail_id");
+  CREATE UNIQUE INDEX "posts_slug_idx" ON "payload_schema"."posts" USING btree ("slug");
+  CREATE INDEX "posts_updated_at_idx" ON "payload_schema"."posts" USING btree ("updated_at");
+  CREATE INDEX "posts_created_at_idx" ON "payload_schema"."posts" USING btree ("created_at");
   CREATE INDEX "media_updated_at_idx" ON "payload_schema"."media" USING btree ("updated_at");
   CREATE INDEX "media_created_at_idx" ON "payload_schema"."media" USING btree ("created_at");
   CREATE UNIQUE INDEX "media_filename_idx" ON "payload_schema"."media" USING btree ("filename");
@@ -188,6 +211,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "payload_locked_documents_rels_users_id_idx" ON "payload_schema"."payload_locked_documents_rels" USING btree ("users_id");
   CREATE INDEX "payload_locked_documents_rels_categories_id_idx" ON "payload_schema"."payload_locked_documents_rels" USING btree ("categories_id");
   CREATE INDEX "payload_locked_documents_rels_products_id_idx" ON "payload_schema"."payload_locked_documents_rels" USING btree ("products_id");
+  CREATE INDEX "payload_locked_documents_rels_posts_id_idx" ON "payload_schema"."payload_locked_documents_rels" USING btree ("posts_id");
   CREATE INDEX "payload_locked_documents_rels_media_id_idx" ON "payload_schema"."payload_locked_documents_rels" USING btree ("media_id");
   CREATE INDEX "payload_preferences_key_idx" ON "payload_schema"."payload_preferences" USING btree ("key");
   CREATE INDEX "payload_preferences_updated_at_idx" ON "payload_schema"."payload_preferences" USING btree ("updated_at");
@@ -207,6 +231,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "payload_schema"."categories" CASCADE;
   DROP TABLE "payload_schema"."products" CASCADE;
   DROP TABLE "payload_schema"."products_rels" CASCADE;
+  DROP TABLE "payload_schema"."posts" CASCADE;
   DROP TABLE "payload_schema"."media" CASCADE;
   DROP TABLE "payload_schema"."payload_locked_documents" CASCADE;
   DROP TABLE "payload_schema"."payload_locked_documents_rels" CASCADE;
@@ -217,5 +242,6 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TYPE "payload_schema"."enum_products_resolution";
   DROP TYPE "payload_schema"."enum_products_lens_type";
   DROP TYPE "payload_schema"."enum_products_night_vision_type";
-  DROP TYPE "payload_schema"."enum_products_status";`)
+  DROP TYPE "payload_schema"."enum_products_status";
+  DROP TYPE "payload_schema"."enum_posts_status";`)
 }

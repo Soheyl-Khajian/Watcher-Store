@@ -86,3 +86,21 @@ export async function fetchProductsByIds(ids: string[]) {
   );
   return data?.docs || [];
 }
+
+// تابع برای دریافت لیست مقالات
+export async function fetchPosts() {
+  noStore(); // برای اینکه همیشه آخرین مقالات نمایش داده شوند، کش را غیرفعال می‌کنیم
+  // با depth=2، اطلاعات کامل نویسنده و تصویر شاخص را هم دریافت می‌کنیم
+  const data = await fetchPayloadAPI('/posts?limit=10&depth=2');
+  return data?.docs || [];
+}
+
+// تابع برای دریافت یک مقاله خاص بر اساس اسلاگ
+export async function fetchPostBySlug(slug: string) {
+  noStore();
+  const data = await fetchPayloadAPI(
+    `/posts?where[slug][equals]=${slug}&depth=2`,
+  );
+  // ای پی آی همیشه یک آرایه برمی‌گرداند، پس ما آیتم اول آن را انتخاب می‌کنیم
+  return data?.docs?.[0] || null;
+}

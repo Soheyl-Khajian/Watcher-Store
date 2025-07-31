@@ -7,9 +7,9 @@ export const Categories: CollectionConfig = {
   },
   access: {
     read: () => true, // همه کاربران می‌توانند دسته‌بندی‌ها را مشاهده کنند
-    // create: () => true, // همه کاربران می‌توانند دسته‌بندی جدید ایجاد کنند
-    // update: () => true, // همه کاربران می‌توانند دسته‌بندی‌ها را ویرایش کنند
-    // delete: () => true, // همه کاربران می‌توانند دسته‌بندی‌ها را حذف کنند
+    create: ({ req: { user } }) => user?.role === 'admin',
+    update: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
     {
