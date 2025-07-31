@@ -77,3 +77,18 @@ export interface Order {
   createdAt: string; // تاریخ به صورت رشته‌ای از ای پی آی می‌آید
   items: OrderItem[];
 }
+
+export interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  // author حالا فقط یک شناسه است
+  author: string;
+  // فیلد جدید برای نمایش نام نویسنده
+  authorName?: string;
+  publishedDate: string; // تاریخ به صورت رشته‌ای از API می‌آید
+  thumbnail: Media; // تصویر شاخص از نوع Media است
+  content: any; // محتوای richText ساختار پیچیده‌ای دارد، فعلاً آن را any در نظر می‌گیریم
+  status: 'draft' | 'published';
+}
+

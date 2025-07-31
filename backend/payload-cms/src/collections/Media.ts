@@ -9,6 +9,9 @@ export const Media: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: ({ req: { user } }) => user?.role === 'admin',
+    update: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user } }) => user?.role === 'admin',
   },
   upload: {
     // فقط پوشه ذخیره‌سازی را مشخص می‌کنیم. Payload بقیه موارد را مدیریت می‌کند.

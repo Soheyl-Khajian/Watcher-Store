@@ -4,7 +4,7 @@ config({ path: '../.env' }) // ← بارگذاری فایل ریشه
 
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { slateEditor } from '@payloadcms/richtext-slate'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -14,7 +14,7 @@ import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Categories } from './collections/Categories'
 import { Products } from './collections/Products'
-
+import { Posts } from './collections/Posts'
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
 
@@ -31,8 +31,8 @@ export default buildConfig({
   i18n: {
     supportedLanguages: { en, fa },
   },
-  collections: [Users, Categories, Products, Media],
-  editor: lexicalEditor(),
+  collections: [Users, Categories, Products, Posts, Media],
+  editor: slateEditor({}),
   secret: process.env.PAYLOAD_SECRET!,
   typescript: {
     outputFile: path.resolve(__dirname, 'payload-types.ts'),
