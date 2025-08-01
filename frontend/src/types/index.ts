@@ -90,5 +90,5 @@ export interface Post {
   thumbnail: Media; // تصویر شاخص از نوع Media است
   content: any; // محتوای richText ساختار پیچیده‌ای دارد، فعلاً آن را any در نظر می‌گیریم
   status: 'draft' | 'published';
+  excerpt?: string; // فیلد جدید برای خلاصه مطلب
 }
-
