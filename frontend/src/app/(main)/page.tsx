@@ -7,12 +7,13 @@ import { FeaturedProducts } from '@/components/sections/featured-products';
 import { ArticlesSection } from '@/components/sections/articles-section';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { fetchProducts, fetchCategories } from '@/lib/api/payload';
+import { fetchProducts, fetchCategories, fetchPosts } from '@/lib/api/payload';
 import type { Product } from '@/types';
 
 export default async function HomePage() {
   const products = await fetchProducts();
   const categories = await fetchCategories();
+  const posts = await fetchPosts();
 
   return (
     <>
@@ -38,7 +39,7 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-      <ArticlesSection />
+      <ArticlesSection posts={posts} />
     </>
   );
 }

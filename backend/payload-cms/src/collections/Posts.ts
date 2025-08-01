@@ -52,6 +52,15 @@ export const Posts: CollectionConfig = {
       required: true,
     },
     {
+      name: 'excerpt',
+      label: 'خلاصه مطلب (Excerpt)',
+      type: 'textarea', // استفاده از textarea برای متن چند خطی
+      required: true,
+      admin: {
+        description: 'یک خلاصه کوتاه از مقاله برای نمایش در کارت‌ها.',
+      },
+    },
+    {
       name: 'content',
       label: 'محتوای مقاله',
       type: 'richText',

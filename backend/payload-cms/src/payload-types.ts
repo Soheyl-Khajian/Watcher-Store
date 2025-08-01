@@ -248,6 +248,10 @@ export interface Product {
 export interface Post {
   id: number;
   title: string;
+  /**
+   * یک خلاصه کوتاه از مقاله برای نمایش در کارت‌ها.
+   */
+  excerpt: string;
   content?:
     | {
         [k: string]: unknown;
@@ -400,6 +404,7 @@ export interface ProductsSelect<T extends boolean = true> {
  */
 export interface PostsSelect<T extends boolean = true> {
   title?: T;
+  excerpt?: T;
   content?: T;
   status?: T;
   publishedDate?: T;
