@@ -7,19 +7,23 @@ import { FeaturedProducts } from '@/components/sections/featured-products';
 import { ArticlesSection } from '@/components/sections/articles-section';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { fetchProducts, fetchCategories, fetchPosts } from '@/lib/api/payload';
+import {
+  fetchProducts,
+  fetchParentCategories,
+  fetchPosts,
+} from '@/lib/api/payload';
 import type { Product } from '@/types';
 
 export default async function HomePage() {
   const products = await fetchProducts();
-  const categories = await fetchCategories();
+  const parentCategories = await fetchParentCategories();
   const posts = await fetchPosts();
 
   return (
     <>
       <HeroSection />
       <FeaturedProducts products={products} />
-      <CategoryGrid categories={categories} />
+      <CategoryGrid categories={parentCategories} />
 
       <section className="py-12">
         <div className="flex items-center mb-2">

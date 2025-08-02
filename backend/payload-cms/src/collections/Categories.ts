@@ -30,9 +30,22 @@ export const Categories: CollectionConfig = {
     },
     {
       name: 'parent',
-      label: 'دسته‌بندی والد',
+      label: 'دسته مادر (والد)',
       type: 'relationship',
       relationTo: 'categories',
+      hasMany: false,
+      filterOptions: ({ id }) => {
+        // اگر در حال ویرایش هستیم، فیلتر را اعمال می‌کنیم
+        if (id) {
+          return {
+            id: {
+              not_equals: id,
+            },
+          }
+        }
+
+        return true
+      },
     },
     {
       name: 'image',
