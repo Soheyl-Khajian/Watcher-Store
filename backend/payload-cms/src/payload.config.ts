@@ -15,6 +15,7 @@ import { Media } from './collections/Media'
 import { Categories } from './collections/Categories'
 import { Products } from './collections/Products'
 import { Posts } from './collections/Posts'
+import { Footer } from './globals/Footer'
 import { productsByCategoryEndpoint } from './endpoints/productsByCategory'
 
 import { en } from '@payloadcms/translations/languages/en'
@@ -34,6 +35,7 @@ export default buildConfig({
     supportedLanguages: { en, fa },
   },
   collections: [Users, Categories, Products, Posts, Media],
+  globals: [Footer],
   endpoints: [productsByCategoryEndpoint],
   editor: slateEditor({}),
   secret: process.env.PAYLOAD_SECRET!,

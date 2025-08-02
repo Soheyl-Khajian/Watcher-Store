@@ -156,3 +156,10 @@ export async function fetchPostBySlug(slug: string) {
   // ای پی آی همیشه یک آرایه برمی‌گرداند، پس ما آیتم اول آن را انتخاب می‌کنیم
   return data?.docs?.[0] || null;
 }
+
+// تابع برای دریافت اطلاعات فوتر
+export async function fetchFooter() {
+  // گلوبال‌ها از طریق مسیر /api/globals/:slug قابل دسترسی هستند
+  const footerData = await fetchPayloadAPI('/globals/footer');
+  return footerData;
+}
