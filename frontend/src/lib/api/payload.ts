@@ -1,5 +1,6 @@
 // lib/api/payload.ts
 
+import { Category } from '@/types';
 import { unstable_noStore as noStore } from 'next/cache';
 
 const PAYLOAD_API_URL = 'http://localhost:3000/api';
@@ -35,6 +36,57 @@ export async function fetchCategories() {
   noStore();
   const data = await fetchPayloadAPI('/categories?limit=4');
   return data?.docs || [];
+}
+
+// تابع جدید برای دریافت فقط دسته‌بندی‌های اصلی (بدون والد)
+export async function fetchParentCategories() {
+  // از where[parent][exists]=false برای فیلتر کردن استفاده می‌کنیم
+  const data = await fetchPayloadAPI(
+    '/categories?limit=100&where[parent][exists]=false',
+  );
+  return data?.docs || [];
+}
+
+// تابع جدید برای دریافت دسته‌بندی‌ها به صورت درختی
+export async function fetchCategoryTree() {
+  // ۱. تمام دسته‌بندی‌ها را با عمق ۱ دریافت می‌کنیم تا اطلاعات والد موجود باشد
+  const data = await fetchPayloadAPI('/categories?limit=200&depth=1');
+  const categories: Category[] = data?.docs || [];
+
+  // الگوریتم ساخت درخت
+  const categoryMap: { [key: string]: Category } = {};
+  const categoryTree: Category[] = [];
+
+  // ۲. همه دسته‌بندی‌ها را در یک نقشه (map) برای دسترسی سریع قرار می‌دهیم
+  // و برای هر کدام یک آرایه فرزند خالی ایجاد می‌کنیم
+  categories.forEach((category) => {
+    categoryMap[category.id] = { ...category, children: [] };
+  });
+
+  // ۳. روی لیست دوباره حلقه می‌زنیم تا هر دسته را به والد خودش متصل کنیم
+  categories.forEach((category) => {
+    // اگر دسته والد داشت و والد آن در نقشه ما بود
+    const parentId =
+      typeof category.parent === 'string'
+        ? category.parent
+        : category.parent?.id;
+    if (parentId && categoryMap[parentId]) {
+      // این دسته را به آرایه فرزندان والدش اضافه کن
+      categoryMap[parentId].children?.push(categoryMap[category.id]);
+    } else {
+      // اگر والد نداشت، این یک شاخه اصلی است
+      categoryTree.push(categoryMap[category.id]);
+    }
+  });
+
+  return categoryTree;
+}
+
+// تابع جدید برای دریافت دسته‌بندی و تمام محصولات زیرمجموعه آن
+export async function fetchProductsAndCategoryBySlug(slug: string) {
+  const data = await fetchPayloadAPI(`/products-by-category/${slug}`);
+  // اگر داده‌ای نبود، یک مقدار پیش‌فرض برمی‌گردانیم تا برنامه کرش نکند
+  return data || { category: null, products: [] };
 }
 
 // تابع برای دریافت یک محصول خاص بر اساس اسلاگ

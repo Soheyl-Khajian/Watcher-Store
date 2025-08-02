@@ -2,20 +2,31 @@
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
 
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/theme-toggle';
 import { UserNav } from './user-nav';
 import { CartSheet } from './cart-sheet';
+import { MegaMenu } from './mega-menu';
+import { MobileNav } from './mobile-nav';
+import { fetchCategoryTree } from '@/lib/api/payload';
 
-const mainNavLinks = [
-  { href: '/shop', label: 'فروشگاه' },
+const otherNavLinks = [
   { href: '/blog', label: 'وبلاگ' },
   { href: '/about-us', label: 'درباره ما' },
   { href: '/contact-us', label: 'تماس با ما' },
 ];
 
-export function Header() {
+export async function Header() {
+  const categoryTree = await fetchCategoryTree();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-2">
@@ -31,7 +42,11 @@ export function Header() {
 
         {/* منوی اصلی برای دسکتاپ */}
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          {mainNavLinks.map((link) => (
+          {/* کامپوننت منوی داینامیک */}
+          <MegaMenu categories={categoryTree} />
+
+          {/* بقیه لینک‌های ثابت */}
+          {otherNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -52,16 +67,14 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <div className="flex flex-col gap-4 py-12 px-3">
-                <Link href="/" className="mb-4 font-bold">
-                  فروشگاه واچر
-                </Link>
-                {mainNavLinks.map((link) => (
-                  <Link key={link.href} href={link.href} className="text-lg">
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
+              {/* عنوان و توضیحات را اضافه می‌کنیم اما با کلاس فقط صفحه خوان آنها را مخفی می‌کنیم */}
+              <SheetHeader>
+                <SheetTitle className="sr-only">منو</SheetTitle>
+                <SheetDescription className="sr-only">
+                  ناوبری اصلی سایت
+                </SheetDescription>
+              </SheetHeader>
+              <MobileNav categories={categoryTree} otherLinks={otherNavLinks} />
             </SheetContent>
           </Sheet>
         </div>

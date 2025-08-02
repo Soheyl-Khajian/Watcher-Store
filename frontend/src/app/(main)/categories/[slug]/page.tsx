@@ -1,9 +1,6 @@
-// src/app/(main)/categories/[slug]/page.tsx
+// مسیر فایل: src/app/(main)/categories/[slug]/page.tsx
 
-import {
-  fetchCategoryBySlug,
-  fetchProductsByCategoryId,
-} from '@/lib/api/payload';
+import { fetchProductsAndCategoryBySlug } from '@/lib/api/payload'; // ۱. استفاده از تابع جدید
 import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
 import { notFound } from 'next/navigation';
@@ -15,16 +12,13 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
 
-  // مرحله ۱: اطلاعات دسته‌بندی را بر اساس اسلاگ پیدا می‌کنیم
-  const category = await fetchCategoryBySlug(slug);
+  // ۲. فقط یک فراخوانی API برای دریافت همه چیز
+  const { category, products } = await fetchProductsAndCategoryBySlug(slug);
 
   // اگر دسته‌بندی وجود نداشت، صفحه 404 نمایش داده می‌شود
   if (!category) {
     return notFound();
   }
-
-  // مرحله ۲: از ID دسته‌بندی برای دریافت محصولات مربوطه استفاده می‌کنیم
-  const products = await fetchProductsByCategoryId(category.id);
 
   return (
     <div className="container mx-auto py-12">
@@ -32,7 +26,7 @@ export default async function CategoryPage({
         محصولات دسته‌بندی: {category.name}
       </h1>
 
-      {products.length > 0 ? (
+      {products && products.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((product: Product) => (
             <ProductCard key={product.id} product={product} />
@@ -40,7 +34,7 @@ export default async function CategoryPage({
         </div>
       ) : (
         <p className="text-center text-muted-foreground">
-          محصولی در این دسته‌بندی یافت نشد.
+          محصولی در این دسته‌بندی یا زیرمجموعه‌های آن یافت نشد.
         </p>
       )}
     </div>

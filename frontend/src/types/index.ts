@@ -36,8 +36,9 @@ export interface Category {
   id: string;
   name: string;
   slug?: string;
-  image?: Media; // <-- پراپرتی تصویر
-  parent?: Category;
+  image?: Media;
+  parent?: Category | string; // parent می‌تواند آبجکت کامل یا فقط ID باشد
+  children?: Category[];
 }
 
 export interface Product {
@@ -45,9 +46,8 @@ export interface Product {
   name: string;
   price: number;
   slug?: string;
-  thumbnail?: Media; // <-- پراپرتی تصویر شاخص
+  thumbnail?: Media;
   categories?: Category[];
-  // ... سایر فیلدهایی که در Payload تعریف کرده‌اید
 }
 
 export interface CartItem {
