@@ -163,3 +163,10 @@ export async function fetchFooter() {
   const footerData = await fetchPayloadAPI('/globals/footer');
   return footerData;
 }
+
+//تابع برای دریافت یک صفحه
+export async function fetchPageBySlug(slug: string) {
+  const data = await fetchPayloadAPI(`/pages?where[slug][equals]=${slug}`);
+  // API یک آرایه برمی‌گرداند، ما آیتم اول را انتخاب می‌کنیم
+  return data?.docs?.[0] || null;
+}

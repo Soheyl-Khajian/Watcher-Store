@@ -3,6 +3,7 @@ import * as migration_20250730_175238_CreatePostsCollection from './20250730_175
 import * as migration_20250801_132030_AddExcerptToPosts from './20250801_132030_AddExcerptToPosts';
 import * as migration_20250802_222803_CreateFooterGlobal from './20250802_222803_CreateFooterGlobal';
 import * as migration_20250802_231755_AddDetailsToProducts from './20250802_231755_AddDetailsToProducts';
+import * as migration_20250803_083715_CreatePagesCollection from './20250803_083715_CreatePagesCollection';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20250802_231755_AddDetailsToProducts.up,
     down: migration_20250802_231755_AddDetailsToProducts.down,
-    name: '20250802_231755_AddDetailsToProducts'
+    name: '20250802_231755_AddDetailsToProducts',
+  },
+  {
+    up: migration_20250803_083715_CreatePagesCollection.up,
+    down: migration_20250803_083715_CreatePagesCollection.down,
+    name: '20250803_083715_CreatePagesCollection'
   },
 ];

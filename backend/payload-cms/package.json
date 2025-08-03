@@ -35,7 +35,8 @@
     "payload": "^3.49.0",
     "react": "19.1.0",
     "react-dom": "^19.1.0",
-    "sharp": "0.34.2"
+    "sharp": "0.34.2",
+    "slug": "^11.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.50.0",
@@ -44,6 +45,7 @@
     "@types/node": "^22.5.4",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.2",
+    "@types/slug": "^5.0.9",
     "@vitejs/plugin-react": "4.5.2",
     "eslint": "^9.16.0",
     "eslint-config-next": "15.3.0",
