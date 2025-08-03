@@ -1,3 +1,5 @@
+// مسیر فایل: backend/payload-cms/src/collections/Products.ts
+
 import type { CollectionConfig } from 'payload'
 import { slateEditor } from '@payloadcms/richtext-slate'
 
@@ -5,12 +7,6 @@ export const Products: CollectionConfig = {
   slug: 'products',
   admin: {
     useAsTitle: 'name',
-    preview: (doc) => {
-      if (doc?.slug) {
-        return `${process.env.PAYLOAD_PUBLIC_SERVER_URL}/products/${doc.slug}`
-      }
-      return ''
-    },
   },
   access: {
     read: () => true,
@@ -22,10 +18,11 @@ export const Products: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        // تب اول: اطلاعات اصلی
+        // تب اول: اطلاعات اصلی و رسانه
         {
-          label: 'اطلاعات اصلی',
+          label: 'اطلاعات اصلی و رسانه',
           fields: [
+            // ... فیلدهای نام، کد کالا، گالری، نقد و بررسی ...
             {
               name: 'name',
               label: 'نام کامل محصول (برند + مدل)',
@@ -40,26 +37,32 @@ export const Products: CollectionConfig = {
               unique: true,
             },
             {
+              name: 'gallery',
+              label: 'گالری تصاویر',
+              type: 'array',
+              minRows: 1,
+              required: true,
+              labels: {
+                singular: 'تصویر',
+                plural: 'تصاویر',
+              },
+              fields: [
+                {
+                  name: 'image',
+                  type: 'upload',
+                  relationTo: 'media',
+                  required: true,
+                },
+              ],
+            },
+            {
               name: 'description',
               label: 'نقد و بررسی کامل',
               type: 'richText',
               editor: slateEditor({
                 admin: {
-                  elements: [
-                    'h1',
-                    'h2',
-                    'h3',
-                    'h4',
-                    'h5',
-                    'h6',
-                    'blockquote',
-                    'link',
-                    'ol',
-                    'ul',
-                    'textAlign',
-                    'indent',
-                  ],
-                  leaves: ['bold', 'code', 'italic', 'strikethrough', 'underline'],
+                  elements: ['h2', 'h3', 'h4', 'link', 'ol', 'ul'],
+                  leaves: ['bold', 'italic', 'underline'],
                 },
               }),
             },
@@ -70,106 +73,63 @@ export const Products: CollectionConfig = {
           label: 'مشخصات فنی',
           fields: [
             {
-              name: 'resolution',
-              label: 'رزولوشن تصویر',
-              type: 'select',
-              options: [
-                '2MP',
-                '4MP',
-                '5MP',
-                '6MP',
-                '8MP',
-                '8x2MP (پانورامیک)',
-                '4x2MP (پانورامیک)',
-                '3x2MP (پانورامیک)',
-                '2MP Full HD',
+              name: 'specifications',
+              label: 'جدول مشخصات',
+              type: 'array',
+              labels: {
+                singular: 'مشخصه',
+                plural: 'مشخصات',
+              },
+              fields: [
+                {
+                  name: 'specName',
+                  label: 'نام مشخصه',
+                  type: 'text',
+                  required: true,
+                  admin: { width: '50%' },
+                },
+                {
+                  name: 'specValue',
+                  label: 'مقدار مشخصه',
+                  type: 'text',
+                  required: true,
+                  admin: { width: '50%' },
+                },
               ],
-            },
-            {
-              name: 'lensType',
-              label: 'نوع لنز',
-              type: 'select',
-              options: ['ثابت', 'وری‌فوکال', 'موتورایز', 'اپتیکال'],
-            },
-            // --- فیلد جدید ---
-            {
-              name: 'focalLength',
-              label: 'لنز (فاصله کانونی)',
-              type: 'text',
-              admin: { placeholder: 'مثال: 2.8mm یا 2.7-13.5mm' },
-            },
-            // --- فیلد جدید ---
-            {
-              name: 'wdr',
-              label: 'WDR (نوع/dB)',
-              type: 'text',
-              admin: { placeholder: 'مثال: WDR 120db' },
-            },
-            {
-              name: 'nightVisionRange',
-              label: 'برد دید در شب (متر)',
-              type: 'number',
-            },
-            {
-              name: 'nightVisionType',
-              label: 'نوع دید در شب',
-              type: 'select',
-              options: [
-                'IR',
-                'Warm Light',
-                'Warm Light/IR',
-                'نور دوگانه هوشمند',
-                'نور دوگانه فعال/گرم',
-              ],
-            },
-            {
-              name: 'ipRating',
-              label: 'استاندارد مقاومت (IP)',
-              type: 'text',
-              admin: { placeholder: 'مثال: IP67' },
             },
           ],
         },
-        // تب سوم: قابلیت‌های هوشمند
+        // تب سوم: قابلیت‌های هوشمند (با ساختار منعطف جدید)
         {
-          label: 'قابلیت‌های هوشمند',
+          label: 'ویژگی‌ها و قابلیت‌ها', // عنوان تب را عمومی‌تر کردیم
           fields: [
             {
-              name: 'hasMicrophone',
-              label: 'دارای میکروفون داخلی',
-              type: 'checkbox',
-              defaultValue: false,
-            },
-            {
-              name: 'supportsSDCard',
-              label: 'پشتیبانی از کارت حافظه',
-              type: 'checkbox',
-              defaultValue: false,
-            },
-            {
-              name: 'isPoE',
-              label: 'قابلیت PoE',
-              type: 'checkbox',
-              defaultValue: false,
-            },
-            {
-              name: 'isStarlight',
-              label: 'قابلیت Starlight / Full-Color',
-              type: 'checkbox',
-              defaultValue: false,
+              name: 'features',
+              label: 'لیست ویژگی‌ها',
+              type: 'array',
+              labels: {
+                singular: 'ویژگی',
+                plural: 'ویژگی‌ها',
+              },
+              fields: [
+                {
+                  name: 'feature',
+                  label: 'نام ویژگی',
+                  type: 'text',
+                  required: true,
+                },
+              ],
             },
           ],
         },
       ],
     },
-    // فیلدهایی که در سایدبار نمایش داده می‌شوند
+    // فیلدهای سایدبار
     {
       name: 'slug',
       label: 'اسلاگ (برای URL)',
       type: 'text',
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
       required: true,
       unique: true,
     },
@@ -177,42 +137,23 @@ export const Products: CollectionConfig = {
       name: 'status',
       label: 'وضعیت نمایش',
       type: 'select',
-      options: [
-        { label: 'منتشر شده', value: 'published' },
-        { label: 'پیش‌نویس', value: 'draft' },
-      ],
+      options: ['published', 'draft'],
       defaultValue: 'draft',
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
     },
     {
       name: 'price',
       label: 'قیمت (تومان)',
       type: 'number',
       required: true,
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
     },
     {
       name: 'stock',
       label: 'موجودی انبار',
       type: 'number',
       defaultValue: 0,
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'thumbnail',
-      label: 'تصویر شاخص',
-      type: 'upload',
-      relationTo: 'media',
-      required: true,
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
     },
     {
       name: 'categories',
@@ -220,9 +161,7 @@ export const Products: CollectionConfig = {
       type: 'relationship',
       relationTo: 'categories',
       hasMany: true,
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
     },
   ],
 }

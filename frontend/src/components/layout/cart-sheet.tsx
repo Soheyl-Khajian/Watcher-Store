@@ -5,7 +5,7 @@ import { useState } from 'react'; // ۱. useState را وارد کنید
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ShoppingCart } from 'lucide-react';
-import { CartContent } from './cart-content';
+import { CartContent } from '../cart/cart-content';
 import { useAuthStore } from '@/lib/store/auth';
 import { useMemo } from 'react';
 
