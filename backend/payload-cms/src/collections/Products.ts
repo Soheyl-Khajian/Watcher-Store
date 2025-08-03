@@ -40,8 +40,6 @@ export const Products: CollectionConfig = {
               name: 'gallery',
               label: 'گالری تصاویر',
               type: 'array',
-              minRows: 1,
-              required: true,
               labels: {
                 singular: 'تصویر',
                 plural: 'تصاویر',

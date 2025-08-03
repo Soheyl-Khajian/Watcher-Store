@@ -160,6 +160,13 @@ export interface Category {
   slug: string;
   parent?: (number | null) | Category;
   image?: (number | null) | Media;
+  /**
+   * این تنظیمات برای اعمال تخفیف یا افزایش قیمت روی تمام محصولات این دسته است.
+   */
+  priceAdjustment?: {
+    adjustmentType?: ('discount' | 'increase') | null;
+    adjustmentValue?: number | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -210,10 +217,12 @@ export interface Product {
   id: number;
   name: string;
   sku: string;
-  gallery: {
-    image: number | Media;
-    id?: string | null;
-  }[];
+  gallery?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
   description?:
     | {
         [k: string]: unknown;
@@ -389,6 +398,12 @@ export interface CategoriesSelect<T extends boolean = true> {
   slug?: T;
   parent?: T;
   image?: T;
+  priceAdjustment?:
+    | T
+    | {
+        adjustmentType?: T;
+        adjustmentValue?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

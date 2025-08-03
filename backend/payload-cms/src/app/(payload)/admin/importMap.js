@@ -1,3 +1,4 @@
+import { default as default_541dd237f9f4fbdcb68152f2dd7ff9b9 } from '../../../components/ApplyPriceChangeButton'
 import { RscEntrySlateCell as RscEntrySlateCell_0e78253914a550fdacd75626f1dabe17 } from '@payloadcms/richtext-slate/rsc'
 import { RscEntrySlateField as RscEntrySlateField_0e78253914a550fdacd75626f1dabe17 } from '@payloadcms/richtext-slate/rsc'
 import { BoldLeafButton as BoldLeafButton_0b388c087d9de8c4f011dd323a130cfb } from '@payloadcms/richtext-slate/client'
@@ -43,6 +44,7 @@ import { UploadElement as UploadElement_0b388c087d9de8c4f011dd323a130cfb } from 
 import { WithUpload as WithUpload_0b388c087d9de8c4f011dd323a130cfb } from '@payloadcms/richtext-slate/client'
 
 export const importMap = {
+  "/components/ApplyPriceChangeButton#default": default_541dd237f9f4fbdcb68152f2dd7ff9b9,
   "@payloadcms/richtext-slate/rsc#RscEntrySlateCell": RscEntrySlateCell_0e78253914a550fdacd75626f1dabe17,
   "@payloadcms/richtext-slate/rsc#RscEntrySlateField": RscEntrySlateField_0e78253914a550fdacd75626f1dabe17,
   "@payloadcms/richtext-slate/client#BoldLeafButton": BoldLeafButton_0b388c087d9de8c4f011dd323a130cfb,
