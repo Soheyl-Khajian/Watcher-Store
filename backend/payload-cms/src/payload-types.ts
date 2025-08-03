@@ -208,39 +208,32 @@ export interface Product {
   id: number;
   name: string;
   sku: string;
+  gallery: {
+    image: number | Media;
+    id?: string | null;
+  }[];
   description?:
     | {
         [k: string]: unknown;
       }[]
     | null;
-  resolution?:
-    | (
-        | '2MP'
-        | '4MP'
-        | '5MP'
-        | '6MP'
-        | '8MP'
-        | '8x2MP (پانورامیک)'
-        | '4x2MP (پانورامیک)'
-        | '3x2MP (پانورامیک)'
-        | '2MP Full HD'
-      )
+  specifications?:
+    | {
+        specName: string;
+        specValue: string;
+        id?: string | null;
+      }[]
     | null;
-  lensType?: ('ثابت' | 'وری‌فوکال' | 'موتورایز' | 'اپتیکال') | null;
-  focalLength?: string | null;
-  wdr?: string | null;
-  nightVisionRange?: number | null;
-  nightVisionType?: ('IR' | 'Warm Light' | 'Warm Light/IR' | 'نور دوگانه هوشمند' | 'نور دوگانه فعال/گرم') | null;
-  ipRating?: string | null;
-  hasMicrophone?: boolean | null;
-  supportsSDCard?: boolean | null;
-  isPoE?: boolean | null;
-  isStarlight?: boolean | null;
+  features?:
+    | {
+        feature: string;
+        id?: string | null;
+      }[]
+    | null;
   slug: string;
   status?: ('published' | 'draft') | null;
   price: number;
   stock?: number | null;
-  thumbnail: number | Media;
   categories?: (number | Category)[] | null;
   updatedAt: string;
   createdAt: string;
@@ -381,23 +374,30 @@ export interface CategoriesSelect<T extends boolean = true> {
 export interface ProductsSelect<T extends boolean = true> {
   name?: T;
   sku?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
   description?: T;
-  resolution?: T;
-  lensType?: T;
-  focalLength?: T;
-  wdr?: T;
-  nightVisionRange?: T;
-  nightVisionType?: T;
-  ipRating?: T;
-  hasMicrophone?: T;
-  supportsSDCard?: T;
-  isPoE?: T;
-  isStarlight?: T;
+  specifications?:
+    | T
+    | {
+        specName?: T;
+        specValue?: T;
+        id?: T;
+      };
+  features?:
+    | T
+    | {
+        feature?: T;
+        id?: T;
+      };
   slug?: T;
   status?: T;
   price?: T;
   stock?: T;
-  thumbnail?: T;
   categories?: T;
   updatedAt?: T;
   createdAt?: T;

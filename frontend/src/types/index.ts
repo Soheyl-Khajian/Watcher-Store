@@ -42,12 +42,39 @@ export interface Category {
 }
 
 export interface Product {
-  id: string;
+  id: string | number; // ID می‌تواند رشته یا عدد باشد
   name: string;
+  sku: string;
   price: number;
+  stock?: number;
   slug?: string;
-  thumbnail?: Media;
-  categories?: Category[];
+  status?: 'published' | 'draft';
+  categories?: (Category | string | number)[];
+
+  // فیلدهای جدید
+  gallery:
+    | {
+        image: Media | number;
+        id?: string | null;
+      }[]
+    | null;
+
+  specifications:
+    | {
+        specName: string;
+        specValue: string;
+        id?: string | null;
+      }[]
+    | null;
+
+  features:
+    | {
+        feature: string;
+        id?: string | null;
+      }[]
+    | null;
+
+  description: any; // برای نقد و بررسی کامل (Rich Text)
 }
 
 export interface CartItem {
