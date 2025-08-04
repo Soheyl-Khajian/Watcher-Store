@@ -160,6 +160,13 @@ export interface Category {
   slug: string;
   parent?: (number | null) | Category;
   image?: (number | null) | Media;
+  /**
+   * این تنظیمات برای اعمال تخفیف یا افزایش قیمت روی تمام محصولات این دسته است.
+   */
+  priceAdjustment?: {
+    adjustmentType?: ('discount' | 'increase') | null;
+    adjustmentValue?: number | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -210,10 +217,12 @@ export interface Product {
   id: number;
   name: string;
   sku: string;
-  gallery: {
-    image: number | Media;
-    id?: string | null;
-  }[];
+  gallery?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
   description?:
     | {
         [k: string]: unknown;
@@ -235,6 +244,11 @@ export interface Product {
   slug: string;
   status?: ('published' | 'draft') | null;
   price: number;
+  /**
+   * در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.
+   */
+  salePrice?: number | null;
+  isOnSale?: boolean | null;
   stock?: number | null;
   categories?: (number | Category)[] | null;
   updatedAt: string;
@@ -389,6 +403,12 @@ export interface CategoriesSelect<T extends boolean = true> {
   slug?: T;
   parent?: T;
   image?: T;
+  priceAdjustment?:
+    | T
+    | {
+        adjustmentType?: T;
+        adjustmentValue?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -422,6 +442,8 @@ export interface ProductsSelect<T extends boolean = true> {
   slug?: T;
   status?: T;
   price?: T;
+  salePrice?: T;
+  isOnSale?: T;
   stock?: T;
   categories?: T;
   updatedAt?: T;

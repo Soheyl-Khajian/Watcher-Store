@@ -1,4 +1,4 @@
-// src/app/(main)/checkout/page.tsx
+// مسیر فایل: src/app/(main)/checkout/page.tsx
 'use client';
 
 import { useAuthStore } from '@/lib/store/auth';
@@ -17,16 +17,16 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { getCurrentPrice } from '@/lib/utils/pricing'; // ۱. تابع کمکی را وارد کنید
 
 export default function CheckoutPage() {
   const { cart, token, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false); // State برای جلوگیری از ریدایرکت ناخواسته
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // فقط زمانی ریدایرکت کن که در حال پردازش سفارش نباشیم
     if (
       !isLoading &&
       !isProcessing &&
@@ -50,12 +50,12 @@ export default function CheckoutPage() {
 
   const handleCheckout = async () => {
     if (!token) return;
-    setIsProcessing(true); // پردازش را شروع می‌کنیم
+    setIsProcessing(true);
 
     const order = await createOrder(token);
 
     if (order && order.id) {
-      setCart(null); // سبد خرید را در state خالی می‌کنیم
+      setCart(null);
       toast.success('سفارش شما با موفقیت ثبت شد. در حال انتقال...');
 
       const paymentData = await initiatePayment(order.id, token);
@@ -64,11 +64,11 @@ export default function CheckoutPage() {
         window.location.href = paymentData.paymentUrl;
       } else {
         toast.error('خطا در اتصال به درگاه پرداخت.');
-        setIsProcessing(false); // در صورت خطا، پردازش را متوقف کن
+        setIsProcessing(false);
       }
     } else {
       toast.error('خطا در ثبت سفارش.');
-      setIsProcessing(false); // در صورت خطا، پردازش را متوقف کن
+      setIsProcessing(false);
     }
   };
 
@@ -78,33 +78,12 @@ export default function CheckoutPage() {
       const product = products.find(
         (p: Product) => String(p.id) === String(item.productId),
       );
-      return total + (product?.price || 0) * item.quantity;
-    }, 0); //مقدار اولیه تابع ردیوس
+      if (!product) return total;
+      // ۲. از تابع کمکی برای محاسبه جمع کل استفاده کنید
+      const price = getCurrentPrice(product);
+      return total + price * item.quantity;
+    }, 0);
   }, [cart, products]);
-
-  /* 
-  syntax of using reduce:
-
-  array.reduce((accumulator, currentItem, index, array) => {
-    // logic here
-    return updatedAccumulator;
-  }, initialValue);
-
-  <========================================================>
-
-  Example of calculating total price in a cart:
-
-  const cart = [
-  { name: 'A', price: 100, quantity: 2 },
-  { name: 'B', price: 200, quantity: 1 },
-  ];
-
-  const total = cart.reduce((sum, item) => {
-    return sum + item.price * item.quantity;
-  }, 0);
-  console.log(total); // 400
-
-  */
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
@@ -126,16 +105,23 @@ export default function CheckoutPage() {
               const product = products.find(
                 (p: Product) => String(p.id) === String(item.productId),
               );
+              if (!product) return null;
+
+              // ۳. قیمت صحیح را برای هر آیتم بگیرید
+              const currentPrice = getCurrentPrice(product);
+
               return (
                 <li key={item.id} className="flex justify-between items-center">
                   <div>
-                    <p className="font-semibold">{product?.name ?? '...'}</p>
+                    <p className="font-semibold">{product.name}</p>
                     <p className="text-sm text-muted-foreground" dir="ltr">
-                      {item.quantity} x {formatPrice(product?.price || 0)}
+                      {/* ۴. قیمت صحیح را نمایش دهید */}
+                      {item.quantity} x {formatPrice(currentPrice)}
                     </p>
                   </div>
                   <p className="font-semibold">
-                    {formatPrice((product?.price || 0) * item.quantity)}
+                    {/* ۵. جمع کل صحیح آیتم را نمایش دهید */}
+                    {formatPrice(currentPrice * item.quantity)}
                   </p>
                 </li>
               );
