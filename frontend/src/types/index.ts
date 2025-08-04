@@ -42,16 +42,19 @@ export interface Category {
 }
 
 export interface Product {
-  id: string | number; // ID می‌تواند رشته یا عدد باشد
+  id: string | number;
   name: string;
   sku: string;
-  price: number;
+  price: number; // این فیلد 이제 قیمت اصلی است
   stock?: number;
   slug?: string;
   status?: 'published' | 'draft';
   categories?: (Category | string | number)[];
 
-  // فیلدهای جدید
+  // فیلدهای جدید برای فروش ویژه
+  salePrice?: number | null;
+  isOnSale?: boolean;
+
   gallery:
     | {
         image: Media | number;

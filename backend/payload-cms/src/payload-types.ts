@@ -244,6 +244,11 @@ export interface Product {
   slug: string;
   status?: ('published' | 'draft') | null;
   price: number;
+  /**
+   * در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.
+   */
+  salePrice?: number | null;
+  isOnSale?: boolean | null;
   stock?: number | null;
   categories?: (number | Category)[] | null;
   updatedAt: string;
@@ -437,6 +442,8 @@ export interface ProductsSelect<T extends boolean = true> {
   slug?: T;
   status?: T;
   price?: T;
+  salePrice?: T;
+  isOnSale?: T;
   stock?: T;
   categories?: T;
   updatedAt?: T;

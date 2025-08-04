@@ -141,10 +141,28 @@ export const Products: CollectionConfig = {
     },
     {
       name: 'price',
-      label: 'قیمت (تومان)',
+      label: 'قیمت اصلی (تومان)',
       type: 'number',
       required: true,
       admin: { position: 'sidebar' },
+    },
+    {
+      name: 'salePrice',
+      label: 'قیمت فروش ویژه (تومان)',
+      type: 'number',
+      admin: {
+        position: 'sidebar',
+        description: 'در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.',
+      },
+    },
+    {
+      name: 'isOnSale',
+      label: 'در فروش ویژه است؟',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+      },
     },
     {
       name: 'stock',

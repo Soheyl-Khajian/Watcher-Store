@@ -35,7 +35,7 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
       return Response.json({ message: 'Category not found' }, { status: 404 })
     }
     const { adjustmentType, adjustmentValue } = category.priceAdjustment || {}
-    if (!adjustmentType || typeof adjustmentValue !== 'number') {
+    if (!adjustmentType || typeof adjustmentValue === 'undefined' || adjustmentValue === null) {
       return Response.json(
         { message: 'Price adjustment settings are not configured.' },
         { status: 400 },
@@ -57,7 +57,7 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
         categories: { in: allCategoryIds },
       },
       limit: 1000,
-      depth: 1,
+      depth: 1, // depth: 1 for having access to full product data
     })
 
     if (productsToUpdate.length === 0) {
@@ -68,40 +68,47 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
     }
 
     const updatePromises = productsToUpdate.map((product: Product) => {
-      let newPrice = product.price
+      let dataToUpdate: Partial<Product> = {}
 
-      if (adjustmentType === 'discount') {
-        newPrice = product.price * (1 - adjustmentValue / 100)
+      if (adjustmentType === 'discount' && adjustmentValue > 0) {
+        const newSalePrice = Math.round(product.price * (1 - adjustmentValue / 100))
+        dataToUpdate = {
+          salePrice: newSalePrice,
+          isOnSale: true,
+        }
       } else if (adjustmentType === 'increase') {
-        newPrice = product.price * (1 + adjustmentValue / 100)
+        const newPrice = Math.round(product.price * (1 + adjustmentValue / 100))
+        dataToUpdate = {
+          price: newPrice,
+          salePrice: null,
+          isOnSale: false,
+        }
+      } else {
+        // This case handles canceling a sale (adjustmentValue is 0)
+        dataToUpdate = {
+          salePrice: null,
+          isOnSale: false,
+        }
       }
-      newPrice = Math.round(newPrice)
 
       return req.payload.update({
         collection: 'products',
         id: product.id,
-        data: {
-          price: newPrice,
-          gallery: product.gallery,
-        },
+        data: dataToUpdate,
       })
     })
 
     await Promise.all(updatePromises)
 
+    const messageAction = adjustmentValue <= 0 ? 'لغو شد' : 'اعمال شد'
     return Response.json({
       success: true,
-      message: `قیمت ${productsToUpdate.length} محصول با موفقیت به‌روز شد.`,
+      message: `فروش ویژه برای ${productsToUpdate.length} محصول با موفقیت ${messageAction}.`,
     })
   } catch (error) {
-    // START: Error handling fix
     let message = 'An error occurred during the price update.'
-
-    // Check if the caught object is an instance of Error
     if (error instanceof Error) {
       message = error.message
-
-      // Log more details for validation errors
       if (error.name === 'ValidationError') {
         console.error(JSON.stringify(error, null, 2))
       }
@@ -110,6 +117,5 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
     }
 
     return Response.json({ message }, { status: 500 })
-    // END: Error handling fix
   }
 }

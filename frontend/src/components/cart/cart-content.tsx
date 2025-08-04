@@ -1,4 +1,4 @@
-// src/components/layout/cart-content.tsx
+// مسیر فایل: src/components/layout/cart-content.tsx
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { fetchCart, removeFromCart } from '@/lib/api/nestjs';
 import { fetchProductsByIds } from '@/lib/api/payload';
+import { getCurrentPrice } from '@/lib/utils/pricing'; // تابع کمکی ما
 import type { Product, CartItem } from '@/types';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,7 @@ export function CartContent({ onClose }: CartContentProps) {
   const handleRemoveItem = async (productId: string) => {
     if (!token) return;
 
-    const updatedCart = await removeFromCart(productId, token);
+    const updatedCart = await removeFromCart(String(productId), token); // اطمینان از ارسال رشته
 
     if (updatedCart) {
       setCart(updatedCart);
@@ -82,7 +83,10 @@ export function CartContent({ onClose }: CartContentProps) {
       const product = products.find(
         (p) => String(p.id) === String(item.productId),
       );
-      return total + (product?.price || 0) * item.quantity;
+      if (!product) return total;
+      // ۱. تغییر کلیدی: استفاده از getCurrentPrice برای محاسبه جمع کل
+      const price = getCurrentPrice(product);
+      return total + price * item.quantity;
     }, 0);
   }, [cart, products]);
 
@@ -111,21 +115,28 @@ export function CartContent({ onClose }: CartContentProps) {
               const product = products.find(
                 (p: Product) => String(p.id) === String(item.productId),
               );
+              if (!product) return null; // اگر محصول یافت نشد، چیزی رندر نکن
+
+              // ۲. تغییر کلیدی: گرفتن قیمت صحیح برای نمایش هر آیتم
+              const pricePerItem = getCurrentPrice(product);
+
               return (
                 <li key={item.id} className="flex items-center gap-4">
                   <div className="flex-grow">
-                    <p className="font-semibold">{product?.name ?? 'نامشخص'}</p>
+                    <p className="font-semibold">{product.name}</p>
                     <p className="text-sm text-muted-foreground" dir="ltr">
-                      {item.quantity} x {formatPrice(product?.price || 0)}
+                      {/* ۳. نمایش قیمت صحیح برای هر آیتم */}
+                      {item.quantity} x {formatPrice(pricePerItem)}
                     </p>
                   </div>
                   <p className="font-semibold">
-                    {formatPrice((product?.price || 0) * item.quantity)}
+                    {/* ۴. نمایش جمع کل صحیح برای هر آیتم */}
+                    {formatPrice(pricePerItem * item.quantity)}
                   </p>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleRemoveItem(item.productId)}
+                    onClick={() => handleRemoveItem(String(item.productId))}
                   >
                     <X className="h-4 w-4" />
                   </Button>

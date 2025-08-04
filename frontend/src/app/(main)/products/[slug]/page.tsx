@@ -6,6 +6,10 @@ import { Check } from 'lucide-react';
 import type { Product } from '@payload-types';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('fa-IR').format(price);
+};
+
 export default async function ProductDetailsPage({
   params,
 }: {
@@ -18,8 +22,6 @@ export default async function ProductDetailsPage({
     return notFound();
   }
 
-  const formattedPrice = new Intl.NumberFormat('fa-IR').format(product.price);
-
   return (
     <div className="container mx-auto max-w-6xl py-12 px-4">
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
@@ -30,9 +32,24 @@ export default async function ProductDetailsPage({
           <h1 className="text-3xl font-extrabold tracking-tight lg:text-4xl">
             {product.name}
           </h1>
-          <p className="mt-4 text-2xl font-semibold text-primary">
-            {formattedPrice} تومان
-          </p>
+          <div className="mt-4">
+            {product.isOnSale &&
+            typeof product.salePrice === 'number' &&
+            product.salePrice > 0 ? (
+              <div className="flex items-baseline gap-4">
+                <p className="text-2xl font-semibold text-primary">
+                  {formatPrice(product.salePrice)} تومان
+                </p>
+                <p className="text-lg text-muted-foreground line-through">
+                  {formatPrice(product.price)} تومان
+                </p>
+              </div>
+            ) : (
+              <p className="text-2xl font-semibold text-primary">
+                {formatPrice(product.price)} تومان
+              </p>
+            )}
+          </div>
 
           {product.features && product.features.length > 0 && (
             <div className="mt-6">

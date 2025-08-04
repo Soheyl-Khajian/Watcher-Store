@@ -1,4 +1,5 @@
-// src/orders/orders.service.ts
+// مسیر فایل: nest-api/src/orders/orders.service.ts
+
 import {
   Injectable,
   NotFoundException,
@@ -9,6 +10,7 @@ import { Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { CartService } from '../cart/cart.service';
+import { ProductsService } from '../products/products.service'; // ۱. سرویس جدید را وارد کنید
 
 @Injectable()
 export class OrdersService {
@@ -16,6 +18,7 @@ export class OrdersService {
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
     private cartService: CartService,
+    private productsService: ProductsService, // ۲. سرویس جدید را به constructor تزریق کنید
   ) {}
 
   async createOrder(userId: number): Promise<Order> {
@@ -24,31 +27,23 @@ export class OrdersService {
       throw new BadRequestException('سبد خرید شما خالی است.');
     }
 
-    // یک آرایه برای نگهداری آیتم‌های سفارش با قیمت واقعی
     const orderItems: OrderItem[] = [];
     let total = 0;
 
-    // به ازای هر آیتم در سبد خرید، قیمت واقعی را از پیلود بپرس
+    // ۳. منطق دریافت قیمت محصول به طور کامل بازنویسی شد
     for (const item of cart.items) {
-      // این آدرس API محصولات در پیلود است
-      const response = await fetch(
-        `http://localhost:3000/api/products/${item.productId}`,
-      );
-      if (!response.ok) {
-        throw new NotFoundException(
-          `محصول با شناسه ${item.productId} یافت نشد.`,
-        );
-      }
-      const productData = await response.json();
-      const currentPrice = productData.price;
+      // به جای fetch مستقیم، از سرویس محصولات استفاده می‌کنیم
+      const product = await this.productsService.findOne(item.productId);
+
+      // قیمت صحیح (با در نظر گرفتن تخفیف) را از سرویس محصولات می‌گیریم
+      const currentPrice = this.productsService.getCurrentPrice(product);
 
       const orderItem = new OrderItem();
       orderItem.productId = item.productId;
       orderItem.quantity = item.quantity;
-      orderItem.price = currentPrice; // <-- قیمت واقعی را اینجا ثبت می‌کنیم
+      orderItem.price = currentPrice; // <-- قیمت نهایی و صحیح اینجا ثبت می‌شود
       orderItems.push(orderItem);
 
-      // قیمت کل را محاسبه می‌کنیم
       total += currentPrice * item.quantity;
     }
 

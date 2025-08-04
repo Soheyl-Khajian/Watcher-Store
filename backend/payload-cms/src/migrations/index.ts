@@ -5,6 +5,7 @@ import * as migration_20250802_222803_CreateFooterGlobal from './20250802_222803
 import * as migration_20250802_231755_AddDetailsToProducts from './20250802_231755_AddDetailsToProducts';
 import * as migration_20250803_083715_CreatePagesCollection from './20250803_083715_CreatePagesCollection';
 import * as migration_20250803_105114_AddPriceAdjustmentToCategories from './20250803_105114_AddPriceAdjustmentToCategories';
+import * as migration_20250803_164009_AddSalePriceToProducts from './20250803_164009_AddSalePriceToProducts';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20250803_105114_AddPriceAdjustmentToCategories.up,
     down: migration_20250803_105114_AddPriceAdjustmentToCategories.down,
-    name: '20250803_105114_AddPriceAdjustmentToCategories'
+    name: '20250803_105114_AddPriceAdjustmentToCategories',
+  },
+  {
+    up: migration_20250803_164009_AddSalePriceToProducts.up,
+    down: migration_20250803_164009_AddSalePriceToProducts.down,
+    name: '20250803_164009_AddSalePriceToProducts'
   },
 ];
