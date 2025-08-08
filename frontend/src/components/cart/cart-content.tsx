@@ -134,6 +134,7 @@ export function CartContent({ onClose }: CartContentProps) {
                     {formatPrice(pricePerItem * item.quantity)}
                   </p>
                   <Button
+                    className="cursor-pointer"
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveItem(String(item.productId))}

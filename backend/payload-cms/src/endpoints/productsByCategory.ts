@@ -28,6 +28,8 @@ export const productsByCategoryEndpoint: Endpoint = {
       return Response.json({ message: 'Slug parameter is missing' }, { status: 400 })
     }
     const slug = req.routeParams.slug as string
+    const page = parseInt(req.query.page as string, 10) || 1
+    const limit = parseInt(req.query.limit as string, 10) || 15
 
     try {
       // پیدا کردن دسته مادر بر اساس اسلاگ
@@ -59,17 +61,19 @@ export const productsByCategoryEndpoint: Endpoint = {
       const allCategoryIds = [parentCategory.id, ...descendantIds]
 
       // پیدا کردن تمام محصولات مرتبط با این شناسه‌ها
-      const { docs: products } = await req.payload.find({
+      const productsResult = await req.payload.find({
         collection: 'products',
         where: {
           categories: {
             in: allCategoryIds,
           },
         },
-        limit: 100,
+        page,
+        limit,
+        depth: 1,
       })
 
-      return Response.json({ category: parentCategory, products: products })
+      return Response.json({ category: parentCategory, productsResult })
     } catch (error) {
       console.error(error)
       return Response.json({ message: 'Error fetching products' }, { status: 500 })

@@ -135,7 +135,7 @@ export default function CheckoutPage() {
         </CardContent>
         <CardFooter>
           <Button
-            className="w-full"
+            className="w-full cursor-pointer"
             onClick={handleCheckout}
             disabled={isProcessing}
           >

@@ -39,9 +39,12 @@ export function AddToCartButtonCard({
   };
 
   return (
-    <Button size="icon" onClick={handleAddToCart}>
+    <Button
+      onClick={handleAddToCart}
+      className="w-full flex items-center justify-center gap-2 cursor-pointer"
+    >
+      <span>افزودن به سبد خرید</span>
       <ShoppingCart className="h-5 w-5" />
-      <span className="sr-only">افزودن به سبد خرید</span>
     </Button>
   );
 }

@@ -1,172 +1,159 @@
-// lib/api/payload.ts
+// مسیر فایل: frontend/lib/api/payload.ts
 
-import { Category } from '@/types';
-import { unstable_noStore as noStore } from 'next/cache';
+import type { Category, Product } from '@/types';
 
-const PAYLOAD_API_URL = 'http://localhost:3000/api';
+const PAYLOAD_API_URL =
+  process.env.PAYLOAD_API_URL || 'http://localhost:3000/api';
 
-// یک تابع کمکی برای ارسال درخواست‌ها
+// ۱. تابع کمکی اصلی با منطق کشینگ متمرکز
 async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const url = `${PAYLOAD_API_URL}${endpoint}`;
 
+  // ۲. برای درخواست‌های غیر از GET، کش را غیرفعال می‌کنیم
+  const isPostRequest =
+    options.method && options.method.toUpperCase() !== 'GET';
+
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, {
+      ...options,
+      headers,
+      // ۳. تمام درخواست‌های GET به مدت ۱ ساعت (۳۶۰۰ ثانیه) کش می‌شوند
+      next: isPostRequest ? undefined : { revalidate: 3600 },
+    });
     if (!res.ok) {
       console.error(`Payload API Error: ${res.status} ${res.statusText}`);
       return null;
     }
-    const data = await res.json();
-    return data;
+    // برای درخواست‌هایی که ممکن است پاسخی نداشته باشند (مثل حذف)
+    if (res.status === 204) return true;
+    return res.json();
   } catch (error) {
     console.error('Failed to fetch from Payload API:', error);
     return null;
   }
 }
 
-// تابع برای دریافت تمام محصولات
+// === توابع مربوط به محصولات ===
+
+// برای اسلایدر صفحه اصلی، ۱۲ محصول می‌گیریم
 export async function fetchProducts() {
-  noStore(); // از کش شدن این درخواست جلوگیری می‌کند تا همیشه داده‌ها تازه باشند
-  const data = await fetchPayloadAPI('/products?limit=4');
+  const data = await fetchPayloadAPI('/products?limit=12&depth=1');
   return data?.docs || [];
 }
 
-// تابع برای دریافت تمام دسته‌بندی‌ها
+// فقط محصولات در فروش ویژه را برای اسلایدر صفحه اصلی برمی‌گرداند
+export async function fetchFeaturedProducts() {
+  const data = await fetchPayloadAPI(
+    '/products?where[isOnSale][equals]=true&limit=12&depth=1',
+  );
+  return data?.docs || [];
+}
+
+// برای صفحه "همه محصولات" با قابلیت فیلتر و صفحه‌بندی
+export async function fetchAllProducts(page = 1, limit = 15, onSale = false) {
+  let query = `/products?page=${page}&limit=${limit}&depth=1`;
+  if (onSale) {
+    query += `&where[isOnSale][equals]=true`;
+  }
+  const data = await fetchPayloadAPI(query);
+  return data;
+}
+
+export async function fetchProductBySlug(slug: string) {
+  const data = await fetchPayloadAPI(
+    `/products?where[slug][equals]=${slug}&depth=2`,
+  );
+  return data?.docs?.[0] || null;
+}
+
+export async function fetchProductsByIds(ids: (string | number)[]) {
+  const data = await fetchPayloadAPI(
+    `/products?where[id][in]=${ids.join(',')}&depth=1&limit=100`,
+  );
+  return data?.docs || [];
+}
+
+// === توابع مربوط به دسته‌بندی‌ها ===
+
 export async function fetchCategories() {
-  noStore();
-  const data = await fetchPayloadAPI('/categories?limit=4');
+  const data = await fetchPayloadAPI('/categories?limit=100');
   return data?.docs || [];
 }
 
-// تابع جدید برای دریافت فقط دسته‌بندی‌های اصلی (بدون والد)
 export async function fetchParentCategories() {
-  // از where[parent][exists]=false برای فیلتر کردن استفاده می‌کنیم
   const data = await fetchPayloadAPI(
     '/categories?limit=100&where[parent][exists]=false',
   );
   return data?.docs || [];
 }
 
-// تابع جدید برای دریافت دسته‌بندی‌ها به صورت درختی
 export async function fetchCategoryTree() {
-  // ۱. تمام دسته‌بندی‌ها را با عمق ۱ دریافت می‌کنیم تا اطلاعات والد موجود باشد
   const data = await fetchPayloadAPI('/categories?limit=200&depth=1');
   const categories: Category[] = data?.docs || [];
 
-  // الگوریتم ساخت درخت
-  const categoryMap: { [key: string]: Category } = {};
+  const categoryMap: Record<string, Category> = {};
   const categoryTree: Category[] = [];
 
-  // ۲. همه دسته‌بندی‌ها را در یک نقشه (map) برای دسترسی سریع قرار می‌دهیم
-  // و برای هر کدام یک آرایه فرزند خالی ایجاد می‌کنیم
   categories.forEach((category) => {
-    categoryMap[category.id] = { ...category, children: [] };
+    categoryMap[String(category.id)] = { ...category, children: [] };
   });
 
-  // ۳. روی لیست دوباره حلقه می‌زنیم تا هر دسته را به والد خودش متصل کنیم
   categories.forEach((category) => {
-    // اگر دسته والد داشت و والد آن در نقشه ما بود
     const parentId =
-      typeof category.parent === 'string'
-        ? category.parent
-        : category.parent?.id;
+      typeof category.parent === 'object'
+        ? String(category.parent?.id)
+        : String(category.parent);
+
     if (parentId && categoryMap[parentId]) {
-      // این دسته را به آرایه فرزندان والدش اضافه کن
-      categoryMap[parentId].children?.push(categoryMap[category.id]);
+      categoryMap[parentId].children?.push(categoryMap[String(category.id)]);
     } else {
-      // اگر والد نداشت، این یک شاخه اصلی است
-      categoryTree.push(categoryMap[category.id]);
+      categoryTree.push(categoryMap[String(category.id)]);
     }
   });
 
   return categoryTree;
 }
 
-// تابع جدید برای دریافت دسته‌بندی و تمام محصولات زیرمجموعه آن
-export async function fetchProductsAndCategoryBySlug(slug: string) {
-  const data = await fetchPayloadAPI(`/products-by-category/${slug}`);
-  // اگر داده‌ای نبود، یک مقدار پیش‌فرض برمی‌گردانیم تا برنامه کرش نکند
-  return data || { category: null, products: [] };
-}
-
-// تابع برای دریافت یک محصول خاص بر اساس اسلاگ
-export async function fetchProductBySlug(slug: string) {
-  noStore();
+export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
+  const limit = 15;
   const data = await fetchPayloadAPI(
-    `/products?where[slug][equals]=${slug}&depth=2`,
+    `/products-by-category/${slug}?page=${page}&limit=${limit}`,
   );
-  // ای پی آی یک آرایه برمی‌گرداند، پس ما آیتم اول آن را انتخاب می‌کنیم
-  return data?.docs?.[0] || null;
+  return data || { category: null, productsResult: { docs: [] } };
 }
 
-//  یک دسته‌بندی خاص را بر اساس اسلاگ پیدا می‌کند
-export async function fetchCategoryBySlug(slug: string) {
-  noStore();
-  const data = await fetchPayloadAPI(
-    `/categories?where[slug][equals]=${slug}&limit=1`,
-  );
-  return data?.docs?.[0] || null;
-}
+// === توابع مربوط به کاربران ===
 
-// محصولات را بر اساس شناسه دسته‌بندی فیلتر می‌کند
-export async function fetchProductsByCategoryId(categoryId: string) {
-  noStore();
-  // از where[categories][in] برای فیلتر بر اساس ID استفاده می‌کنیم
-  const data = await fetchPayloadAPI(
-    `/products?where[categories][in]=${categoryId}&depth=1&limit=1000`,
-  );
-  return data?.docs || [];
-}
-
-// تابع جدید برای ثبت‌نام کاربر
 export async function registerUser(credentials: {
   email: string;
   password: string;
 }) {
-  const data = await fetchPayloadAPI('/users', {
+  return fetchPayloadAPI('/users', {
     method: 'POST',
     body: JSON.stringify(credentials),
   });
-  return data;
 }
 
-// تابع جدید برای دریافت اطلاعات چندین محصول بر اساس آیدی
-export async function fetchProductsByIds(ids: string[]) {
-  noStore();
-  const data = await fetchPayloadAPI(
-    `/products?where[id][in]=${ids.join(',')}&depth=1`,
-  );
-  return data?.docs || [];
-}
+// === توابع مربوط به محتوا (پست‌ها، صفحات، فوتر) ===
 
-// تابع برای دریافت لیست مقالات
 export async function fetchPosts() {
-  noStore(); // برای اینکه همیشه آخرین مقالات نمایش داده شوند، کش را غیرفعال می‌کنیم
-  // با depth=2، اطلاعات کامل نویسنده و تصویر شاخص را هم دریافت می‌کنیم
   const data = await fetchPayloadAPI('/posts?limit=10&depth=2');
   return data?.docs || [];
 }
 
-// تابع برای دریافت یک مقاله خاص بر اساس اسلاگ
 export async function fetchPostBySlug(slug: string) {
-  noStore();
   const data = await fetchPayloadAPI(
     `/posts?where[slug][equals]=${slug}&depth=2`,
   );
-  // ای پی آی همیشه یک آرایه برمی‌گرداند، پس ما آیتم اول آن را انتخاب می‌کنیم
   return data?.docs?.[0] || null;
 }
 
-// تابع برای دریافت اطلاعات فوتر
 export async function fetchFooter() {
-  // گلوبال‌ها از طریق مسیر /api/globals/:slug قابل دسترسی هستند
-  const footerData = await fetchPayloadAPI('/globals/footer');
-  return footerData;
+  return fetchPayloadAPI('/globals/footer');
 }
 
-//تابع برای دریافت یک صفحه
 export async function fetchPageBySlug(slug: string) {
   const data = await fetchPayloadAPI(`/pages?where[slug][equals]=${slug}`);
-  // API یک آرایه برمی‌گرداند، ما آیتم اول را انتخاب می‌کنیم
   return data?.docs?.[0] || null;
 }
