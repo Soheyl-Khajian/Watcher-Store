@@ -9,82 +9,81 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { Product } from '@/types'; // ۱. تایپ Product را از types وارد می‌کنیم
+import type { Product } from '@/types';
 import { AddToCartButtonCard } from '../cart/add-to-cart-button-card';
 
 interface ProductCardProps {
   product: Product;
 }
 
-// تابع کمکی برای فرمت قیمت
 const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
+  return new Intl.NumberFormat('fa-IR').format(price);
 };
 
 export function ProductCard({ product }: ProductCardProps) {
   const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL || '';
-
-  // ۲. استفاده از گالری به جای thumbnail
-  // اولین تصویر گالری را به عنوان تصویر اصلی کارت در نظر می‌گیریم
   const mainImage =
     typeof product.gallery?.[0]?.image === 'object'
       ? product.gallery[0].image
       : null;
-
   const imageUrl = mainImage?.url
     ? `${payloadUrl}${mainImage.url}`
     : '/images/placeholder.png';
 
   return (
-    <Link href={`/products/${product.slug}`} className="group block">
-      <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 pt-0 pb-1 px-0">
-        <CardHeader className="p-0">
-          <div className="relative aspect-square w-full">
-            {' '}
-            {/* نسبت تصویر ۱:۱ برای زیبایی */}
-            <Image
-              src={imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="(max-width: 768px) 50vw, 33vw"
-            />
-          </div>
-        </CardHeader>
+    <div className="h-full">
+      <Link href={`/products/${product.slug}`} className="group block h-full">
+        {/* ۱. بازگشت به ساختار Flexbox که قابل اطمینان‌تر است */}
+        <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 pt-0 pb-1 gap-3 cursor-default">
+          {/* بخش تصویر */}
+          <CardHeader className="p-0">
+            <div className="relative aspect-[4/3] w-full">
+              <Image
+                src={imageUrl}
+                alt={product.name}
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              />
+            </div>
+          </CardHeader>
 
-        <CardContent className="flex-grow p-2 sm:p-4">
-          <CardTitle className="text-sm sm:text-base font-semibold leading-tight">
-            <h3>{product.name}</h3>
-          </CardTitle>
-        </CardContent>
+          {/* ۲. محتوای کارت با flex-grow برای هم‌اندازه کردن کارت‌ها */}
+          <CardContent className="flex-grow px-1 py-0 my-0 flex flex-col justify-center">
+            <CardTitle className="text-center text-sm sm:text-base md:text-lg font-semibold leading-tight line-clamp-2">
+              <h3>{product.name}</h3>
+            </CardTitle>
+          </CardContent>
 
-        <CardFooter className="flex items-center justify-between p-2 pt-0 sm:p-4">
-          {/* ۳. منطق جدید برای نمایش قیمت */}
-          <div className="flex flex-col items-start font-bold">
-            {product.isOnSale &&
-            typeof product.salePrice === 'number' &&
-            product.salePrice > 0 ? (
-              <>
-                <span className="text-base sm:text-lg text-primary">
-                  {formatPrice(product.salePrice)}
-                </span>
-                <span className="text-xs sm:text-sm text-muted-foreground line-through">
+          {/* ۳. فوتر با padding و gap مشخص */}
+          <CardFooter className="flex flex-col gap-1 px-2 py-1 pt-0">
+            <div className="flex flex-col items-center font-bold">
+              {product.isOnSale &&
+              typeof product.salePrice === 'number' &&
+              product.salePrice > 0 ? (
+                <>
+                  <span className="text-base sm:text-lg md:text-xl lg:text-2xl text-primary">
+                    {formatPrice(product.salePrice)}
+                    <span className="text-xs"> تومان</span>
+                  </span>
+                  <span className="text-base sm:text-lg text-muted-foreground line-through">
+                    {formatPrice(product.price)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-base sm:text-lg md:text-xl lg:text-2xl text-primary">
                   {formatPrice(product.price)}
+                  <span className="text-xs"> تومان</span>
                 </span>
-              </>
-            ) : (
-              <span className="text-base sm:text-lg">
-                {formatPrice(product.price)}
-              </span>
-            )}
-          </div>
-          {/* ۴. استفاده از کامپوننت دکمه جدید */}
-          <AddToCartButtonCard
-            productId={product.id}
-            productName={product.name}
-          />
-        </CardFooter>
-      </Card>
-    </Link>
+              )}
+            </div>
+            <AddToCartButtonCard
+              productId={product.id}
+              productName={product.name}
+            />
+          </CardFooter>
+        </Card>
+      </Link>
+    </div>
   );
 }

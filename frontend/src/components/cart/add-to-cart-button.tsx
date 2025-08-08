@@ -34,7 +34,11 @@ export function AddToCartButton({
   };
 
   return (
-    <Button size="lg" className="w-full" onClick={handleAddToCart}>
+    <Button
+      size="lg"
+      className="w-full cursor-pointer"
+      onClick={handleAddToCart}
+    >
       <ShoppingCart className="ml-2 h-5 w-5" />
       افزودن به سبد خرید
     </Button>
