@@ -157,6 +157,10 @@ export interface User {
 export interface Category {
   id: number;
   name: string;
+  /**
+   * نام آیکون را از سایت lucide.dev کپی کنید. مثال: Camera
+   */
+  icon?: string | null;
   slug: string;
   parent?: (number | null) | Category;
   image?: (number | null) | Media;
@@ -400,6 +404,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface CategoriesSelect<T extends boolean = true> {
   name?: T;
+  icon?: T;
   slug?: T;
   parent?: T;
   image?: T;

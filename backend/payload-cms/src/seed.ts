@@ -13,10 +13,12 @@ const __dirname = path.dirname(__filename)
 
 dotenvConfig({ path: path.resolve(__dirname, '../../.env') })
 
+// ۱. اینترفیس را برای شامل شدن آیکون به‌روز می‌کنیم
 interface SeedCategory {
   name: string
   slug: string
   parentSlug: string | null
+  icon?: string // <-- فیلد آیکون اضافه و اختیاری شد
 }
 
 const upsertDoc = async (payload: Payload, collection: 'categories', query: any, data: any) => {
@@ -56,23 +58,24 @@ const seed = async () => {
 
       for (const cat of remainingCategories) {
         if (!cat.parentSlug) {
-          // اصلاح اشتباه تایپی در اینجا
+          // ۲. فیلد icon به داده‌ها اضافه شد
           const newCat = await upsertDoc(
             payload,
             'categories',
             { slug: { equals: cat.slug } },
-            { name: cat.name, slug: cat.slug },
+            { name: cat.name, slug: cat.slug, icon: cat.icon },
           )
           slugToIdMap.set(newCat.slug, newCat.id)
           progressMade = true
         } else {
           const parentId = slugToIdMap.get(cat.parentSlug)
           if (parentId) {
+            // ۳. فیلد icon به داده‌ها اضافه شد
             const newCat = await upsertDoc(
               payload,
               'categories',
               { slug: { equals: cat.slug } },
-              { name: cat.name, slug: cat.slug, parent: parentId },
+              { name: cat.name, slug: cat.slug, parent: parentId, icon: cat.icon },
             )
             slugToIdMap.set(newCat.slug, newCat.id)
             progressMade = true

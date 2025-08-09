@@ -123,6 +123,22 @@ export async function fetchCategoryTree() {
   return categoryTree;
 }
 
+// تابع جدید برای دریافت دسته‌بندی‌های مشخص بر اساس اسلاگ و با ترتیب دلخواه
+export async function fetchCategoriesBySlugs(slugs: string[]) {
+  const data = await fetchPayloadAPI(
+    `/categories?where[slug][in]=${slugs.join(',')}&limit=10&depth=1`,
+  );
+
+  const fetchedCategories = data?.docs || [];
+
+  // API ترتیب را تضمین نمی‌کند، پس ما خودمان بر اساس آرایه ورودی مرتب می‌کنیم
+  const sortedCategories = slugs
+    .map((slug) => fetchedCategories.find((cat: Category) => cat.slug === slug))
+    .filter(Boolean); // .filter(Boolean) برای حذف موارد یافت نشده
+
+  return sortedCategories;
+}
+
 export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
   const limit = 15;
   const data = await fetchPayloadAPI(
