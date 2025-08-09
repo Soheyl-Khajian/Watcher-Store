@@ -1,0 +1,37 @@
+{
+  "description": "تامین‌کننده پیشرو در زمینه تجهیزات امنیتی و هوشمندسازی ساختمان با هدف ارائه راهکارهای نوین برای آسایش و امنیت شما.",
+  "linkColumns": [
+    {
+      "title": "دسترسی سریع",
+      "links": [
+        { "label": "صفحه اصلی", "url": "/" },
+        { "label": "فروشگاه", "url": "/products" },
+        { "label": "فروش ویژه", "url": "/products?onSale=true" },
+        { "label": "وبلاگ", "url": "/blog" }
+      ]
+    },
+    {
+      "title": "خدمات مشتریان",
+      "links": [
+        { "label": "تماس با ما", "url": "/tamas-ba-ma" },
+        { "label": "درباره ما", "url": "/darbare-ma" },
+        { "label": "قوانین و مقررات", "url": "/terms" },
+        { "label": "پیگیری سفارش", "url": "/profile" }
+      ]
+    },
+    {
+      "title": "دسته‌بندی‌های محبوب",
+      "links": [
+        { "label": "دوربین مداربسته", "url": "/categories/cctv-cameras" },
+        { "label": "اعلام سرقت", "url": "/categories/alarm-systems" },
+        { "label": "خانه هوشمند", "url": "/categories/smart-home" },
+        { "label": "پنل خورشیدی", "url": "/categories/solar-panels" }
+      ]
+    }
+  ],
+  "socialLinks": [
+    { "platform": "Instagram", "url": "https://instagram.com" },
+    { "platform": "Linkedin", "url": "https://linkedin.com" },
+    { "platform": "Telegram", "url": "https://telegram.org" }
+  ]
+}
