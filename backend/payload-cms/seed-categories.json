@@ -1,0 +1,40 @@
+[
+  { "name": "نظارت تصویری", "slug": "cctv-systems", "parentSlug": null },
+  { "name": "دوربین مداربسته", "slug": "cctv-cameras", "parentSlug": "cctv-systems" },
+  { "name": "دوربین‌های دام (Dome)", "slug": "dome-cameras", "parentSlug": "cctv-cameras" },
+  { "name": "دوربین‌های بولت (Bullet)", "slug": "bullet-cameras", "parentSlug": "cctv-cameras" },
+  { "name": "دوربین‌های PTZ (گردان)", "slug": "ptz-cameras", "parentSlug": "cctv-cameras" },
+  { "name": "دستگاه ضبط تصویر", "slug": "recorders", "parentSlug": "cctv-systems" },
+  { "name": "دستگاه NVR (تحت شبکه)", "slug": "nvr-recorders", "parentSlug": "recorders" },
+  { "name": "دستگاه DVR (آنالوگ)", "slug": "dvr-recorders", "parentSlug": "recorders" },
+  { "name": "لوازم جانبی نظارت تصویری", "slug": "cctv-accessories", "parentSlug": "cctv-systems" },
+  { "name": "هارد دیسک", "slug": "hard-drives", "parentSlug": "cctv-accessories" },
+  { "name": "کابل و اتصالات", "slug": "cables-connectors", "parentSlug": "cctv-accessories" },
+
+  { "name": "امنیت و حفاظت", "slug": "security-equipment", "parentSlug": null },
+  { "name": "سیستم‌های اعلام سرقت", "slug": "alarm-systems", "parentSlug": "security-equipment" },
+  { "name": "پنل مرکزی دزدگیر", "slug": "alarm-panels", "parentSlug": "alarm-systems" },
+  { "name": "چشمی و سنسور دزدگیر", "slug": "alarm-sensors", "parentSlug": "alarm-systems" },
+  { "name": "کنترل تردد", "slug": "access-control", "parentSlug": "security-equipment" },
+  { "name": "دستگاه حضور و غیاب", "slug": "time-attendance", "parentSlug": "access-control" },
+  { "name": "قفل برقی و اکسس کنترل", "slug": "electric-locks", "parentSlug": "access-control" },
+  { "name": "درب و کرکره اتوماتیک", "slug": "automatic-doors", "parentSlug": "security-equipment" },
+
+  { "name": "خانه هوشمند", "slug": "smart-home", "parentSlug": null },
+  { "name": "کنترلرهای مرکزی", "slug": "smart-hubs", "parentSlug": "smart-home" },
+  { "name": "روشنایی هوشمند", "slug": "smart-lighting", "parentSlug": "smart-home" },
+  { "name": "پریز و کلید هوشمند", "slug": "smart-plugs-switches", "parentSlug": "smart-home" },
+  { "name": "سنسورهای هوشمند", "slug": "smart-sensors", "parentSlug": "smart-home" },
+
+  { "name": "برق و انرژی", "slug": "power-energy", "parentSlug": null },
+  { "name": "انرژی خورشیدی", "slug": "solar-energy", "parentSlug": "power-energy" },
+  { "name": "پنل خورشیدی", "slug": "solar-panels", "parentSlug": "solar-energy" },
+  {
+    "name": "اینورتر و کنترلر شارژ",
+    "slug": "inverters-controllers",
+    "parentSlug": "solar-energy"
+  },
+  { "name": "برق اضطراری", "slug": "emergency-power", "parentSlug": "power-energy" },
+  { "name": "دستگاه UPS", "slug": "ups-systems", "parentSlug": "emergency-power" },
+  { "name": "باتری", "slug": "batteries", "parentSlug": "emergency-power" }
+]

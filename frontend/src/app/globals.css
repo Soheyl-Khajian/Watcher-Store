@@ -116,7 +116,10 @@
     @apply border-border outline-ring/50;
   }
   body {
+    /* استایل پایه برای حالت روشن */
     @apply bg-background text-foreground;
+    /* بازنویسی با گرادینت فقط در حالت دارک */
+    @apply dark:bg-gradient-to-bl dark:from-slate-900 dark:to-black;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
