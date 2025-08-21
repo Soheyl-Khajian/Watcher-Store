@@ -1,7 +1,7 @@
 // frontend/types/index.ts
 
 export interface Media {
-  id: string;
+  id: string | number;
   alt: string;
   createdAt: string;
   updatedAt: string;
@@ -33,11 +33,12 @@ export interface Media {
 }
 
 export interface Category {
-  id: string;
+  id: string | number; // برای هماهنگی، به string | number تغییر کرد
   name: string;
   slug?: string;
+  icon?: string; // <-- فیلد جدید برای نام آیکون اضافه شد
   image?: Media;
-  parent?: Category | string; // parent می‌تواند آبجکت کامل یا فقط ID باشد
+  parent?: Category | string | number; // parent می‌تواند آبجکت کامل یا فقط ID باشد
   children?: Category[];
 }
 
@@ -45,7 +46,7 @@ export interface Product {
   id: string | number;
   name: string;
   sku: string;
-  price: number; // این فیلد 이제 قیمت اصلی است
+  price: number; // این فیلد قیمت اصلی است
   stock?: number;
   slug?: string;
   status?: 'published' | 'draft';
@@ -112,13 +113,11 @@ export interface Post {
   id: string;
   title: string;
   slug: string;
-  // author حالا فقط یک شناسه است
   author: string;
-  // فیلد جدید برای نمایش نام نویسنده
   authorName?: string;
-  publishedDate: string; // تاریخ به صورت رشته‌ای از API می‌آید
-  thumbnail: Media; // تصویر شاخص از نوع Media است
-  content: any; // محتوای richText ساختار پیچیده‌ای دارد، فعلاً آن را any در نظر می‌گیریم
+  publishedDate: string;
+  thumbnail: Media;
+  content: any;
   status: 'draft' | 'published';
-  excerpt?: string; // فیلد جدید برای خلاصه مطلب
+  excerpt?: string;
 }

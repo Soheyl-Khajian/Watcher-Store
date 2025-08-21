@@ -39,6 +39,14 @@ export const Categories: CollectionConfig = {
       required: true,
     },
     {
+      name: 'icon',
+      label: 'نام آیکون (از Lucide)',
+      type: 'text',
+      admin: {
+        description: 'نام آیکون را از سایت lucide.dev کپی کنید. مثال: Camera',
+      },
+    },
+    {
       name: 'slug',
       label: 'اسلاگ (برای URL)',
       type: 'text',

@@ -6,6 +6,7 @@ import * as migration_20250802_231755_AddDetailsToProducts from './20250802_2317
 import * as migration_20250803_083715_CreatePagesCollection from './20250803_083715_CreatePagesCollection';
 import * as migration_20250803_105114_AddPriceAdjustmentToCategories from './20250803_105114_AddPriceAdjustmentToCategories';
 import * as migration_20250803_164009_AddSalePriceToProducts from './20250803_164009_AddSalePriceToProducts';
+import * as migration_20250809_155914_AddIconToCategories from './20250809_155914_AddIconToCategories';
 
 export const migrations = [
   {
@@ -46,6 +47,11 @@ export const migrations = [
   {
     up: migration_20250803_164009_AddSalePriceToProducts.up,
     down: migration_20250803_164009_AddSalePriceToProducts.down,
-    name: '20250803_164009_AddSalePriceToProducts'
+    name: '20250803_164009_AddSalePriceToProducts',
+  },
+  {
+    up: migration_20250809_155914_AddIconToCategories.up,
+    down: migration_20250809_155914_AddIconToCategories.down,
+    name: '20250809_155914_AddIconToCategories'
   },
 ];
