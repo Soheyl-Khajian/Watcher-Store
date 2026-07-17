@@ -27,13 +27,13 @@ Watcher Store was created to explore scalable application architecture rather th
 ### Frontend
 
 - TypeScript
-- (React / Next.js — update this with the actual framework)
+- Next.js
 
 ### Backend
 
 - Node.js
 - TypeScript
-- (Express / Fastify / NestJS — update accordingly)
+- NestJS
 
 ### Tooling
 
