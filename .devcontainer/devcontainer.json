@@ -1,9 +1,8 @@
-//دفترچه راهنمای خود ادیتور
 {
   "name": "Store DevContainer",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "app", //اتاق کار اصلی
-  "workspaceFolder": "/workspace", //مسیر پیش فرض ترمینال
+  "service": "app",
+  "workspaceFolder": "/workspace",
   "remoteUser": "node",
   "forwardPorts": [3000, 3001, 3002],
   "customizations": {
@@ -11,6 +10,6 @@
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
     }
   },
-  "postCreateCommand": "npm install -g pnpm && pnpm install", //فقط یکبار اجرا میشود
-  "postStartCommand": "pnpm --filter payload-cms run migrate && pnpm run start:all"
+  "postCreateCommand": "npm install -g pnpm && pnpm install", // runs only once
+  "postStartCommand": "pnpm --filter payload-cms run migrate && pnpm run start:all" // runs every time the container starts
 }
