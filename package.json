@@ -6,7 +6,7 @@
     "start:payload": "pnpm --filter payload-cms dev",
     "start:nest": "pnpm --filter nest-api start:dev",
     "start:frontend": "pnpm --filter frontend dev",
-    "start:all": "npx concurrently \"pnpm start:payload\" \"pnpm start:nest\" \"pnpm start:frontend\""
+    "start:all": "pnpm exec concurrently \"pnpm start:payload\" \"pnpm start:nest\" \"pnpm start:frontend\""
   },
   "devDependencies": {
     "concurrently": "^8.0.0"
