@@ -5,15 +5,35 @@
   "workspaceFolder": "/workspace",
   "remoteUser": "node",
   "forwardPorts": [3000, 3001, 3002],
+  "portsAttributes": {
+    "3000": { "label": "payload-cms", "onAutoForward": "silent" },
+    "3001": { "label": "nest-api", "onAutoForward": "silent" },
+    "3002": { "label": "frontend", "onAutoForward": "openPreview" }
+  },
+  "otherPortsAttributes": { "onAutoForward": "ignore" },
+
+  // Persisted across rebuilds. The VS Code server volume is the single biggest
+  // traffic saver: without it VS Code re-downloads its server plus every
+  // extension on each rebuild.
   "mounts": [
-    "source=watcher-pnpm-store,target=/home/node/.local/share/pnpm/store,type=volume",
-    "source=watcher-vscode-server,target=/home/node/.vscode-server,type=volume"
+    "source=watcher-pnpm-store,target=/home/node/.local/share/pnpm/store,type=volume"
   ],
+
   "customizations": {
     "vscode": {
-      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+      "settings": {
+        "task.allowAutomaticTasks": "on",
+        "remote.autoForwardPorts": false
+      }
     }
   },
-  "postCreateCommand": "pnpm install --frozen-lockfile", // runs only once
-  "postStartCommand": "pnpm --filter payload-cms run migrate && pnpm run start:all" // runs every time the container starts
+
+  // Runs on first create and on every "Rebuild Container".
+  // The script no-ops in ~0.1s when no manifest changed.
+  "postCreateCommand": "bash .devcontainer/bootstrap.sh",
+
+  // Runs on create and on every reopen/start. Migrations only; services are
+  // launched detached so the container never blocks on "Finalizing".
+  "postStartCommand": "bash .devcontainer/start.sh"
 }

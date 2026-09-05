@@ -1,14 +1,30 @@
 # .devcontainer/docker-compose.yml
+# Dev Container runtime: one app container (VS Code attaches here) and Postgres.
+#
+# Rules:
+# - Hostname of the database on this network is "db", port 5432.
+#   Host mapping 5433:5432 is only for tools on the host (psql, GUI).
+# - Root ../.env is injected into both services. Compose does not expand
+#   ${VAR} from that file; use $$VAR inside container shell commands.
+# - postgres-init scripts run only on first create of volume postgres-data.
+# - app must stay "sleep infinity"; Dev Containers runs postCreate/postStart.
+# - Only the ROOT node_modules gets a volume. It holds pnpm's virtual store
+#   (node_modules/.pnpm, ~1379 packages / ~1.5 GB) and must sit on the same
+#   filesystem as the watcher-pnpm-store volume so pnpm hardlinks instead of
+#   copying. Both are Docker local volumes, so that holds.
+#   Do NOT add volumes for the per-package node_modules: each contains only
+#   ~25 symlinks pointing at ../../node_modules/.pnpm, so a volume there
+#   caches nothing and only makes state harder to reason about.
+# - Do not add a second compose stack (Mongo, extra Postgres) here.
 
 services:
   app:
     build:
-      # ← مسیر ساخت ایمیج شخصی‌سازی شده
-      context: ../backend # ← مسیر دایرکتوری فعلی
+      context: ../backend
       dockerfile: Dockerfile
-    image: custom-devcontainer:latest # ← اسم ایمیج شخصی‌سازی شده
+    image: custom-devcontainer:latest
     working_dir: /workspace
-    user: node # ← تضمین اجرای همه چیز به عنوان node user
+    user: node
     volumes:
       - ..:/workspace:cached
       - dev_node_modules:/workspace/node_modules
@@ -17,28 +33,29 @@ services:
     env_file:
       - ../.env
     depends_on:
-      #صبر کن دیتابیس کاملا آماه شه، بعد شروع به کار کن
-      - db
+      db:
+        condition: service_healthy
     command: sleep infinity
 
   db:
     image: postgres:14-alpine
-    restart: unless-stopped # ← ریستارت خودکار در صورت توقف
+    restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d # ← اسکریپت‌های اولیه برای راه‌اندازی دیتابیس
+      - ./postgres-init:/docker-entrypoint-initdb.d
     env_file:
       - ../.env
-    # healthcheck:
-    #   test:
-    #     ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
-    #   interval: 10s
-    #   retries: 5
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     ports:
       - "5433:5432"
 
 volumes:
   postgres-data:
-  dev_node_modules: {}
-  payload_next_cache: {}
-  frontend_next_cache: {}
+  dev_node_modules:
+  payload_next_cache:
+  frontend_next_cache:

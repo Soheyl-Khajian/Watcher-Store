@@ -1,0 +1,79 @@
+{
+  // One terminal tab per service.
+  //
+  // "dev: all" is the folderOpen entry point. It runs sequentially:
+  //   1. "await: deps"    - blocks until postCreateCommand/bootstrap.sh is done
+  //   2. "dev: services"  - then starts the three watchers in parallel
+  //
+  // Step 1 is not optional. VS Code fires folderOpen tasks while
+  // postCreateCommand is still running, so on a cold container (volumes just
+  // deleted) the servers would otherwise launch against an empty node_modules
+  // and die with MODULE_NOT_FOUND.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "await: deps",
+      "type": "shell",
+      "command": "bash .devcontainer/await-deps.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated",
+        "reveal": "always",
+        "close": true
+      }
+    },
+    {
+      "label": "dev: payload-cms",
+      "type": "shell",
+      "command": "pnpm --filter payload-cms dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated",
+        "reveal": "always",
+        "close": false
+      }
+    },
+    {
+      "label": "dev: nest-api",
+      "type": "shell",
+      "command": "pnpm --filter nest-api start:dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated",
+        "reveal": "always",
+        "close": false
+      }
+    },
+    {
+      "label": "dev: frontend",
+      "type": "shell",
+      "command": "pnpm --filter frontend dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated",
+        "reveal": "always",
+        "close": false
+      }
+    },
+    {
+      "label": "dev: services",
+      "dependsOrder": "parallel",
+      "dependsOn": ["dev: payload-cms", "dev: nest-api", "dev: frontend"],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: all",
+      "dependsOrder": "sequence",
+      "dependsOn": ["await: deps", "dev: services"],
+      "problemMatcher": [],
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}

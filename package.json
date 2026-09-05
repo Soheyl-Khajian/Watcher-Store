@@ -11,10 +11,18 @@
   "devDependencies": {
     "concurrently": "^8.0.0"
   },
+  "packageManager": "pnpm@9.15.9",
   "pnpm": {
     "overrides": {
       "react": "19.1.0",
       "react-dom": "19.1.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver",
+      "@tailwindcss/oxide",
+      "@nestjs/core"
+    ]
   }
 }
