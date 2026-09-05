@@ -35,7 +35,8 @@ ENV NPM_CONFIG_STORE_DIR=/home/node/.local/share/pnpm/store
 ENV PATH="${PNPM_HOME}:${PATH}"
 
 # Pre-create and own every volume mount point.
-RUN mkdir -p /home/node/.vscode-server \
+RUN mkdir -p /home/node/.cursor-server \
+             /home/node/.vscode-server \
       /home/node/.local/share/pnpm/store \
       /home/node/.cache \
       /workspace/node_modules \

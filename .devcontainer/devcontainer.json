@@ -12,11 +12,13 @@
   },
   "otherPortsAttributes": { "onAutoForward": "ignore" },
 
-  // Persisted across rebuilds. The VS Code server volume is the single biggest
-  // traffic saver: without it VS Code re-downloads its server plus every
+  // Persisted across rebuilds. The VS Code/Curser server volume is the single biggest
+  // traffic saver: without it VS Code/Curser re-downloads its server plus every
   // extension on each rebuild.
   "mounts": [
-    "source=watcher-pnpm-store,target=/home/node/.local/share/pnpm/store,type=volume"
+    "source=watcher-pnpm-store,target=/home/node/.local/share/pnpm/store,type=volume",
+    "source=watcher-cursor-server,target=/home/node/.cursor-server,type=volume",
+    "source=watcher-vscode-server,target=/home/node/.vscode-server,type=volume"
   ],
 
   "customizations": {
