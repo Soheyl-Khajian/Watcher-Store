@@ -26,6 +26,12 @@
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
       "settings": {
         "task.allowAutomaticTasks": "on",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": { "path": "/bin/bash" }
+        },
+        "dev.containers.logLevel": "info",
+        "dev.containers.showLogOnStart": true,
         "remote.autoForwardPorts": false
       }
     }
