@@ -58,6 +58,6 @@ export default buildConfig({
   sharp,
   plugins: [
     payloadCloudPlugin(),
-    // storage-adapter-placeholder
+    // TODO: add S3/R2 storage adapter for production media persistence
   ],
 })
