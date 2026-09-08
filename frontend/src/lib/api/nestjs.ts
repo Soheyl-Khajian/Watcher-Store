@@ -1,8 +1,8 @@
-// lib/api/nestjs.ts
+// frontend/src/lib/api/nestjs.ts
+import { env } from '../env';
 
-const NESTJS_API_URL = 'http://localhost:3001';
+const NESTJS_API_URL = env.NEXT_PUBLIC_NESTJS_API_URL;
 
-// تابع برای ورود کاربر
 export async function loginUser(credentials: {
   email: string;
   password: string;
@@ -22,20 +22,19 @@ export async function loginUser(credentials: {
     }
 
     const data = await res.json();
-    return data; // این آبجکت باید شامل access_token باشد
+    return data; // This object should contain access_token
   } catch (error) {
     console.error('Failed to fetch from NestJS API:', error);
     return null;
   }
 }
 
-// تابع برای دریافت اطلاعات پروفایل کاربر
 export async function fetchUserProfile(token: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/auth/profile`, {
       headers: {
         'Content-Type': 'application/json',
-        // توکن را در هدر Authorization ارسال می‌کنیم
+        // Send the token in the Authorization header
         Authorization: `Bearer ${token}`,
       },
     });
@@ -53,7 +52,6 @@ export async function fetchUserProfile(token: string) {
   }
 }
 
-// تابع برای دریافت سبد خرید کاربر
 export async function fetchCart(token: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/cart`, {
@@ -70,7 +68,6 @@ export async function fetchCart(token: string) {
   }
 }
 
-// تابع برای افزودن محصول به سبد خرید
 export async function addToCart(
   productId: string,
   quantity: number,
@@ -84,8 +81,8 @@ export async function addToCart(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        productId: String(productId), // مطمئن می‌شویم رشته است
-        quantity: Number(quantity), // مطمئن می‌شویم عدد است
+        productId: String(productId), // Ensure it's a string
+        quantity: Number(quantity), // Ensure it's a number
       }),
     });
     if (!res.ok) return null;
@@ -96,7 +93,6 @@ export async function addToCart(
   }
 }
 
-// تابع برای حذف یک محصول از سبد خرید
 export async function removeFromCart(productId: string, token: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/cart/${productId}`, {
@@ -107,14 +103,13 @@ export async function removeFromCart(productId: string, token: string) {
       },
     });
     if (!res.ok) return null;
-    return await res.json(); // سبد خرید به‌روز شده را برمی‌گرداند
+    return await res.json(); // The updated cart is returned
   } catch (error) {
     console.error('Failed to remove from cart:', error);
     return null;
   }
 }
 
-// تابع برای ثبت نهایی سفارش
 export async function createOrder(token: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/orders`, {
@@ -132,7 +127,6 @@ export async function createOrder(token: string) {
   }
 }
 
-// تابع برای شروع فرآیند پرداخت
 export async function initiatePayment(orderId: number, token: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/payment/initiate`, {
@@ -144,14 +138,13 @@ export async function initiatePayment(orderId: number, token: string) {
       body: JSON.stringify({ orderId }),
     });
     if (!res.ok) return null;
-    return await res.json(); // باید حاوی paymentUrl باشد
+    return await res.json(); // It should contain paymentUrl
   } catch (error) {
     console.error('Failed to initiate payment:', error);
     return null;
   }
 }
 
-// تابع برای تأیید نهایی پرداخت
 export async function verifyPayment(
   orderId: string,
   status: string,
@@ -175,7 +168,6 @@ export async function verifyPayment(
   }
 }
 
-// تابع برای دریافت تاریخچه سفارشات کاربر
 export async function fetchUserOrders(token: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/orders`, {

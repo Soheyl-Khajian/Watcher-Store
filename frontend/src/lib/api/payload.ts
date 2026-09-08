@@ -1,30 +1,26 @@
-// مسیر فایل: frontend/lib/api/payload.ts
+// frontend/src/lib/api/payload.ts
 
 import type { Category, Product } from '@/types';
+import { env } from '../env';
 
-const PAYLOAD_API_URL =
-  process.env.PAYLOAD_API_URL || 'http://localhost:3000/api';
+const PAYLOAD_API_URL = env.NEXT_PUBLIC_PAYLOAD_URL;
 
 async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const url = `${PAYLOAD_API_URL}${endpoint}`;
 
-  // ۱. ساخت آبجکت گزینه‌ها برای fetch
   const fetchOptions: RequestInit = {
     ...options,
     headers,
   };
 
-  // ۲. بررسی خودکار محیط
-  // در محیط توسعه (dev)، هیچ‌چیز را کش نکن.
   if (process.env.NODE_ENV === 'development') {
     fetchOptions.cache = 'no-store';
   } else {
-    // در محیط پروداکشن، برای درخواست‌های GET از revalidate استفاده کن.
     const isGetRequest =
       !options.method || options.method.toUpperCase() === 'GET';
     if (isGetRequest) {
-      fetchOptions.next = { revalidate: 3600 }; // کش به مدت ۱ ساعت
+      fetchOptions.next = { revalidate: 3600 }; // one hour cache
     }
   }
 
@@ -42,11 +38,9 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   }
 }
 
-// ۳. توجه: دیگر نیازی به noStore() در هیچ‌کدام از توابع زیر نیست.
-// تابع اصلی fetchPayloadAPI همه چیز را مدیریت می‌کند.
-
-// === توابع مربوط به محصولات ===
-
+//------------------------------------------------------------
+// PRODUCTS METHODS
+//------------------------------------------------------------
 export async function fetchProducts() {
   const data = await fetchPayloadAPI('/products?limit=12&depth=1');
   return data?.docs || [];
@@ -82,7 +76,9 @@ export async function fetchProductsByIds(ids: (string | number)[]) {
   return data?.docs || [];
 }
 
-// === توابع مربوط به دسته‌بندی‌ها ===
+//------------------------------------------------------------
+// CATEGORIES METHODS
+//------------------------------------------------------------
 
 export async function fetchCategories() {
   const data = await fetchPayloadAPI('/categories?limit=100');
@@ -123,7 +119,6 @@ export async function fetchCategoryTree() {
   return categoryTree;
 }
 
-// تابع جدید برای دریافت دسته‌بندی‌های مشخص بر اساس اسلاگ و با ترتیب دلخواه
 export async function fetchCategoriesBySlugs(slugs: string[]) {
   const data = await fetchPayloadAPI(
     `/categories?where[slug][in]=${slugs.join(',')}&limit=10&depth=1`,
@@ -131,10 +126,9 @@ export async function fetchCategoriesBySlugs(slugs: string[]) {
 
   const fetchedCategories = data?.docs || [];
 
-  // API ترتیب را تضمین نمی‌کند، پس ما خودمان بر اساس آرایه ورودی مرتب می‌کنیم
   const sortedCategories = slugs
     .map((slug) => fetchedCategories.find((cat: Category) => cat.slug === slug))
-    .filter(Boolean); // .filter(Boolean) برای حذف موارد یافت نشده
+    .filter(Boolean); // to filter not found items
 
   return sortedCategories;
 }
@@ -147,7 +141,9 @@ export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
   return data || { category: null, productsResult: { docs: [] } };
 }
 
-// === توابع مربوط به کاربران ===
+//------------------------------------------------------------
+// USERS METHODS
+//------------------------------------------------------------
 
 export async function registerUser(credentials: {
   email: string;
@@ -159,8 +155,9 @@ export async function registerUser(credentials: {
   });
 }
 
-// === توابع مربوط به محتوا (پست‌ها، صفحات، فوتر) ===
-// (این توابع را از کد قبلی خودتان اضافه کنید)
+//------------------------------------------------------------
+// CONTENT METHODS (POSTS, PAGES, FOOTER)
+//------------------------------------------------------------
 export async function fetchPosts() {
   const data = await fetchPayloadAPI('/posts?limit=10&depth=2');
   return data?.docs || [];

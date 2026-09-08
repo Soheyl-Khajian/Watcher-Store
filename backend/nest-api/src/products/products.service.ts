@@ -1,10 +1,11 @@
 // nest-api/src/products/products.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductDto } from './dto/product.dto';
+import { env } from '../env';
 
 @Injectable()
 export class ProductsService {
-  private readonly payloadApiUrl = 'http://localhost:3000/api';
+  private readonly payloadApiUrl = env.PAYLOAD_INTERNAL_URL;
 
   async findOne(id: string | number): Promise<ProductDto> {
     const response = await fetch(

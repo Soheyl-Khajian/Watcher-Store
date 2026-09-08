@@ -1,13 +1,20 @@
-// payload-cms/payload.config.ts
+// backend/payload-cms/src/payload.config.ts
 import { config } from 'dotenv'
-config({ path: '../.env' }) // ← بارگذاری فایل ریشه
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+config({ path: join(__dirname, '../../../.env') })
+
+import { env } from './env'
 
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { slateEditor } from '@payloadcms/richtext-slate'
 import path from 'path'
 import { buildConfig } from 'payload'
-import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Users } from './collections/Users'
@@ -21,9 +28,6 @@ import { productsByCategoryEndpoint } from './endpoints/productsByCategory'
 
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 export default buildConfig({
   admin: {
@@ -39,17 +43,17 @@ export default buildConfig({
   globals: [Footer],
   endpoints: [productsByCategoryEndpoint],
   editor: slateEditor({}),
-  secret: process.env.PAYLOAD_SECRET!,
+  secret: env.PAYLOAD_SECRET,
   typescript: {
     outputFile: path.resolve(__dirname, 'payload-types.ts'),
   },
-  cors: ['http://localhost:3002'],
+  cors: [env.FRONTEND_URL],
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URI!, // از متغیر مرکزی
+      connectionString: env.DATABASE_URI,
     },
-    schemaName: process.env.PAYLOAD_SCHEMA,
-    push: false, //غیرفعال کردن بروزرسانی خودکار پایگاه داده
+    schemaName: env.PAYLOAD_SCHEMA,
+    push: false,
   }),
   sharp,
   plugins: [

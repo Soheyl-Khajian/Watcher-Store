@@ -2,16 +2,16 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginUserDto } from './dto/login-user.dto';
-import e from 'express';
+import { env } from '../env';
 
 @Injectable()
 export class AuthService {
   constructor(private jwtService: JwtService) {}
 
-  //این متود در استراتژی محلی در حال استفاده شدن هست
+  // this method is used in local strategy
   async validateUser(loginDto: LoginUserDto): Promise<any> {
     try {
-      const response = await fetch('http://localhost:3000/api/users/login', {
+      const response = await fetch(`${env.PAYLOAD_INTERNAL_URL}/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,10 +25,10 @@ export class AuthService {
       const data = await response.json();
 
       if (!response.ok) {
-        return null; // اگر لاگین در Payload ناموفق بود
+        return null; // if login in payload was unsuccessful
       }
 
-      // اطلاعات کاربر تایید شده را از پاسخ Payload برمی‌گردانیم
+      // reutnr authenticated user from payload
       return data.user;
     } catch (error) {
       console.error('Error validating user with Payload:', error);
