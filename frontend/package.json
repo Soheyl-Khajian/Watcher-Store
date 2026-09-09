@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3002",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "format": "prettier --write ."
+    "start": "next start"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",

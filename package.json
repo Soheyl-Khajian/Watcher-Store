@@ -3,6 +3,10 @@
   "private": true,
   "scripts": {
     "bootstrap": "pnpm install",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "sync:payload-types": "cp backend/payload-cms/src/payload-types.ts frontend/src/types/payload-types.ts && sed -i \\\"/declare module 'payload'/,/^}/d\\\" frontend/src/types/payload-types.ts",
     "start:payload": "pnpm --filter payload-cms dev",
     "start:nest": "pnpm --filter nest-api start:dev",
@@ -10,7 +14,13 @@
     "start:all": "pnpm exec concurrently \"pnpm start:payload\" \"pnpm start:nest\" \"pnpm start:frontend\""
   },
   "devDependencies": {
-    "concurrently": "^8.0.0"
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^8.0.0",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "typescript-eslint": "^8.70.0"
   },
   "packageManager": "pnpm@9.15.9",
   "pnpm": {
