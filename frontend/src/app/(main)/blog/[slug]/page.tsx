@@ -5,13 +5,14 @@ import { RichText } from '@/components/RichText';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Post } from '@/types';
+import { env } from '@/lib/env';
+
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
 
 // این کامپوننت مسئول نمایش یک مقاله خاص است
-export default async function PostPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function PostPage({ params }: PageProps) {
   const { slug } = await params;
   const post: Post | null = await fetchPostBySlug(slug);
 
@@ -20,7 +21,7 @@ export default async function PostPage({
     return notFound();
   }
 
-  const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL || '';
+  const payloadUrl = env.NEXT_PUBLIC_PAYLOAD_URL;
   const imageUrl = post.thumbnail?.url
     ? `${payloadUrl}${post.thumbnail.url}`
     : '/images/placeholder.png';

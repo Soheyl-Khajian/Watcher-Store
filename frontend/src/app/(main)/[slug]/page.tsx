@@ -5,11 +5,11 @@ import { notFound } from 'next/navigation';
 import { RichText } from '@/components/RichText';
 import type { Page } from '@payload-types';
 
-export default async function StaticPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function StaticPage({ params }: PageProps) {
   const { slug } = await params;
 
   // ۱. اطلاعات صفحه را بر اساس اسلاگ از CMS دریافت می‌کنیم

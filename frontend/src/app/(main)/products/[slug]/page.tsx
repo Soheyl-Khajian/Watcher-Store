@@ -10,11 +10,11 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('fa-IR').format(price);
 };
 
-export default async function ProductDetailsPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function ProductDetailsPage({ params }: PageProps) {
   const { slug } = await params;
   const product: Product | null = await fetchProductBySlug(slug);
 
