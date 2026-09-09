@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
 import type { Post } from '@/types';
-
 
 interface ArticlesSectionProps {
   posts: Post[];

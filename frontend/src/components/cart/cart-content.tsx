@@ -55,6 +55,7 @@ export function CartContent({ onClose }: CartContentProps) {
           setProducts([]);
         }
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Error syncing cart and products:', error);
       } finally {
         setIsLoading(false);

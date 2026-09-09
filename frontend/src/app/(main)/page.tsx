@@ -1,10 +1,9 @@
-// مسیر فایل: src/app/(main)/page.tsx
+// frontend/src/app/(main)/page.tsx
 import { HeroSection } from '@/components/sections/hero-section';
 import { CategoryGrid } from '@/components/sections/category-grid';
 import { ArticlesSection } from '@/components/sections/articles-section';
 import {
   fetchProducts,
-  fetchParentCategories,
   fetchCategoriesBySlugs,
   fetchPosts,
   fetchFeaturedProducts,
@@ -22,9 +21,8 @@ const importantCategorySlugs = [
 ];
 
 export default async function HomePage() {
-  const allProducts = await fetchProducts(); // حالا ۱۲ محصول برمی‌گرداند
-  const featuredProducts = await fetchFeaturedProducts(); // فقط محصولات فروش ویژه را می‌گیرد
-  const parentCategories = await fetchParentCategories();
+  const allProducts = await fetchProducts(); // returns 12 products now
+  const featuredProducts = await fetchFeaturedProducts(); // only takes featured products
   const posts: Post[] = (await fetchPosts()) || [];
 
   const importantCategories = await fetchCategoriesBySlugs(
@@ -35,7 +33,7 @@ export default async function HomePage() {
     <>
       <HeroSection />
 
-      {/* صفحه محصولات ویژه */}
+      {/* featured products page */}
       <ProductCarousel
         title="فروش ویژه"
         products={featuredProducts}
@@ -44,7 +42,7 @@ export default async function HomePage() {
 
       <CategoryGrid categories={importantCategories} />
 
-      {/* صفحه همه محصولات */}
+      {/* all products page */}
       <ProductCarousel
         title="همه محصولات"
         products={allProducts}

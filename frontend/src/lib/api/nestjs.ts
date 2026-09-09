@@ -17,13 +17,13 @@ export async function loginUser(credentials: {
     });
 
     if (!res.ok) {
-      console.error(`NestJS API Error: ${res.status} ${res.statusText}`);
       return null;
     }
 
     const data = await res.json();
     return data; // This object should contain access_token
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to fetch from NestJS API:', error);
     return null;
   }
@@ -40,13 +40,13 @@ export async function fetchUserProfile(token: string) {
     });
 
     if (!res.ok) {
-      console.error('Failed to fetch user profile');
       return null;
     }
 
     const data = await res.json();
     return data;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching user profile:', error);
     return null;
   }
@@ -63,6 +63,7 @@ export async function fetchCart(token: string) {
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to fetch cart:', error);
     return null;
   }
@@ -88,6 +89,7 @@ export async function addToCart(
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to add to cart:', error);
     return null;
   }
@@ -105,6 +107,7 @@ export async function removeFromCart(productId: string, token: string) {
     if (!res.ok) return null;
     return await res.json(); // The updated cart is returned
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to remove from cart:', error);
     return null;
   }
@@ -122,6 +125,7 @@ export async function createOrder(token: string) {
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to create order:', error);
     return null;
   }
@@ -140,6 +144,7 @@ export async function initiatePayment(orderId: number, token: string) {
     if (!res.ok) return null;
     return await res.json(); // It should contain paymentUrl
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to initiate payment:', error);
     return null;
   }
@@ -163,6 +168,7 @@ export async function verifyPayment(
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to verify payment:', error);
     return null;
   }
@@ -179,6 +185,7 @@ export async function fetchUserOrders(token: string) {
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to fetch user orders:', error);
     return null;
   }

@@ -8,14 +8,12 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import type { Post } from '@/types';
-import clsx from 'clsx';
 
 interface PostCardProps {
   post: Post;
 }
 
 export function PostCard({ post }: PostCardProps) {
-  console.log(post);
   const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL;
   const imageUrl = post.thumbnail?.url
     ? `${payloadUrl}${post.thumbnail.url}`

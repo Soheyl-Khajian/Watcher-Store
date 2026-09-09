@@ -1,6 +1,6 @@
 // frontend/src/lib/api/payload.ts
 
-import type { Category, Product } from '@/types';
+import type { Category } from '@/types';
 import { env } from '../env';
 
 const PAYLOAD_API_URL = env.NEXT_PUBLIC_PAYLOAD_URL;
@@ -27,12 +27,12 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   try {
     const res = await fetch(url, fetchOptions);
     if (!res.ok) {
-      console.error(`Payload API Error: ${res.status} ${res.statusText}`);
       return null;
     }
     if (res.status === 204) return true;
     return res.json();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to fetch from Payload API:', error);
     return null;
   }
