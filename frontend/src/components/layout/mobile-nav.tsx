@@ -31,7 +31,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
         {categories.map((category) =>
           category.children && category.children.length > 0 ? (
             // اگر فرزند داشت، یک آیتم آکاردیونی بساز
-            <AccordionItem value={category.id} key={category.id}>
+            <AccordionItem value={String(category.id)} key={category.id}>
               <AccordionTrigger className="text-lg">
                 {category.name}
               </AccordionTrigger>
