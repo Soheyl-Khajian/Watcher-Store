@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "bootstrap": "pnpm install",
+    "sync:payload-types": "cp backend/payload-cms/src/payload-types.ts frontend/src/types/payload-types.ts && sed -i \\\"/declare module 'payload'/,/^}/d\\\" frontend/src/types/payload-types.ts",
     "start:payload": "pnpm --filter payload-cms dev",
     "start:nest": "pnpm --filter nest-api start:dev",
     "start:frontend": "pnpm --filter frontend dev",
