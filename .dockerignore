@@ -1,0 +1,39 @@
+# Dependencies and package managers
+node_modules
+.pnpm-store
+.pnpm-debug.log
+
+# Build outputs
+.next
+dist
+build
+.cache
+
+# Local env and secrets
+.env
+.env.local
+.env.*.local
+
+# Git and editor metadata
+.git
+.gitignore
+.vscode
+.idea
+
+# Logs and OS files
+*.log
+.DS_Store
+
+# Payload media (ephemeral local uploads)
+backend/payload-cms/media
+
+# Frontend build cache
+frontend/.next
+frontend/node_modules
+
+# Backend build caches
+backend/payload-cms/.next
+backend/payload-cms/dist
+backend/payload-cms/node_modules
+backend/nest-api/dist
+backend/nest-api/node_modules
