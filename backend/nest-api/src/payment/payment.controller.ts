@@ -20,7 +20,7 @@ export class PaymentController {
 
   @Post('initiate')
   initiatePayment(
-    @Request() req,
+    @Request() req: any,
     @Body() initiatePaymentDto: InitiatePaymentDto,
   ) {
     const userId = req.user.userId;
@@ -32,7 +32,7 @@ export class PaymentController {
 
   // این اندپوینت بازگشت از درگاه پرداخت را شبیه‌سازی می‌کند
   @Get('verify')
-  verifyPayment(@Request() req, @Query() verifyDto: VerifyPaymentDto) {
+  verifyPayment(@Request() req: any, @Query() verifyDto: VerifyPaymentDto) {
     const userId = req.user.userId;
     return this.paymentService.verifyPayment(verifyDto, userId);
   }

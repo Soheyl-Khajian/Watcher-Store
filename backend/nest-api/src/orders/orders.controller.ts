@@ -11,14 +11,14 @@ export class OrdersController {
 
   @Post()
   // نوع خروجی را مشخص می‌کنیم
-  createOrder(@Request() req): Promise<OrderResponseDto> {
+  createOrder(@Request() req: any): Promise<OrderResponseDto> {
     const userId = req.user.userId;
     return this.ordersService.createOrder(userId);
   }
 
   @Get()
   // نوع خروجی را مشخص می‌کنیم
-  getUserOrders(@Request() req): Promise<OrderResponseDto[]> {
+  getUserOrders(@Request() req: any): Promise<OrderResponseDto[]> {
     const userId = req.user.userId;
     return this.ordersService.findUserOrders(userId);
   }
