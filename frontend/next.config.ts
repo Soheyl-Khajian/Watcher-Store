@@ -11,6 +11,7 @@ const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL || 'http://localhost:3000
 const payloadHost = new URL(payloadUrl).host; // e.g. localhost:3000
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
