@@ -1,46 +1,41 @@
-// مسیر فایل: backend/payload-cms/src/seed.ts
+// backend/payload-cms/src/seed.ts
 import { getPayload } from 'payload'
-import { config as dotenvConfig } from 'dotenv'
 import path from 'path'
 import fs from 'fs/promises'
 import { fileURLToPath } from 'url'
-
 import configPromise from './payload.config'
 import type { Payload } from 'payload'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-dotenvConfig({ path: path.resolve(__dirname, '../../.env') })
-
-// ۱. اینترفیس را برای شامل شدن آیکون به‌روز می‌کنیم
 interface SeedCategory {
   name: string
   slug: string
   parentSlug: string | null
-  icon?: string // <-- فیلد آیکون اضافه و اختیاری شد
+  icon?: string
 }
 
 const upsertDoc = async (payload: Payload, collection: 'categories', query: any, data: any) => {
   const { docs } = await payload.find({ collection, where: query, limit: 1 })
   if (docs.length > 0) {
     console.log(
-      `ℹ️ سند در کالکشن '${collection}' با کوئری ${JSON.stringify(query)} از قبل وجود دارد. رد می‌شویم.`,
+      `ℹ️ Document in collection '${collection}' with query ${JSON.stringify(query)} already exists. Skipping.`,
     )
     return docs[0]
   }
-  console.log(`در حال ساخت سند جدید در کالکشن '${collection}'...`)
+  console.log(`Creating new document in collection '${collection}'...`)
   const newDoc = await payload.create({ collection, data })
-  console.log(`✅ سند جدید با موفقیت ساخته شد.`)
+  console.log(`✅ New document created successfully.`)
   return newDoc
 }
 
 const seed = async () => {
-  console.log('در حال آماده‌سازی Payload برای Seeding...')
+  console.log('Preparing Payload for seeding...')
   const payload = await getPayload({
     config: await configPromise,
   })
-  console.log('Payload آماده است. شروع فرآیند Seeding...')
+  console.log('Payload is ready. Starting seeding process...')
 
   try {
     const categoriesData: SeedCategory[] = JSON.parse(
@@ -50,7 +45,7 @@ const seed = async () => {
     let remainingCategories = [...categoriesData]
     let progressMade = true
 
-    console.log('\nدر حال پردازش سلسله‌مراتبی دسته‌بندی‌ها...')
+    console.log('\nProcessing category hierarchy...')
 
     while (remainingCategories.length > 0 && progressMade) {
       progressMade = false
@@ -58,7 +53,6 @@ const seed = async () => {
 
       for (const cat of remainingCategories) {
         if (!cat.parentSlug) {
-          // ۲. فیلد icon به داده‌ها اضافه شد
           const newCat = await upsertDoc(
             payload,
             'categories',
@@ -70,7 +64,6 @@ const seed = async () => {
         } else {
           const parentId = slugToIdMap.get(cat.parentSlug)
           if (parentId) {
-            // ۳. فیلد icon به داده‌ها اضافه شد
             const newCat = await upsertDoc(
               payload,
               'categories',
@@ -89,15 +82,15 @@ const seed = async () => {
 
     if (remainingCategories.length > 0) {
       remainingCategories.forEach((cat) =>
-        console.warn(`⚠️ والد با اسلاگ '${cat.parentSlug}' برای دسته '${cat.name}' هرگز یافت نشد.`),
+        console.warn(`⚠️ Parent with slug '${cat.parentSlug}' for category '${cat.name}' was never found.`),
       )
     }
   } catch (error) {
-    console.error('❌ خطا در ورود دسته‌بندی‌ها:', error)
+    console.error('❌ Error seeding categories:', error)
   }
 
   try {
-    console.log('\nدر حال به‌روزرسانی اطلاعات فوتر...')
+    console.log('\nUpdating footer data...')
     const footerData = JSON.parse(
       await fs.readFile(path.resolve(__dirname, '../seed-footer.json'), 'utf-8'),
     )
@@ -105,12 +98,12 @@ const seed = async () => {
       slug: 'footer',
       data: footerData,
     })
-    console.log('✅ اطلاعات فوتر با موفقیت به‌روز شد.')
+    console.log('✅ Footer data updated successfully.')
   } catch (error) {
-    console.error('❌ خطا در ورود اطلاعات فوتر:', error)
+    console.error('❌ Error seeding footer data:', error)
   }
 
-  console.log('\nفرآیند Seeding به پایان رسید.')
+  console.log('\nSeeding process completed.')
   process.exit(0)
 }
 
