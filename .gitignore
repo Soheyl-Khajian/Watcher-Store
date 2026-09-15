@@ -16,6 +16,9 @@ frontend/cache
 .cache
 .eslintcache
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # ===================================================================
 # Log Files
 # ===================================================================
