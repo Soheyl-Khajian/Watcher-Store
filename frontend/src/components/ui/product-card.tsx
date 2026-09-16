@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
       ? product.gallery[0].image
       : null;
   const imageUrl = mainImage?.url
-    ? `${payloadUrl}${mainImage.url}`
+    ? `${payloadUrl}${mainImage.url.replace(/^\/api/, '')}`
     : '/images/placeholder.png';
 
   return (
