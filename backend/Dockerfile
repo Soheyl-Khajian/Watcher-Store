@@ -20,6 +20,11 @@ USER root
 # Drop the preinstalled global pnpm so it cannot shadow Corepack.
 RUN npm uninstall -g pnpm || true
 
+# psql for schema inspection and migration debugging from the app container.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-client \
+ && rm -rf /var/lib/apt/lists/*
+
 # Bake pnpm into a shared corepack cache the node user can read and write.
 ENV COREPACK_HOME=/opt/corepack
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0

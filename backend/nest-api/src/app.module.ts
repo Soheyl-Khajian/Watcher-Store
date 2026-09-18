@@ -1,27 +1,26 @@
+// backend/nest-api/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { typeOrmOptions } from './database/typeorm.options';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentModule } from './payment/payment.module';
 import { ProductsModule } from './products/products.module';
-import { env } from './env';
+
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: env.DATABASE_HOST,
-      port: env.DATABASE_PORT,
-      username: env.POSTGRES_USER,
-      password: env.POSTGRES_PASSWORD,
-      database: env.POSTGRES_DB,
-      schema: env.NEST_SCHEMA,
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false, // Step 1.10 will add migrations
+      ...typeOrmOptions,
+      // Apply pending migrations on boot so a fresh clone or container is
+      // usable without a manual step. Flip to false and run
+      // `pnpm migration:run` explicitly if you ever add a real deploy pipeline.
+      migrationsRun: true,
     }),
     AuthModule,
     CartModule,

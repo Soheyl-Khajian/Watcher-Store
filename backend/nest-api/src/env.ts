@@ -15,7 +15,10 @@ const envSchema = z.object({
   POSTGRES_USER: z.string().default('postgres'),
   POSTGRES_PASSWORD: z.string().default('postgres'),
   POSTGRES_DB: z.string().default('watcher_store'),
-  NEST_SCHEMA: z.string().default('nest_schema'),
+  NEST_SCHEMA: z
+  .string()
+  .regex(/^[a-z_][a-z0-9_]*$/, 'must be a bare lowercase SQL identifier')
+  .default('nest_schema'),
   PORT: z
     .string()
     .default('3001')
