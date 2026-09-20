@@ -38,6 +38,8 @@ RUN pnpm --filter payload-cms build
 # Create an isolated production installation without workspace symlinks.
 RUN pnpm --filter payload-cms deploy --prod /out
 
+RUN cp -a backend/payload-cms/src /out/src
+
 # Copy the actual Next.js build output into the deploy directory.
 RUN cp -a backend/payload-cms/.next /out/.next
 RUN cp -a backend/payload-cms/next.config.mjs /out/next.config.mjs
@@ -61,4 +63,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
   CMD node -e "require('http').get('http://127.0.0.1:3000/admin', (r) => process.exit(r.statusCode >= 200 && r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"
 
-CMD ["pnpm", "start"]
+ENV NODE_OPTIONS=--no-deprecation
+
+CMD ["./node_modules/.bin/next", "start"]

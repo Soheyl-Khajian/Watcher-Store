@@ -3,7 +3,10 @@
 import type { Category } from '@/types';
 import { env } from '../env';
 
-const PAYLOAD_API_URL = env.NEXT_PUBLIC_PAYLOAD_URL;
+const PAYLOAD_API_URL =
+  typeof window === 'undefined'
+    ? process.env.PAYLOAD_INTERNAL_URL || env.NEXT_PUBLIC_PAYLOAD_URL
+    : env.NEXT_PUBLIC_PAYLOAD_URL;
 
 async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
@@ -20,7 +23,7 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
     const isGetRequest =
       !options.method || options.method.toUpperCase() === 'GET';
     if (isGetRequest) {
-      fetchOptions.next = { revalidate: 3600 }; // one hour cache
+      fetchOptions.next = { revalidate: 60 }; // TODO: change to one hour cache
     }
   }
 

@@ -52,11 +52,13 @@ ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 
 COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./.next/static
+COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
 
 RUN if [ -d /app/frontend/public ]; then \
-      cp -a /app/frontend/public ./public; \
+      cp -a /app/frontend/public ./frontend/public; \
     fi
+
+WORKDIR /app/frontend
 
 EXPOSE 3002
 

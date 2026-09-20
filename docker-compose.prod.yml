@@ -7,16 +7,34 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - .devcontainer/postgres-init/init-schemas.sh:/docker-entrypoint-initdb.d/01-init-schemas.sh:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
 
+  payload-migrate:
+    image: watcher-store-payload-cms
+    env_file:
+      - .env
+    environment:
+      DATABASE_URI: ${DATABASE_URI}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
+      FRONTEND_URL: ${FRONTEND_URL}
+    command: ['./node_modules/.bin/payload', 'migrate']
+    depends_on:
+      db:
+        condition: service_healthy
+
   payload-cms:
+    image: watcher-store-payload-cms
     build:
       context: .
       dockerfile: backend/payload-cms/Dockerfile
+    env_file:
+      - .env
     ports:
       - '3000:3000'
     environment:
@@ -24,14 +42,19 @@ services:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       FRONTEND_URL: ${FRONTEND_URL}
+      PORT: 3000
     depends_on:
       db:
         condition: service_healthy
+      payload-migrate:
+        condition: service_completed_successfully
 
   nest-api:
     build:
       context: .
       dockerfile: backend/nest-api/Dockerfile
+    env_file:
+      - .env
     ports:
       - '3001:3001'
     environment:
@@ -53,15 +76,19 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_PAYLOAD_URL: ${NEXT_PUBLIC_PAYLOAD_URL}
+        NEXT_PUBLIC_NESTJS_API_URL: ${NEXT_PUBLIC_NESTJS_API_URL}
+        NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
     ports:
       - '3002:3002'
     environment:
-      NEXT_PUBLIC_PAYLOAD_URL: http://payload-cms:3000/api
-      NEXT_PUBLIC_NESTJS_API_URL: http://nest-api:3001
-      NEXT_PUBLIC_FRONTEND_URL: ${FRONTEND_URL}
+      PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
     depends_on:
-      - payload-cms
-      - nest-api
+      payload-cms:
+        condition: service_healthy
+      nest-api:
+        condition: service_healthy
 
 volumes:
   postgres-data:
