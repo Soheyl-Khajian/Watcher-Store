@@ -1,29 +1,27 @@
 // frontend/app/(main)/blog/[slug]/page.tsx
 
+import type { Post } from '@/types';
 import { fetchPostBySlug } from '@/lib/api/payload';
 import { RichText } from '@/components/RichText';
 import Image from 'next/image';
+import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
-import type { Post } from '@/types';
-import { env } from '@/lib/env';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-// این کامپوننت مسئول نمایش یک مقاله خاص است
+// this component is responsible to show a particular article
 export default async function PostPage({ params }: PageProps) {
   const { slug } = await params;
   const post: Post | null = await fetchPostBySlug(slug);
 
-  // اگر مقاله‌ای با این اسلاگ پیدا نشد، صفحه 404 نمایش داده می‌شود
   if (!post) {
     return notFound();
   }
 
-  const payloadUrl = env.NEXT_PUBLIC_PAYLOAD_URL;
   const imageUrl = post.thumbnail?.url
-    ? `${payloadUrl}${post.thumbnail.url}`
+    ? resolvePayloadMediaUrl(post.thumbnail.url)
     : '/images/placeholder.png';
 
   const publishedDate = new Date(post.publishedDate).toLocaleDateString(
@@ -37,7 +35,7 @@ export default async function PostPage({ params }: PageProps) {
 
   return (
     <article className="container mx-auto max-w-4xl py-12">
-      {/* بخش هدر مقاله */}
+      {/*header*/}
       <header className="mb-8">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
           {post.title}
@@ -48,18 +46,19 @@ export default async function PostPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* تصویر شاخص */}
+      {/*image*/}
       <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
         <Image
           src={imageUrl}
           alt={post.title}
           fill
+          unoptimized
           className="object-cover"
           priority
         />
       </div>
 
-      {/* محتوای اصلی مقاله */}
+      {/*main content*/}
       <div className="prose prose-lg max-w-none dark:prose-invert">
         <RichText content={post.content} />
       </div>

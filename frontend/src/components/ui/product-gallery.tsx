@@ -1,25 +1,26 @@
-// مسیر فایل: src/components/ui/product-gallery.tsx
+// frontend/src/components/ui/product-gallery.tsx
 
-'use client'; // این کامپوننت برای مدیریت کلیک‌ها باید Client Component باشد
+'use client';
 
+import type { Media } from '@payload-types';
 import { useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import type { Media } from '@payload-types';
+import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+
 
 interface ProductGalleryProps {
-  // تایپ گالری را بر اساس تایپ‌های Payload مشخص می‌کنیم
+  // determined by payload types
   gallery: {
-    image: Media | number; // تصویر می‌تواند آبجکت کامل یا فقط ID باشد
+    image: Media | number; // image can be whole object or an ID
     id?: string | null;
   }[];
 }
 
 export function ProductGallery({ gallery }: ProductGalleryProps) {
-  // اولین تصویر گالری را به عنوان تصویر فعال اولیه انتخاب می‌کنیم
+  // set the first image in the gallery as active image
   const [selectedImage, setSelectedImage] = useState(gallery[0]?.image);
 
-  // اگر گالری خالی بود یا تصویر انتخاب شده معتبر نبود، چیزی نمایش نده
   if (!gallery || gallery.length === 0 || !selectedImage) {
     return (
       <div className="aspect-square w-full rounded-lg bg-muted flex items-center justify-center">
@@ -28,35 +29,33 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
     );
   }
 
-  const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL || '';
-
-  // اطمینان از اینکه آبجکت Media داریم
   const getImageUrl = (image: Media | number) => {
     if (typeof image === 'object' && image?.url) {
-      return `${payloadUrl}${image.url}`;
+      return resolvePayloadMediaUrl(image.url);
     }
-    return '/images/placeholder.png'; // تصویر جایگزین
+    return '/images/placeholder.png';
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* تصویر اصلی و بزرگ */}
+      {/*main image*/}
       <div className="aspect-square w-full overflow-hidden rounded-lg border">
         <div className="relative h-full w-full">
           <Image
             src={getImageUrl(selectedImage)}
             alt="تصویر محصول"
             fill
+            unoptimized
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 50vw"
           />
         </div>
       </div>
 
-      {/* لیست تصاویر کوچک (Thumbnails) */}
+      {/*(Thumbnails)*/}
       <div className="grid grid-cols-5 gap-2">
         {gallery.map((item) => {
-          // اطمینان از اینکه هر آیتم یک تصویر معتبر دارد
+          // make sure every item has a valid image
           if (typeof item.image !== 'object') return null;
 
           const imageUrl = getImageUrl(item.image);
@@ -67,7 +66,6 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
               onClick={() => setSelectedImage(item.image)}
               className={cn(
                 'aspect-square w-full overflow-hidden rounded-md border transition-all',
-                // اگر تصویر انتخاب شده بود، یک حاشیه رنگی به آن بده
                 (selectedImage as Media)?.id === item.image.id
                   ? 'border-primary ring-2 ring-primary'
                   : 'border-border',
@@ -78,6 +76,7 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
                   src={imageUrl}
                   alt="تصویر کوچک محصول"
                   fill
+                  unoptimized
                   className="object-contain"
                 />
               </div>

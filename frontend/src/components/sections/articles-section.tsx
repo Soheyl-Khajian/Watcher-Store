@@ -1,26 +1,26 @@
-// مسیر فایل: src/components/sections/articles-section.tsx
+// frontend/src/components/sections/articles-section.tsx
 
+import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
+import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Post } from '@/types';
+
 
 interface ArticlesSectionProps {
   posts: Post[];
 }
 
 export function ArticlesSection({ posts }: ArticlesSectionProps) {
-  const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL || '';
 
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
-        {/* ... بخش عنوان ... */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {posts.map((post) => {
             const imageUrl = post.thumbnail?.url
-              ? `${payloadUrl}${post.thumbnail.url}`
-              : '/images/blog-1.png'; // یک تصویر جایگزین
+              ? resolvePayloadMediaUrl(post.thumbnail.url)
+              : '/images/blog-1.png';
 
             return (
               <Link
@@ -35,6 +35,7 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
                         src={imageUrl}
                         alt={post.title}
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, 50vw"
                       />

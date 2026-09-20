@@ -1,22 +1,23 @@
 // src/components/ui/post-card.tsx
+
+import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
+import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 import {
   Card,
   CardHeader,
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
-import type { Post } from '@/types';
 
 interface PostCardProps {
   post: Post;
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const payloadUrl = process.env.NEXT_PUBLIC_PAYLOAD_URL;
   const imageUrl = post.thumbnail?.url
-    ? `${payloadUrl}${post.thumbnail.url}`
+    ? resolvePayloadMediaUrl(post.thumbnail.url)
     : '/images/placeholder.png';
 
   const publishedDate = new Date(post.publishedDate).toLocaleDateString(
@@ -37,6 +38,7 @@ export function PostCard({ post }: PostCardProps) {
               src={imageUrl}
               alt={post.title}
               fill
+              unoptimized
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           </div>
