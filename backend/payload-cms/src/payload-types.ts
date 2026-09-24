@@ -85,9 +85,12 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
-    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
-    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
+    'payload-locked-documents':
+      PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences':
+      PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations':
+      PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: number;
@@ -248,6 +251,7 @@ export interface Product {
   slug: string;
   status?: ('published' | 'draft') | null;
   price: number;
+  priceAdjustmentBasePrice?: number | null;
   /**
    * در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.
    */
@@ -447,6 +451,7 @@ export interface ProductsSelect<T extends boolean = true> {
   slug?: T;
   status?: T;
   price?: T;
+  priceAdjustmentBasePrice?: T;
   salePrice?: T;
   isOnSale?: T;
   stock?: T;
@@ -623,7 +628,6 @@ export interface FooterSelect<T extends boolean = true> {
 export interface Auth {
   [k: string]: unknown;
 }
-
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}

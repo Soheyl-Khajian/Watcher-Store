@@ -1,71 +1,118 @@
-// مسیر فایل: backend/payload-cms/src/components/ApplyPriceChangeButton.tsx
+// backend/payload-cms/src/components/ApplyPriceChangeButton.tsx
 
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { Button, useAuth, useDocumentInfo } from '@payloadcms/ui'
+import React, { useState } from 'react';
+import { Button, useAuth, useDocumentInfo } from '@payloadcms/ui';
+
+type AdjustmentAction = 'apply' | 'clear';
+
+type OperationResult = {
+  success?: boolean;
+  message?: string;
+  matchedProducts?: number;
+  updatedProducts?: number;
+  unchangedProducts?: number;
+};
 
 const ApplyPriceChangeButton: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(false)
-  // ۱. state جدید برای نگهداری پیام
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [pendingAction, setPendingAction] = useState<AdjustmentAction | null>(
+    null,
+  );
+  const [message, setMessage] = useState<{
+    text: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
-  const { id: categoryId } = useDocumentInfo()
-  const { user } = useAuth()
+  const { id: categoryId } = useDocumentInfo();
+  const { user } = useAuth();
 
-  const handleClick = async () => {
-    setIsLoading(true)
-    setMessage(null) // پاک کردن پیام قبلی در هر بار کلیک
-
+  const runAdjustment = async (action: AdjustmentAction) => {
     if (!categoryId) {
-      setMessage({ text: 'ID دسته‌بندی یافت نشد.', type: 'error' })
-      setIsLoading(false)
-      return
+      setMessage({
+        text: 'ID دسته‌بندی یافت نشد.',
+        type: 'error',
+      });
+      return;
     }
+
+    if (
+      action === 'clear' &&
+      !window.confirm(
+        'آیا از حذف تغییر قیمت این دسته و زیردسته‌های آن مطمئن هستید؟',
+      )
+    ) {
+      return;
+    }
+
+    setPendingAction(action);
+    setMessage(null);
 
     try {
-      const response = await fetch(`/api/categories/${categoryId}/apply-price-adjustment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.token}`,
+      const response = await fetch(
+        `/api/categories/${categoryId}/apply-price-adjustment`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+          },
+          body: JSON.stringify({ action }),
         },
-      })
+      );
 
-      const result = await response.json()
+      const result = (await response.json()) as OperationResult;
 
-      if (response.ok && result.success) {
-        // ۲. تنظیم پیام موفقیت‌آمیز به جای toast
-        setMessage({
-          text: result.message || 'عملیات با موفقیت انجام شد.',
-          type: 'success',
-        })
-      } else {
-        throw new Error(result.message || 'خطایی رخ داد.')
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'عملیات ناموفق بود.');
       }
+
+      setMessage({
+        type: 'success',
+        text: `${result.message} تعداد منطبق: ${
+          result.matchedProducts ?? 0
+        }، به‌روزشده: ${result.updatedProducts ?? 0}، بدون تغییر: ${
+          result.unchangedProducts ?? 0
+        }.`,
+      });
     } catch (error) {
-      let errorMessage = 'یک خطای پیش‌بینی نشده رخ داد.'
-      if (error instanceof Error) {
-        errorMessage = error.message
-      }
-      // ۳. تنظیم پیام خطا به جای toast
-      setMessage({ text: errorMessage, type: 'error' })
+      setMessage({
+        type: 'error',
+        text:
+          error instanceof Error
+            ? error.message
+            : 'یک خطای پیش‌بینی نشده رخ داد.',
+      });
     } finally {
-      setIsLoading(false)
+      setPendingAction(null);
     }
-  }
+  };
 
   return (
     <div>
-      <p className="py-2.5 px-0 text-sm text-gray-700 dark:text-gray-400">
-        پس از تنظیم درصد تخفیف یا افزایش، روی این دکمه کلیک کنید تا تغییرات بر روی تمام محصولات این
-        دسته و زیردسته‌های آن اعمال شود.
+      <p className="px-0 py-2.5 text-sm text-gray-700 dark:text-gray-400">
+        پس از ذخیره تنظیمات، تغییر قیمت را روی محصولات این دسته و زیردسته‌های آن
+        اعمال کنید.
       </p>
-      <Button onClick={handleClick} disabled={isLoading}>
-        {isLoading ? 'در حال اعمال...' : 'اعمال تغییر قیمت'}
-      </Button>
 
-      {/* ۴. نمایش پیام در زیر دکمه */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          onClick={() => runAdjustment('apply')}
+          disabled={pendingAction !== null}
+        >
+          {pendingAction === 'apply' ? 'در حال اعمال...' : 'اعمال تغییر قیمت'}
+        </Button>
+
+        <Button
+          buttonStyle="secondary"
+          onClick={() => runAdjustment('clear')}
+          disabled={pendingAction !== null}
+        >
+          {pendingAction === 'clear' ? 'در حال حذف...' : 'حذف تغییر قیمت'}
+        </Button>
+      </div>
+
       {message && (
         <p
           className={`mt-2 text-sm ${
@@ -76,7 +123,7 @@ const ApplyPriceChangeButton: React.FC = () => {
         </p>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ApplyPriceChangeButton
+export default ApplyPriceChangeButton;

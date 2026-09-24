@@ -1,7 +1,7 @@
-// مسیر فایل: backend/payload-cms/src/collections/Products.ts
+// backend/payload-cms/src/collections/Products.ts
 
-import type { CollectionConfig } from 'payload'
-import { slateEditor } from '@payloadcms/richtext-slate'
+import type { CollectionConfig } from 'payload';
+import { slateEditor } from '@payloadcms/richtext-slate';
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -18,11 +18,10 @@ export const Products: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        // تب اول: اطلاعات اصلی و رسانه
+        // first tab
         {
           label: 'اطلاعات اصلی و رسانه',
           fields: [
-            // ... فیلدهای نام، کد کالا، گالری، نقد و بررسی ...
             {
               name: 'name',
               label: 'نام کامل محصول (برند + مدل)',
@@ -66,7 +65,7 @@ export const Products: CollectionConfig = {
             },
           ],
         },
-        // تب دوم: مشخصات فنی
+        // second tab
         {
           label: 'مشخصات فنی',
           fields: [
@@ -97,9 +96,9 @@ export const Products: CollectionConfig = {
             },
           ],
         },
-        // تب سوم: قابلیت‌های هوشمند (با ساختار منعطف جدید)
+        // third tab
         {
-          label: 'ویژگی‌ها و قابلیت‌ها', // عنوان تب را عمومی‌تر کردیم
+          label: 'ویژگی‌ها و قابلیت‌ها',
           fields: [
             {
               name: 'features',
@@ -122,7 +121,7 @@ export const Products: CollectionConfig = {
         },
       ],
     },
-    // فیلدهای سایدبار
+    // sidebar fields
     {
       name: 'slug',
       label: 'اسلاگ (برای URL)',
@@ -147,12 +146,26 @@ export const Products: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'priceAdjustmentBasePrice',
+      label: 'قیمت پایه تغییر گروهی',
+      type: 'number',
+      admin: {
+        hidden: true,
+      },
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin',
+        create: ({ req: { user } }) => user?.role === 'admin',
+        update: ({ req: { user } }) => user?.role === 'admin',
+      },
+    },
+    {
       name: 'salePrice',
       label: 'قیمت فروش ویژه (تومان)',
       type: 'number',
       admin: {
         position: 'sidebar',
-        description: 'در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.',
+        description:
+          'در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.',
       },
     },
     {
@@ -180,4 +193,4 @@ export const Products: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
   ],
-}
+};
