@@ -85,12 +85,9 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    'payload-locked-documents':
-      PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
-    'payload-preferences':
-      PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
-    'payload-migrations':
-      PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
+    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: number;
@@ -303,6 +300,7 @@ export interface Page {
    * این فیلد به صورت خودکار از روی عنوان ساخته می‌شود، اما می‌توانید آن را ویرایش کنید.
    */
   slug?: string | null;
+  status: 'draft' | 'published';
   updatedAt: string;
   createdAt: string;
 }
@@ -484,6 +482,7 @@ export interface PagesSelect<T extends boolean = true> {
   title?: T;
   content?: T;
   slug?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -628,6 +627,7 @@ export interface FooterSelect<T extends boolean = true> {
 export interface Auth {
   [k: string]: unknown;
 }
+
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}

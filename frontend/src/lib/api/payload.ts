@@ -48,7 +48,7 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
 //------------------------------------------------------------
 export async function fetchProducts() {
   const data = await fetchPayloadAPI(
-    `/products?${PUBLISHED_STATUS_FILTER}limit=12&depth=1`,
+    `/products?${PUBLISHED_STATUS_FILTER}&limit=12&depth=1`,
   );
   return data?.docs || [];
 }
@@ -189,6 +189,8 @@ export async function fetchFooter() {
 }
 
 export async function fetchPageBySlug(slug: string) {
-  const data = await fetchPayloadAPI(`/pages?where[slug][equals]=${slug}`);
+  const data = await fetchPayloadAPI(
+    `/pages?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}`,
+  );
   return data?.docs?.[0] || null;
 }

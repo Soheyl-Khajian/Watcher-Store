@@ -1,6 +1,7 @@
-// مسیر فایل: backend/payload-cms/src/collections/Pages.ts
+// backend/payload-cms/src/collections/Pages.ts
 
 import type { CollectionConfig } from 'payload';
+import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
 import { slugify } from '../utils/slugify';
 
@@ -10,7 +11,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
   },
   access: {
-    read: () => true, // همه می‌توانند صفحات را بخوانند
+    read: readPublishedOrAdmin,
     create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
@@ -46,10 +47,10 @@ export const Pages: CollectionConfig = {
         beforeValidate: [
           ({ value, data }) => {
             if (value) {
-              return slugify(value); // اگر دستی وارد شده بود، آن را پاک‌سازی کن
+              return slugify(value); // clear if it was manual
             }
             if (data?.title) {
-              return slugify(data.title); // اگر خالی بود، از عنوان بساز
+              return slugify(data.title); // build from title if empty
             }
             return value;
           },
@@ -57,6 +58,26 @@ export const Pages: CollectionConfig = {
       },
       unique: true,
       index: true,
+    },
+    {
+      name: 'status',
+      label: 'وضعیت',
+      type: 'select',
+      required: true,
+      defaultValue: 'draft',
+      options: [
+        {
+          label: 'پیش‌نویس',
+          value: 'draft',
+        },
+        {
+          label: 'منتشر شده',
+          value: 'published',
+        },
+      ],
+      admin: {
+        position: 'sidebar',
+      },
     },
   ],
 };

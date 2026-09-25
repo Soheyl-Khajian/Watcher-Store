@@ -8,6 +8,7 @@ import * as migration_20250803_105114_AddPriceAdjustmentToCategories from './202
 import * as migration_20250803_164009_AddSalePriceToProducts from './20250803_164009_AddSalePriceToProducts';
 import * as migration_20250809_155914_AddIconToCategories from './20250809_155914_AddIconToCategories';
 import * as migration_20260924_130553_secure_price_adjustment from './20260924_130553_secure_price_adjustment';
+import * as migration_20260925_141103 from './20260925_141103';
 
 export const migrations = [
   {
@@ -59,5 +60,10 @@ export const migrations = [
     up: migration_20260924_130553_secure_price_adjustment.up,
     down: migration_20260924_130553_secure_price_adjustment.down,
     name: '20260924_130553_secure_price_adjustment',
+  },
+  {
+    up: migration_20260925_141103.up,
+    down: migration_20260925_141103.down,
+    name: '20260925_141103',
   },
 ];
