@@ -8,6 +8,8 @@ const PAYLOAD_API_URL =
     ? process.env.PAYLOAD_INTERNAL_URL || env.NEXT_PUBLIC_PAYLOAD_URL
     : env.NEXT_PUBLIC_PAYLOAD_URL;
 
+const PUBLISHED_STATUS_FILTER = 'where[status][equals]=published';
+
 async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const url = `${PAYLOAD_API_URL}${endpoint}`;
@@ -45,19 +47,21 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
 // PRODUCTS METHODS
 //------------------------------------------------------------
 export async function fetchProducts() {
-  const data = await fetchPayloadAPI('/products?limit=12&depth=1');
+  const data = await fetchPayloadAPI(
+    `/products?${PUBLISHED_STATUS_FILTER}limit=12&depth=1`,
+  );
   return data?.docs || [];
 }
 
 export async function fetchFeaturedProducts() {
   const data = await fetchPayloadAPI(
-    '/products?where[isOnSale][equals]=true&limit=12&depth=1',
+    `/products?${PUBLISHED_STATUS_FILTER}&where[isOnSale][equals]=true&limit=12&depth=1`,
   );
   return data?.docs || [];
 }
 
 export async function fetchAllProducts(page = 1, limit = 15, onSale = false) {
-  let query = `/products?page=${page}&limit=${limit}&depth=1`;
+  let query = `/products?${PUBLISHED_STATUS_FILTER}&page=${page}&limit=${limit}&depth=1`;
   if (onSale) {
     query += `&where[isOnSale][equals]=true`;
   }
@@ -67,14 +71,19 @@ export async function fetchAllProducts(page = 1, limit = 15, onSale = false) {
 
 export async function fetchProductBySlug(slug: string) {
   const data = await fetchPayloadAPI(
-    `/products?where[slug][equals]=${slug}&depth=2`,
+    `/products?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}&depth=2`,
   );
   return data?.docs?.[0] || null;
 }
 
 export async function fetchProductsByIds(ids: (string | number)[]) {
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const encodedIds = encodeURIComponent(ids.join(','));
   const data = await fetchPayloadAPI(
-    `/products?where[id][in]=${ids.join(',')}&depth=1&limit=100`,
+    `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
   );
   return data?.docs || [];
 }
@@ -162,13 +171,15 @@ export async function registerUser(credentials: {
 // CONTENT METHODS (POSTS, PAGES, FOOTER)
 //------------------------------------------------------------
 export async function fetchPosts() {
-  const data = await fetchPayloadAPI('/posts?limit=10&depth=2');
+  const data = await fetchPayloadAPI(
+    `/posts?${PUBLISHED_STATUS_FILTER}&limit=10&depth=2`,
+  );
   return data?.docs || [];
 }
 
 export async function fetchPostBySlug(slug: string) {
   const data = await fetchPayloadAPI(
-    `/posts?where[slug][equals]=${slug}&depth=2`,
+    `/posts?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}&depth=2`,
   );
   return data?.docs?.[0] || null;
 }

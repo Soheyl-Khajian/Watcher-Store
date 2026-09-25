@@ -1,6 +1,7 @@
 // backend/payload-cms/src/collections/Products.ts
 
 import type { CollectionConfig } from 'payload';
+import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
 
 export const Products: CollectionConfig = {
@@ -9,7 +10,7 @@ export const Products: CollectionConfig = {
     useAsTitle: 'name',
   },
   access: {
-    read: () => true,
+    read: readPublishedOrAdmin,
     create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',

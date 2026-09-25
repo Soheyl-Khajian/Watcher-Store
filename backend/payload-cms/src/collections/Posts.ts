@@ -1,45 +1,41 @@
 // backend/payload-cms/src/collections/Posts.ts
-import type { CollectionConfig } from 'payload'
-import { slateEditor } from '@payloadcms/richtext-slate'
-import type { CollectionBeforeChangeHook } from 'payload'
+import type { CollectionConfig } from 'payload';
+import type { CollectionBeforeChangeHook } from 'payload';
+import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
+import { slateEditor } from '@payloadcms/richtext-slate';
 
-// هوک به beforeChange تغییر کرده است
-const populateAuthorName: CollectionBeforeChangeHook = async ({ data, req }) => {
-  // اگر فیلد نویسنده وجود دارد
+const populateAuthorName: CollectionBeforeChangeHook = async ({
+  data,
+  req,
+}) => {
   if (data.author) {
-    // اطلاعات کامل نویسنده را پیدا می‌کنیم
     const author = await req.payload.findByID({
       collection: 'users',
       id: data.author,
-    })
+    });
 
     if (author) {
-      // آبجکت دیتا را با افزودن نام نویسنده برمی‌گردانیم
-      // تا در همان عملیات اولیه ذخیره شود
       return {
         ...data,
-        authorName: author.email, // یا هر فیلد دیگری مثل نام کامل
-      }
+        authorName: author.email,
+      };
     }
   }
 
-  // اگر تغییری نبود، همان داده اصلی را برگردان
-  return data
-}
+  return data;
+};
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
   admin: {
     useAsTitle: 'title',
-    // authorName را به ستون‌های پیش‌فرض برمی‌گردانیم
     defaultColumns: ['title', 'authorName', 'status', 'publishedDate'],
   },
   hooks: {
-    // از هوک beforeChange استفاده می‌کنیم
     beforeChange: [populateAuthorName],
   },
   access: {
-    read: () => true,
+    read: readPublishedOrAdmin,
     create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
@@ -54,7 +50,7 @@ export const Posts: CollectionConfig = {
     {
       name: 'excerpt',
       label: 'خلاصه مطلب (Excerpt)',
-      type: 'textarea', // استفاده از textarea برای متن چند خطی
+      type: 'textarea',
       required: true,
       admin: {
         description: 'یک خلاصه کوتاه از مقاله برای نمایش در کارت‌ها.',
@@ -102,7 +98,6 @@ export const Posts: CollectionConfig = {
         position: 'sidebar',
       },
     },
-    // فیلد authorName را دوباره فعال می‌کنیم
     {
       name: 'authorName',
       label: 'نام نویسنده',
@@ -130,4 +125,4 @@ export const Posts: CollectionConfig = {
       },
     },
   ],
-}
+};
