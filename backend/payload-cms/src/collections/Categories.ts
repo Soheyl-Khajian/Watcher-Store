@@ -1,7 +1,7 @@
 // مسیر فایل: backend/payload-cms/src/collections/Categories.ts
 
-import type { CollectionConfig } from 'payload'
-import { applyPriceAdjustmentHandler } from '../endpoints/applyPriceAdjustmentHandler'
+import type { CollectionConfig } from 'payload';
+import { applyPriceAdjustmentHandler } from '../endpoints/applyPriceAdjustmentHandler';
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -68,9 +68,9 @@ export const Categories: CollectionConfig = {
             id: {
               not_equals: id,
             },
-          }
+          };
         }
-        return true
+        return true;
       },
     },
     {
@@ -84,7 +84,8 @@ export const Categories: CollectionConfig = {
       label: 'تغییر قیمت گروهی',
       type: 'group',
       admin: {
-        description: 'این تنظیمات برای اعمال تخفیف یا افزایش قیمت روی تمام محصولات این دسته است.',
+        description:
+          'این تنظیمات برای اعمال تخفیف یا افزایش قیمت روی تمام محصولات این دسته است.',
         position: 'sidebar',
       },
       fields: [
@@ -107,4 +108,4 @@ export const Categories: CollectionConfig = {
       ],
     },
   ],
-}
+};

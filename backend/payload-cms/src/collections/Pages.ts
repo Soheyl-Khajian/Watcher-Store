@@ -1,8 +1,8 @@
 // مسیر فایل: backend/payload-cms/src/collections/Pages.ts
 
-import type { CollectionConfig } from 'payload'
-import { slateEditor } from '@payloadcms/richtext-slate'
-import { slugify } from '../utils/slugify'
+import type { CollectionConfig } from 'payload';
+import { slateEditor } from '@payloadcms/richtext-slate';
+import { slugify } from '../utils/slugify';
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -46,12 +46,12 @@ export const Pages: CollectionConfig = {
         beforeValidate: [
           ({ value, data }) => {
             if (value) {
-              return slugify(value) // اگر دستی وارد شده بود، آن را پاک‌سازی کن
+              return slugify(value); // اگر دستی وارد شده بود، آن را پاک‌سازی کن
             }
             if (data?.title) {
-              return slugify(data.title) // اگر خالی بود، از عنوان بساز
+              return slugify(data.title); // اگر خالی بود، از عنوان بساز
             }
-            return value
+            return value;
           },
         ],
       },
@@ -59,4 +59,4 @@ export const Pages: CollectionConfig = {
       index: true,
     },
   ],
-}
+};

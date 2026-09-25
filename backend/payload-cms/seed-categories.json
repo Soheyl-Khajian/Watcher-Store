@@ -1,5 +1,10 @@
 [
-  { "name": "نظارت تصویری", "slug": "cctv-systems", "parentSlug": null, "icon": "Video" },
+  {
+    "name": "نظارت تصویری",
+    "slug": "cctv-systems",
+    "parentSlug": null,
+    "icon": "Video"
+  },
   {
     "name": "دوربین مداربسته",
     "slug": "cctv-cameras",
@@ -61,7 +66,12 @@
     "icon": "Cable"
   },
 
-  { "name": "امنیت و حفاظت", "slug": "security-equipment", "parentSlug": null, "icon": "Shield" },
+  {
+    "name": "امنیت و حفاظت",
+    "slug": "security-equipment",
+    "parentSlug": null,
+    "icon": "Shield"
+  },
   {
     "name": "سیستم‌های اعلام سرقت",
     "slug": "alarm-systems",
@@ -105,7 +115,12 @@
     "icon": "DoorOpen"
   },
 
-  { "name": "خانه هوشمند", "slug": "smart-home", "parentSlug": null, "icon": "Home" },
+  {
+    "name": "خانه هوشمند",
+    "slug": "smart-home",
+    "parentSlug": null,
+    "icon": "Home"
+  },
   {
     "name": "کنترلرهای مرکزی",
     "slug": "smart-hubs",
@@ -131,8 +146,18 @@
     "icon": "Signal"
   },
 
-  { "name": "برق و انرژی", "slug": "power-energy", "parentSlug": null, "icon": "Power" },
-  { "name": "انرژی خورشیدی", "slug": "solar-energy", "parentSlug": "power-energy", "icon": "Sun" },
+  {
+    "name": "برق و انرژی",
+    "slug": "power-energy",
+    "parentSlug": null,
+    "icon": "Power"
+  },
+  {
+    "name": "انرژی خورشیدی",
+    "slug": "solar-energy",
+    "parentSlug": "power-energy",
+    "icon": "Sun"
+  },
   {
     "name": "پنل خورشیدی",
     "slug": "solar-panels",
@@ -157,5 +182,10 @@
     "parentSlug": "emergency-power",
     "icon": "Server"
   },
-  { "name": "باتری", "slug": "batteries", "parentSlug": "emergency-power", "icon": "Battery" }
+  {
+    "name": "باتری",
+    "slug": "batteries",
+    "parentSlug": "emergency-power",
+    "icon": "Battery"
+  }
 ]

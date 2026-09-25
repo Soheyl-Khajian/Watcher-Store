@@ -77,12 +77,8 @@
           "tableFrom": "users_sessions",
           "tableTo": "users",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["_parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -355,12 +351,8 @@
           "tableFrom": "categories",
           "tableTo": "categories",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -369,12 +361,8 @@
           "tableFrom": "categories",
           "tableTo": "media",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -617,12 +605,8 @@
           "tableFrom": "products",
           "tableTo": "media",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "thumbnail_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thumbnail_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -736,12 +720,8 @@
           "tableFrom": "products_rels",
           "tableTo": "products",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -750,12 +730,8 @@
           "tableFrom": "products_rels",
           "tableTo": "categories",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "categories_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["categories_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -918,12 +894,8 @@
           "tableFrom": "posts",
           "tableTo": "users",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -932,12 +904,8 @@
           "tableFrom": "posts",
           "tableTo": "media",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "thumbnail_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thumbnail_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1461,12 +1429,8 @@
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "payload_locked_documents",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1475,12 +1439,8 @@
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "users",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "users_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["users_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1489,12 +1449,8 @@
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "categories",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "categories_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["categories_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1503,12 +1459,8 @@
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "products",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "products_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["products_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1517,12 +1469,8 @@
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "posts",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "posts_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["posts_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1531,12 +1479,8 @@
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "media",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "media_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["media_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1741,12 +1685,8 @@
           "tableFrom": "payload_preferences_rels",
           "tableTo": "payload_preferences",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1755,12 +1695,8 @@
           "tableFrom": "payload_preferences_rels",
           "tableTo": "users",
           "schemaTo": "payload_schema",
-          "columnsFrom": [
-            "users_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["users_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1852,10 +1788,7 @@
     "payload_schema.enum_users_role": {
       "name": "enum_users_role",
       "schema": "payload_schema",
-      "values": [
-        "admin",
-        "customer"
-      ]
+      "values": ["admin", "customer"]
     },
     "payload_schema.enum_products_resolution": {
       "name": "enum_products_resolution",
@@ -1875,12 +1808,7 @@
     "payload_schema.enum_products_lens_type": {
       "name": "enum_products_lens_type",
       "schema": "payload_schema",
-      "values": [
-        "ثابت",
-        "وری‌فوکال",
-        "موتورایز",
-        "اپتیکال"
-      ]
+      "values": ["ثابت", "وری‌فوکال", "موتورایز", "اپتیکال"]
     },
     "payload_schema.enum_products_night_vision_type": {
       "name": "enum_products_night_vision_type",
@@ -1896,18 +1824,12 @@
     "payload_schema.enum_products_status": {
       "name": "enum_products_status",
       "schema": "payload_schema",
-      "values": [
-        "published",
-        "draft"
-      ]
+      "values": ["published", "draft"]
     },
     "payload_schema.enum_posts_status": {
       "name": "enum_posts_status",
       "schema": "payload_schema",
-      "values": [
-        "draft",
-        "published"
-      ]
+      "values": ["draft", "published"]
     }
   },
   "schemas": {

@@ -1,6 +1,6 @@
 // مسیر فایل: backend/payload-cms/src/globals/Footer.ts
 
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig } from 'payload';
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
@@ -69,4 +69,4 @@ export const Footer: GlobalConfig = {
       ],
     },
   ],
-}
+};

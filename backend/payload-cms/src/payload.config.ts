@@ -1,33 +1,33 @@
 // backend/payload-cms/src/payload.config.ts
-import { config } from 'dotenv'
-import { dirname, join } from 'path'
-import { fileURLToPath } from 'url'
+import { config } from 'dotenv';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-config({ path: join(__dirname, '../../../.env') })
+config({ path: join(__dirname, '../../../.env') });
 
-import { env } from './env'
+import { env } from './env';
 
-import { postgresAdapter } from '@payloadcms/db-postgres'
-import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
-import { slateEditor } from '@payloadcms/richtext-slate'
-import path from 'path'
-import { buildConfig } from 'payload'
-import sharp from 'sharp'
+import { postgresAdapter } from '@payloadcms/db-postgres';
+import { payloadCloudPlugin } from '@payloadcms/payload-cloud';
+import { slateEditor } from '@payloadcms/richtext-slate';
+import path from 'path';
+import { buildConfig } from 'payload';
+import sharp from 'sharp';
 
-import { Users } from './collections/Users'
-import { Media } from './collections/Media'
-import { Categories } from './collections/Categories'
-import { Products } from './collections/Products'
-import { Posts } from './collections/Posts'
-import { Pages } from './collections/Pages'
-import { Footer } from './globals/Footer'
-import { productsByCategoryEndpoint } from './endpoints/productsByCategory'
+import { Users } from './collections/Users';
+import { Media } from './collections/Media';
+import { Categories } from './collections/Categories';
+import { Products } from './collections/Products';
+import { Posts } from './collections/Posts';
+import { Pages } from './collections/Pages';
+import { Footer } from './globals/Footer';
+import { productsByCategoryEndpoint } from './endpoints/productsByCategory';
 
-import { en } from '@payloadcms/translations/languages/en'
-import { fa } from '@payloadcms/translations/languages/fa'
+import { en } from '@payloadcms/translations/languages/en';
+import { fa } from '@payloadcms/translations/languages/fa';
 
 export default buildConfig({
   admin: {
@@ -60,4 +60,4 @@ export default buildConfig({
     payloadCloudPlugin(),
     // TODO: add S3/R2 storage adapter for production media persistence
   ],
-})
+});

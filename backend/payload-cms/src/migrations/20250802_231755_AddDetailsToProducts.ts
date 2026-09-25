@@ -1,4 +1,4 @@
-import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
+import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres';
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -52,10 +52,14 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload_schema"."products" DROP COLUMN "thumbnail_id";
   DROP TYPE "payload_schema"."enum_products_resolution";
   DROP TYPE "payload_schema"."enum_products_lens_type";
-  DROP TYPE "payload_schema"."enum_products_night_vision_type";`)
+  DROP TYPE "payload_schema"."enum_products_night_vision_type";`);
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({
+  db,
+  payload,
+  req,
+}: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    CREATE TYPE "payload_schema"."enum_products_resolution" AS ENUM('2MP', '4MP', '5MP', '6MP', '8MP', '8x2MP (پانورامیک)', '4x2MP (پانورامیک)', '3x2MP (پانورامیک)', '2MP Full HD');
   CREATE TYPE "payload_schema"."enum_products_lens_type" AS ENUM('ثابت', 'وری‌فوکال', 'موتورایز', 'اپتیکال');
@@ -79,5 +83,5 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   ALTER TABLE "payload_schema"."products" ADD COLUMN "is_starlight" boolean DEFAULT false;
   ALTER TABLE "payload_schema"."products" ADD COLUMN "thumbnail_id" integer NOT NULL;
   ALTER TABLE "payload_schema"."products" ADD CONSTRAINT "products_thumbnail_id_media_id_fk" FOREIGN KEY ("thumbnail_id") REFERENCES "payload_schema"."media"("id") ON DELETE set null ON UPDATE no action;
-  CREATE INDEX "products_thumbnail_idx" ON "payload_schema"."products" USING btree ("thumbnail_id");`)
+  CREATE INDEX "products_thumbnail_idx" ON "payload_schema"."products" USING btree ("thumbnail_id");`);
 }

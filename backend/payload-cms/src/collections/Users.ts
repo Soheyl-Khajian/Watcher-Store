@@ -1,15 +1,15 @@
 // src/collections/Users.ts
-import type { CollectionConfig, Access } from 'payload'
+import type { CollectionConfig, Access } from 'payload';
 
 const isSelfOrAdmin: Access = ({ req: { user } }) => {
   // اگر کاربر لاگین نکرده، اجازه ندارد
   if (!user) {
-    return false
+    return false;
   }
 
   // اگر نقش کاربر 'admin' است، اجازه کامل دارد
   if (user.role === 'admin') {
-    return true
+    return true;
   }
 
   // در غیر این صورت، فقط به اطلاعات خودش دسترسی دارد
@@ -17,8 +17,8 @@ const isSelfOrAdmin: Access = ({ req: { user } }) => {
     id: {
       equals: user.id,
     },
-  }
-}
+  };
+};
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -58,4 +58,4 @@ export const Users: CollectionConfig = {
       },
     },
   ],
-}
+};
