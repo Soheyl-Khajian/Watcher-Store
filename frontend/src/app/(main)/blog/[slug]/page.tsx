@@ -20,6 +20,8 @@ export default async function PostPage({ params }: PageProps) {
     return notFound();
   }
 
+  const authorName = post.authorName?.trim() || 'Watcher Store Team';
+
   const imageUrl = post.thumbnail?.url
     ? resolvePayloadMediaUrl(post.thumbnail.url)
     : '/images/placeholder.png';
@@ -40,8 +42,8 @@ export default async function PostPage({ params }: PageProps) {
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
           {post.title}
         </h1>
-        <div className="mt-4 flex items-center space-x-4 space-x-reverse text-muted-foreground">
-          <span className="ml-2">توسط {post.authorName}</span>
+        <div className="text-muted-foreground mt-4 flex items-center space-x-4 space-x-reverse">
+          <span className="ml-2">توسط {authorName}</span>
           <time dateTime={post.publishedDate}>{publishedDate}</time>
         </div>
       </header>
@@ -59,7 +61,7 @@ export default async function PostPage({ params }: PageProps) {
       </div>
 
       {/*main content*/}
-      <div className="prose prose-lg max-w-none dark:prose-invert">
+      <div className="prose prose-lg dark:prose-invert max-w-none">
         <RichText content={post.content} />
       </div>
     </article>

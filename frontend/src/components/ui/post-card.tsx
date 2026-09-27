@@ -1,4 +1,4 @@
-// src/components/ui/post-card.tsx
+// frontend/src/components/ui/post-card.tsx
 
 import type { Post } from '@/types';
 import Link from 'next/link';
@@ -16,6 +16,8 @@ interface PostCardProps {
 }
 
 export function PostCard({ post }: PostCardProps) {
+  const authorName = post.authorName?.trim() || 'Watcher Store Team';
+
   const imageUrl = post.thumbnail?.url
     ? resolvePayloadMediaUrl(post.thumbnail.url)
     : '/images/placeholder.png';
@@ -45,11 +47,11 @@ export function PostCard({ post }: PostCardProps) {
         </CardHeader>
 
         <CardContent className="flex-grow p-4">
-          <h3 className="text-lg font-bold leading-tight">{post.title}</h3>
+          <h3 className="text-lg leading-tight font-bold">{post.title}</h3>
         </CardContent>
 
-        <CardFooter className="p-4 pt-0 text-sm text-muted-foreground">
-          <span className="ml-1">توسط {post.authorName}</span>
+        <CardFooter className="text-muted-foreground p-4 pt-0 text-sm">
+          <span className="ml-1">توسط {authorName}</span>
           <span>{publishedDate}</span>
         </CardFooter>
       </Card>

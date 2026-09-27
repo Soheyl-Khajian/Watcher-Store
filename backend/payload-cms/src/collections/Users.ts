@@ -1,18 +1,16 @@
-// src/collections/Users.ts
+// backend/payload-cms/src/collections/Users.ts
+
 import type { CollectionConfig, Access } from 'payload';
 
 const isSelfOrAdmin: Access = ({ req: { user } }) => {
-  // اگر کاربر لاگین نکرده، اجازه ندارد
   if (!user) {
     return false;
   }
 
-  // اگر نقش کاربر 'admin' است، اجازه کامل دارد
   if (user.role === 'admin') {
     return true;
   }
 
-  // در غیر این صورت، فقط به اطلاعات خودش دسترسی دارد
   return {
     id: {
       equals: user.id,
@@ -22,22 +20,34 @@ const isSelfOrAdmin: Access = ({ req: { user } }) => {
 
 export const Users: CollectionConfig = {
   slug: 'users',
-  // auth: true به تنهایی کافیست تا قابلیت‌های احراز هویت فعال شوند
-  auth: true,
+  auth: true, // auth: true alone is enough to enable authentication features
   admin: {
     useAsTitle: 'email',
   },
   access: {
-    // هر کسی می‌تواند یک کاربر جدید (مشتری) بسازد
     create: () => true,
-    // فقط خود کاربر یا ادمین می‌تواند اطلاعات را بخواند
     read: isSelfOrAdmin,
-    // فقط خود کاربر یا ادمین می‌تواند اطلاعات را ویرایش کند
     update: isSelfOrAdmin,
-    // فقط ادمین می‌تواند حذف کند
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
+    {
+      name: 'displayName',
+      label: 'نام نمایشی عمومی',
+      type: 'text',
+      required: true,
+      defaultValue: 'Watcher Store Team',
+      admin: {
+        position: 'sidebar',
+        description:
+          'این نام در محتوای عمومی مانند مقالات نمایش داده می‌شود. از آدرس ایمیل استفاده نکنید.',
+      },
+      access: {
+        read: ({ req: { user } }) => Boolean(user),
+        create: ({ req: { user } }) => user?.role === 'admin',
+        update: ({ req: { user } }) => user?.role === 'admin',
+      },
+    },
     {
       name: 'role',
       label: 'نقش',
@@ -48,11 +58,8 @@ export const Users: CollectionConfig = {
         { label: 'مشتری', value: 'customer' },
       ],
       defaultValue: 'customer',
-      // دسترسی به این فیلد را محدود می‌کنیم
       access: {
-        // فقط ادمین‌ها می‌توانند نقش را ببینند
         read: ({ req: { user } }) => user?.role === 'admin',
-        // فقط ادمین‌ها می‌توانند نقش را تعیین کنند
         create: ({ req: { user } }) => user?.role === 'admin',
         update: ({ req: { user } }) => user?.role === 'admin',
       },

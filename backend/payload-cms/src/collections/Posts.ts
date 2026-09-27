@@ -1,28 +1,53 @@
 // backend/payload-cms/src/collections/Posts.ts
+
 import type { CollectionConfig } from 'payload';
 import type { CollectionBeforeChangeHook } from 'payload';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
 
-const populateAuthorName: CollectionBeforeChangeHook = async ({
-  data,
-  req,
-}) => {
-  if (data.author) {
-    const author = await req.payload.findByID({
-      collection: 'users',
-      id: data.author,
-    });
+const PUBLIC_AUTHOR_FALLBACK = 'Watcher Store Team';
 
-    if (author) {
-      return {
-        ...data,
-        authorName: author.email,
-      };
+function getRelationshipID(value: unknown): string | number | null {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    const id = (value as { id?: unknown }).id;
+
+    if (typeof id === 'string' || typeof id === 'number') {
+      return id;
     }
   }
 
-  return data;
+  return null;
+}
+
+const populateAuthorName: CollectionBeforeChangeHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const authorID = getRelationshipID(data.author ?? originalDoc?.author);
+
+  if (!authorID) {
+    return data;
+  }
+
+  const author = await req.payload.findByID({
+    collection: 'users',
+    id: authorID,
+  });
+
+  const displayName =
+    typeof author.displayName === 'string' && author.displayName.trim()
+      ? author.displayName.trim()
+      : PUBLIC_AUTHOR_FALLBACK;
+
+  return {
+    ...data,
+    authorName: displayName,
+  };
 };
 
 export const Posts: CollectionConfig = {
@@ -97,14 +122,18 @@ export const Posts: CollectionConfig = {
       admin: {
         position: 'sidebar',
       },
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin',
+      },
     },
     {
       name: 'authorName',
-      label: 'نام نویسنده',
+      label: 'نام نمایشی نویسنده',
       type: 'text',
       admin: {
         readOnly: true,
         position: 'sidebar',
+        description: 'این مقدار از نام نمایشی کاربر نویسنده کپی می‌شود.',
       },
     },
     {

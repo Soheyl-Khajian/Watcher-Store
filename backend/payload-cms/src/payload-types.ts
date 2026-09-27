@@ -131,6 +131,10 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
+  /**
+   * این نام در محتوای عمومی مانند مقالات نمایش داده می‌شود. از آدرس ایمیل استفاده نکنید.
+   */
+  displayName: string;
   role: 'admin' | 'customer';
   updatedAt: string;
   createdAt: string;
@@ -278,6 +282,9 @@ export interface Post {
   status?: ('draft' | 'published') | null;
   publishedDate?: string | null;
   author: number | User;
+  /**
+   * این مقدار از نام نمایشی کاربر نویسنده کپی می‌شود.
+   */
   authorName?: string | null;
   thumbnail: number | Media;
   slug: string;
@@ -382,6 +389,7 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  displayName?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;

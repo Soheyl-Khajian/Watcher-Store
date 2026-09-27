@@ -1,4 +1,4 @@
-// frontend/types/index.ts
+// frontend/src/types/index.ts
 
 export interface Media {
   id: string | number;
@@ -33,12 +33,12 @@ export interface Media {
 }
 
 export interface Category {
-  id: string | number; // برای هماهنگی، به string | number تغییر کرد
+  id: string | number;
   name: string;
   slug?: string;
-  icon?: string; // <-- فیلد جدید برای نام آیکون اضافه شد
+  icon?: string;
   image?: Media;
-  parent?: Category | string | number; // parent می‌تواند آبجکت کامل یا فقط ID باشد
+  parent?: Category | string | number;
   children?: Category[];
 }
 
@@ -46,13 +46,12 @@ export interface Product {
   id: string | number;
   name: string;
   sku: string;
-  price: number; // این فیلد قیمت اصلی است
+  price: number; // main price field
   stock?: number;
   slug?: string;
   status?: 'published' | 'draft';
   categories?: (Category | string | number)[];
 
-  // فیلدهای جدید برای فروش ویژه
   salePrice?: number | null;
   isOnSale?: boolean;
 
@@ -78,7 +77,7 @@ export interface Product {
       }[]
     | null;
 
-  description: any; // برای نقد و بررسی کامل (Rich Text)
+  description: any;
 }
 
 export interface CartItem {
@@ -104,8 +103,8 @@ export interface Order {
   id: number;
   userId: number;
   total: number;
-  status: string; // یا OrderStatus enum اگر آن را تعریف کرده‌اید
-  createdAt: string; // تاریخ به صورت رشته‌ای از ای پی آی می‌آید
+  status: string;
+  createdAt: string;
   items: OrderItem[];
 }
 
@@ -113,8 +112,7 @@ export interface Post {
   id: string;
   title: string;
   slug: string;
-  author: string;
-  authorName?: string;
+  authorName?: string | null;
   publishedDate: string;
   thumbnail: Media;
   content: any;
