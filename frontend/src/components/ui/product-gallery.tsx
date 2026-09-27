@@ -8,7 +8,6 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 
-
 interface ProductGalleryProps {
   // determined by payload types
   gallery: {
@@ -23,7 +22,7 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
 
   if (!gallery || gallery.length === 0 || !selectedImage) {
     return (
-      <div className="aspect-square w-full rounded-lg bg-muted flex items-center justify-center">
+      <div className="bg-muted flex aspect-square w-full items-center justify-center rounded-lg">
         <p>تصویری وجود ندارد</p>
       </div>
     );
@@ -67,7 +66,7 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
               className={cn(
                 'aspect-square w-full overflow-hidden rounded-md border transition-all',
                 (selectedImage as Media)?.id === item.image.id
-                  ? 'border-primary ring-2 ring-primary'
+                  ? 'border-primary ring-primary ring-2'
                   : 'border-border',
               )}
             >

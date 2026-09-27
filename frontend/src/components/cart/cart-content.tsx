@@ -125,7 +125,7 @@ export function CartContent({ onClose }: CartContentProps) {
                 <li key={item.id} className="flex items-center gap-4">
                   <div className="flex-grow">
                     <p className="font-semibold">{product.name}</p>
-                    <p className="text-sm text-muted-foreground" dir="ltr">
+                    <p className="text-muted-foreground text-sm" dir="ltr">
                       {/* ۳. نمایش قیمت صحیح برای هر آیتم */}
                       {item.quantity} x {formatPrice(pricePerItem)}
                     </p>
@@ -147,7 +147,7 @@ export function CartContent({ onClose }: CartContentProps) {
             })}
           </ul>
         ) : (
-          <p className="flex h-full items-center justify-center text-muted-foreground">
+          <p className="text-muted-foreground flex h-full items-center justify-center">
             سبد خرید شما در حال حاضر خالی است.
           </p>
         )}
@@ -160,7 +160,7 @@ export function CartContent({ onClose }: CartContentProps) {
               <p>جمع کل</p>
               <p>{formatPrice(cartTotal)}</p>
             </div>
-            <Button asChild className="w-full mt-6" onClick={onClose}>
+            <Button asChild className="mt-6 w-full" onClick={onClose}>
               <Link href="/checkout">ادامه و تسویه حساب</Link>
             </Button>
           </div>

@@ -19,7 +19,7 @@ interface MobileNavProps {
 
 export function MobileNav({ categories, otherLinks }: MobileNavProps) {
   return (
-    <div className="flex flex-col gap-4 py-12 px-3">
+    <div className="flex flex-col gap-4 px-3 py-12">
       <SheetClose asChild>
         <Link href="/" className="mb-4 font-bold">
           فروشگاه واچر
@@ -41,7 +41,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
                   <SheetClose asChild>
                     <Link
                       href={`/categories/${category.slug}`}
-                      className="py-2 text-muted-foreground"
+                      className="text-muted-foreground py-2"
                     >
                       همه محصولات {category.name}
                     </Link>
@@ -51,7 +51,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
                     <SheetClose asChild key={child.id}>
                       <Link
                         href={`/categories/${child.slug}`}
-                        className="py-2 text-muted-foreground"
+                        className="text-muted-foreground py-2"
                       >
                         {child.name}
                       </Link>

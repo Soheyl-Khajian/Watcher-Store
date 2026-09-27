@@ -28,17 +28,17 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
               key={category.id}
               // ۲. دو آیتم آخر در حالت تبلت (sm) مخفی می‌شوند
               className={cn(
-                'group flex flex-col items-center gap-3 rounded-lg border p-4 text-center transition-all hover:bg-accent hover:text-accent-foreground',
+                'group hover:bg-accent hover:text-accent-foreground flex flex-col items-center gap-3 rounded-lg border p-4 text-center transition-all',
                 index >= 4 && 'hidden sm:flex', // <-- این کلاس جادویی است
               )}
             >
-              <div className="rounded-full bg-muted p-3 transition-colors group-hover:bg-primary/10">
+              <div className="bg-muted group-hover:bg-primary/10 rounded-full p-3 transition-colors">
                 <Icon
                   name={category.icon || 'HelpCircle'}
-                  className="h-8 w-8 text-muted-foreground transition-colors group-hover:text-primary"
+                  className="text-muted-foreground group-hover:text-primary h-8 w-8 transition-colors"
                 />
               </div>
-              <p className="font-semibold text-sm">{category.name}</p>
+              <p className="text-sm font-semibold">{category.name}</p>
             </Link>
           ))}
         </div>

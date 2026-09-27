@@ -36,7 +36,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-4xl py-12">
-      <h1 className="text-3xl font-bold mb-8">پروفایل من</h1>
+      <h1 className="mb-8 text-3xl font-bold">پروفایل من</h1>
       <Card>
         <CardHeader>
           <CardTitle>تاریخچه سفارشات</CardTitle>
@@ -45,16 +45,16 @@ export default function ProfilePage() {
           {orders.length > 0 ? (
             <ul className="space-y-6">
               {orders.map((order) => (
-                <li key={order.id} className="border p-4 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
+                <li key={order.id} className="rounded-lg border p-4">
+                  <div className="mb-2 flex items-center justify-between">
                     <p className="font-semibold">سفارش #{order.id}</p>
                     <Badge>{order.status}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     تاریخ ثبت:{' '}
                     {new Date(order.createdAt).toLocaleDateString('fa-IR')}
                   </p>
-                  <p className="text-lg font-bold mt-2">
+                  <p className="mt-2 text-lg font-bold">
                     مبلغ کل: {formatPrice(order.total)}
                   </p>
                 </li>

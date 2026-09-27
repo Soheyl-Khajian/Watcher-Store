@@ -15,11 +15,11 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
   return (
     <section className="py-8">
       <div>
-        <div className="flex items-center mb-2">
-          <h2 className="mr-4 ml-2 my-2 text-3xl font-bold">فروش ویژه</h2>
+        <div className="mb-2 flex items-center">
+          <h2 className="my-2 mr-4 ml-2 text-3xl font-bold">فروش ویژه</h2>
           <Link
             href="/products" // <-- لینک را به صفحه محصولات تغییر دادم
-            className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            className="text-primary flex items-center gap-2 text-sm font-semibold hover:underline"
           >
             مشاهده همه
             <ArrowLeft className="h-4 w-4" />
@@ -27,7 +27,7 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
         </div>
 
         {/* ۳. داده‌های آزمایشی حذف شده و روی پراپ products حلقه می‌زنیم */}
-        <div className="grid grid-cols-2 gap-2 m-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="m-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {products?.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

@@ -23,7 +23,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto max-w-6xl py-12 px-4">
+    <div className="container mx-auto max-w-6xl px-4 py-12">
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
         <div>
           <ProductGallery gallery={product.gallery || []} />
@@ -37,15 +37,15 @@ export default async function ProductDetailsPage({ params }: PageProps) {
             typeof product.salePrice === 'number' &&
             product.salePrice > 0 ? (
               <div className="flex items-baseline gap-4">
-                <p className="text-2xl font-semibold text-primary">
+                <p className="text-primary text-2xl font-semibold">
                   {formatPrice(product.salePrice)} تومان
                 </p>
-                <p className="text-lg text-muted-foreground line-through">
+                <p className="text-muted-foreground text-lg line-through">
                   {formatPrice(product.price)} تومان
                 </p>
               </div>
             ) : (
-              <p className="text-2xl font-semibold text-primary">
+              <p className="text-primary text-2xl font-semibold">
                 {formatPrice(product.price)} تومان
               </p>
             )}
@@ -77,7 +77,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
       <div className="mt-16">
         {product.specifications && product.specifications.length > 0 && (
           <section>
-            <h2 className="text-2xl font-bold border-b pb-2 mb-4">
+            <h2 className="mb-4 border-b pb-2 text-2xl font-bold">
               مشخصات فنی
             </h2>
             <div className="overflow-x-auto">
@@ -85,7 +85,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                 <tbody>
                   {(product.specifications || []).map((spec) => (
                     <tr key={spec.id} className="border-b">
-                      <th className="p-4 font-semibold bg-muted/50 w-1/3">
+                      <th className="bg-muted/50 w-1/3 p-4 font-semibold">
                         {spec.specName}
                       </th>
                       <td className="p-4">{spec.specValue}</td>
@@ -98,10 +98,10 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         )}
         {product.description && (
           <section className="mt-12">
-            <h2 className="text-2xl font-bold border-b pb-2 mb-4">
+            <h2 className="mb-4 border-b pb-2 text-2xl font-bold">
               نقد و بررسی
             </h2>
-            <div className="prose prose-lg max-w-none dark:prose-invert">
+            <div className="prose prose-lg dark:prose-invert max-w-none">
               <RichText content={product.description} />
             </div>
           </section>

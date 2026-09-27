@@ -43,10 +43,10 @@ export default async function AllProductsPage({
 
   return (
     <div className="container mx-auto py-12">
-      <h1 className="text-4xl font-bold mb-8">{pageTitle}</h1>
+      <h1 className="mb-8 text-4xl font-bold">{pageTitle}</h1>
       {products.length > 0 ? (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {products.map((product: Product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -74,7 +74,7 @@ export default async function AllProductsPage({
           </div>
         </>
       ) : (
-        <p className="text-center text-muted-foreground">
+        <p className="text-muted-foreground text-center">
           محصولی برای نمایش یافت نشد.
         </p>
       )}

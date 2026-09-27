@@ -13,7 +13,7 @@ export function HeroSection() {
           امنیت هوشمند، آسایش پایدار
         </h1>
 
-        <p className="mx-auto mt-4 max-w-2xl text-xl text-muted-foreground">
+        <p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-xl">
           بهترین تجهیزات امنیتی و هوشمندسازی ساختمان را با مشاوره تخصصی و ضمانت
           اصالت از واچر بخواهید.
         </p>
@@ -23,10 +23,10 @@ export function HeroSection() {
           <Input
             type="search"
             placeholder="دنبال چه محصولی می‌گردی؟"
-            className="h-12 rounded-full pl-10 pr-4 text-base"
+            className="h-12 rounded-full pr-4 pl-10 text-base"
           />
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-5 w-5 text-muted-foreground" />
+            <Search className="text-muted-foreground h-5 w-5" />
           </div>
         </div>
       </div>

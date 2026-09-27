@@ -111,10 +111,10 @@ export default function CheckoutPage() {
               const currentPrice = getCurrentPrice(product);
 
               return (
-                <li key={item.id} className="flex justify-between items-center">
+                <li key={item.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold">{product.name}</p>
-                    <p className="text-sm text-muted-foreground" dir="ltr">
+                    <p className="text-muted-foreground text-sm" dir="ltr">
                       {/* ۴. قیمت صحیح را نمایش دهید */}
                       {item.quantity} x {formatPrice(currentPrice)}
                     </p>

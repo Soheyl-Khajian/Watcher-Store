@@ -6,13 +6,11 @@ import Image from 'next/image';
 import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-
 interface ArticlesSectionProps {
   posts: Post[];
 }
 
 export function ArticlesSection({ posts }: ArticlesSectionProps) {
-
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
@@ -41,14 +39,14 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
                       />
                     </div>
                   </CardHeader>
-                  <CardContent className="flex flex-col flex-grow p-6">
+                  <CardContent className="flex flex-grow flex-col p-6">
                     <CardTitle className="mb-2 text-xl font-bold">
                       <h3>{post.title}</h3>
                     </CardTitle>
                     <p className="text-muted-foreground flex-grow">
                       {post.excerpt || ''}
                     </p>
-                    <div className="mt-4 text-sm font-bold text-primary transition-transform duration-300 group-hover:translate-x-[-4px]">
+                    <div className="text-primary mt-4 text-sm font-bold transition-transform duration-300 group-hover:translate-x-[-4px]">
                       ادامه مطلب &larr;
                     </div>
                   </CardContent>

@@ -36,7 +36,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40">
+    <div className="bg-muted/40 flex min-h-screen items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>ورود به حساب کاربری</CardTitle>

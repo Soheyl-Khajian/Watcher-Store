@@ -22,13 +22,13 @@ export default async function StaticPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-12 px-4">
-      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-8">
+    <div className="container mx-auto max-w-4xl px-4 py-12">
+      <h1 className="mb-8 text-4xl font-extrabold tracking-tight lg:text-5xl">
         {page.title}
       </h1>
 
       {/* ۳. از کامپوننت RichText برای نمایش محتوا استفاده می‌کنیم */}
-      <div className="prose prose-lg max-w-none dark:prose-invert">
+      <div className="prose prose-lg dark:prose-invert max-w-none">
         <RichText content={page.content ?? []} />
       </div>
     </div>

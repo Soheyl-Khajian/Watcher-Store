@@ -37,18 +37,18 @@ export default function PaymentVerifyClient() {
     }
   }, [searchParams, token, router]);
   return (
-    <div className="container mx-auto flex flex-col items-center justify-center text-center py-24">
+    <div className="container mx-auto flex flex-col items-center justify-center py-24 text-center">
       {isSuccess === null ? (
         <p>{message}</p>
       ) : isSuccess ? (
         <>
-          <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+          <CheckCircle className="mb-4 h-16 w-16 text-green-500" />
           <h1 className="text-2xl font-bold">پرداخت موفق</h1>
           <p className="text-muted-foreground mt-2">{message}</p>
         </>
       ) : (
         <>
-          <XCircle className="h-16 w-16 text-red-500 mb-4" />
+          <XCircle className="mb-4 h-16 w-16 text-red-500" />
           <h1 className="text-2xl font-bold">پرداخت ناموفق</h1>
           <p className="text-muted-foreground mt-2">{message}</p>
         </>

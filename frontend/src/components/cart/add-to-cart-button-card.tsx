@@ -41,7 +41,7 @@ export function AddToCartButtonCard({
   return (
     <Button
       onClick={handleAddToCart}
-      className="w-full flex items-center justify-center gap-2 cursor-pointer"
+      className="flex w-full cursor-pointer items-center justify-center gap-2"
     >
       <span>افزودن به سبد خرید</span>
       <ShoppingCart className="h-5 w-5" />

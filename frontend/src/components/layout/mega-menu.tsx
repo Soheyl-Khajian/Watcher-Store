@@ -36,7 +36,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className="gap-1 cursor-pointer"
+          className="cursor-pointer gap-1"
           onPointerEnter={() => setActiveParent(categories?.[0] || null)}
         >
           <span>دسته‌بندی‌ها</span>
@@ -50,7 +50,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
 
       {/* عرض منو برای جای دادن سه ستون افزایش یافت */}
       <PopoverContent
-        className="w-[800px] p-4 border rounded-xl shadow-lg bg-background/80 backdrop-blur-lg"
+        className="bg-background/80 w-[800px] rounded-xl border p-4 shadow-lg backdrop-blur-lg"
         align="start"
       >
         {/* ۳. چیدمان به گرید سه ستونی تغییر کرد */}
@@ -64,7 +64,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 onClick={() => setOpen(false)}
                 onPointerEnter={() => setActiveParent(parent)}
                 className={cn(
-                  'rounded-md p-3 text-sm font-medium transition-colors text-right hover:bg-accent hover:text-accent-foreground cursor-pointer flex justify-between items-center',
+                  'hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-between rounded-md p-3 text-right text-sm font-medium transition-colors',
                   activeParent?.id === parent.id &&
                     'bg-accent text-accent-foreground',
                 )}
@@ -79,7 +79,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
 
           {/* ستون دوم: فرزندانِ والد فعال */}
           <div className="flex flex-col space-y-1 border-r pr-2">
-            <h4 className="mb-2 border-b border-primary/20 pb-2 text-base font-bold text-primary text-right">
+            <h4 className="border-primary/20 text-primary mb-2 border-b pb-2 text-right text-base font-bold">
               {activeParent?.name}
             </h4>
             {(activeParent?.children || []).map((child) => (
@@ -89,7 +89,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 onClick={() => setOpen(false)}
                 onPointerEnter={() => setActiveChild(child)}
                 className={cn(
-                  'rounded-md p-3 text-sm transition-colors text-right hover:bg-accent hover:text-accent-foreground cursor-pointer flex justify-between items-center',
+                  'hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-between rounded-md p-3 text-right text-sm transition-colors',
                   activeChild?.id === child.id && 'bg-accent/50',
                 )}
               >
@@ -103,7 +103,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
 
           {/* ستون سوم: نوه‌های والد فعال (فرزندانِ فرزند فعال) */}
           <div className="flex flex-col space-y-1 border-r pr-2">
-            <h4 className="mb-2 border-b border-primary/20 pb-2 text-base font-bold text-primary text-right opacity-0 pointer-events-none">
+            <h4 className="border-primary/20 text-primary pointer-events-none mb-2 border-b pb-2 text-right text-base font-bold opacity-0">
               Placeholder
             </h4>{' '}
             {/* Placeholder برای حفظ هم‌ترازی */}
@@ -112,7 +112,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 key={grandchild.id}
                 href={`/categories/${grandchild.slug}`}
                 onClick={() => setOpen(false)}
-                className="rounded-md p-3 text-sm transition-colors text-right hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                className="hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-md p-3 text-right text-sm transition-colors"
               >
                 {grandchild.name}
               </Link>

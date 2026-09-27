@@ -28,7 +28,7 @@ export async function Header() {
   const categoryTree = await fetchCategoryTree();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
       <div className="container flex h-16 items-center px-2">
         {/* بخش لوگوی سایت با لینک به صفحه اصلی */}
         <div className="mr-4 ml-10 hidden md:flex">
@@ -50,7 +50,7 @@ export async function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
+              className="hover:text-foreground/80 text-foreground/60 transition-colors"
             >
               {link.label}
             </Link>

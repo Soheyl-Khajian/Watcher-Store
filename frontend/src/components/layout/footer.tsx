@@ -17,11 +17,11 @@ export async function Footer() {
 
   return (
     <footer className="bg-muted/50">
-      <div className="container mx-auto py-12 px-2">
+      <div className="container mx-auto px-2 py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="md:col-span-1">
             <h4 className="mb-4 text-lg font-bold">فروشگاه واچر</h4>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-muted-foreground text-sm">{description}</p>
             <div className="mt-6 flex space-x-4 space-x-reverse">
               {/* ۱. اضافه کردن ?? [] برای socialLinks */}
               {(socialLinks ?? []).map((link) => (
@@ -49,7 +49,7 @@ export async function Footer() {
                   <li key={link.id}>
                     <Link
                       href={link.url}
-                      className="text-sm text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground text-sm"
                     >
                       {link.label}
                     </Link>
@@ -60,7 +60,7 @@ export async function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 border-t pt-6 text-center text-sm text-muted-foreground">
+        <div className="text-muted-foreground mt-10 border-t pt-6 text-center text-sm">
           <p>
             &copy; {new Date().getFullYear()} فروشگاه امنیتی واچر. تمامی حقوق
             محفوظ است.

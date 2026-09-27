@@ -23,7 +23,7 @@ export function CartSheet() {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative cursor-pointer">
           {totalQuantity > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+            <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs">
               {totalQuantity}
             </span>
           )}

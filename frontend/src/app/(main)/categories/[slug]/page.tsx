@@ -48,7 +48,7 @@ export default async function CategoryPage({
 
   return (
     <div className="container mx-auto py-12">
-      <h1 className="text-3xl md:text-4xl font-bold mb-8">
+      <h1 className="mb-8 text-3xl font-bold md:text-4xl">
         محصولات دسته‌بندی: {category.name}
       </h1>
 
@@ -84,7 +84,7 @@ export default async function CategoryPage({
           </div>
         </>
       ) : (
-        <p className="text-center text-muted-foreground">
+        <p className="text-muted-foreground text-center">
           محصولی در این دسته‌بندی یا زیرمجموعه‌های آن یافت نشد.
         </p>
       )}

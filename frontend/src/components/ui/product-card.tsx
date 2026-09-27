@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 import { AddToCartButtonCard } from '../cart/add-to-cart-button-card';
 
-
 interface ProductCardProps {
   product: Product;
 }
@@ -28,13 +27,13 @@ export function ProductCard({ product }: ProductCardProps) {
       ? product.gallery[0].image
       : null;
   const imageUrl = mainImage?.url
-  ? resolvePayloadMediaUrl(mainImage.url)
-  : '/images/placeholder.png';
+    ? resolvePayloadMediaUrl(mainImage.url)
+    : '/images/placeholder.png';
 
   return (
     <div className="h-full">
       <Link href={`/products/${product.slug}`} className="group block h-full">
-        <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 pt-0 pb-1 gap-3 cursor-default">
+        <Card className="flex h-full cursor-default flex-col gap-3 overflow-hidden pt-0 pb-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <CardHeader className="p-0">
             <div className="relative aspect-[4/3] w-full">
               <Image
@@ -48,8 +47,8 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-grow px-1 py-0 my-0 flex flex-col justify-center">
-            <CardTitle className="text-center text-sm sm:text-base md:text-lg font-semibold leading-tight line-clamp-2">
+          <CardContent className="my-0 flex flex-grow flex-col justify-center px-1 py-0">
+            <CardTitle className="line-clamp-2 text-center text-sm leading-tight font-semibold sm:text-base md:text-lg">
               <h3>{product.name}</h3>
             </CardTitle>
           </CardContent>
@@ -60,16 +59,16 @@ export function ProductCard({ product }: ProductCardProps) {
               typeof product.salePrice === 'number' &&
               product.salePrice > 0 ? (
                 <>
-                  <span className="text-base sm:text-lg md:text-xl lg:text-2xl text-primary">
+                  <span className="text-primary text-base sm:text-lg md:text-xl lg:text-2xl">
                     {formatPrice(product.salePrice)}
                     <span className="text-xs"> تومان</span>
                   </span>
-                  <span className="text-base sm:text-lg text-muted-foreground line-through">
+                  <span className="text-muted-foreground text-base line-through sm:text-lg">
                     {formatPrice(product.price)}
                   </span>
                 </>
               ) : (
-                <span className="text-base sm:text-lg md:text-xl lg:text-2xl text-primary">
+                <span className="text-primary text-base sm:text-lg md:text-xl lg:text-2xl">
                   {formatPrice(product.price)}
                   <span className="text-xs"> تومان</span>
                 </span>
