@@ -1,4 +1,5 @@
-// src/cart/cart.service.ts
+// backend/nest-api/src/cart/cart.service.ts
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,37 +10,37 @@ import { CartItem } from './entities/cart-item.entity';
 @Injectable()
 export class CartService {
   constructor(
-    @InjectRepository(Cart) //لطفاً ابزار مخصوص کار با جدول کارت رو بمن بده
+    @InjectRepository(Cart) // gives tools to work with cart table
     private cartRepository: Repository<Cart>,
     @InjectRepository(CartItem)
     private cartItemRepository: Repository<CartItem>,
   ) {}
 
   private async findOrCreateCart(userId: number): Promise<Cart> {
-    //تابع کمکی که فقط درون کلاس اجرا میشود
+    // utility function which only runs inside the class
     let cart = await this.cartRepository.findOne({
-      //در جدول کارت بگرد و اولین رکوردی را که یوزرآیدی آن با یوزرآیدی ورودی برابر است، برای من پیدا کن
       where: { userId },
-      relations: ['items'], //وقتی سبد خرید را پیدا کردی، لطفاً تمام آیتم‌های مرتبط با آن را هم از جدول کارت_آیتم برای من بیاور
+      relations: ['items'], // returns all related items in cart_items table
     });
 
     if (!cart) {
-      cart = this.cartRepository.create({ userId, items: [] }); //یک سبد خرید جدید در حافظه می‌سازد
-      await this.cartRepository.save(cart); //آن را در دیتابیس ذخیره می‌کند
+      cart = this.cartRepository.create({ userId, items: [] });
+      await this.cartRepository.save(cart);
     }
     return cart;
   }
 
   async addToCart(userId: number, addToCartDto: AddToCartDto): Promise<Cart> {
     const cart = await this.findOrCreateCart(userId);
+    const productId = String(addToCartDto.productId);
 
-    let item = cart.items.find((i) => i.productId === addToCartDto.productId);
+    let item = cart.items.find((item) => item.productId === productId);
 
     if (item) {
       item.quantity += addToCartDto.quantity;
     } else {
       item = this.cartItemRepository.create({
-        productId: addToCartDto.productId,
+        productId,
         quantity: addToCartDto.quantity,
         cart: cart,
       });

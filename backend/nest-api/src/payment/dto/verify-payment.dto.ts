@@ -1,5 +1,7 @@
-// src/payment/dto/verify-payment.dto.ts
-import { IsEnum, IsNotEmpty, IsNumberString } from 'class-validator';
+// backend/nest-api/src/payment/dto/verify-payment.dto.ts
+
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, Min } from 'class-validator';
 
 export enum PaymentStatus {
   SUCCESS = 'success',
@@ -7,11 +9,11 @@ export enum PaymentStatus {
 }
 
 export class VerifyPaymentDto {
-  @IsNumberString()
-  @IsNotEmpty()
-  orderId: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  orderId!: number;
 
   @IsEnum(PaymentStatus)
-  @IsNotEmpty()
-  status: PaymentStatus;
+  status!: PaymentStatus;
 }

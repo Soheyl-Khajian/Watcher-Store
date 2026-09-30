@@ -1,9 +1,6 @@
-// src/payment/payment.service.ts
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+// backend/nest-api/src/payment/payment.service.ts
+
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrdersService } from '../orders/orders.service';
 import { OrderStatus } from '../orders/entities/order.entity';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
@@ -31,7 +28,8 @@ export class PaymentService {
     const { orderId, status } = verifyDto;
 
     // first find the product and make sure it belongs to the same user
-    const order = await this.ordersService.findOne(Number(orderId), userId);
+    const order = await this.ordersService.findOne(orderId, userId);
+
     if (!order) {
       throw new NotFoundException('سفارش یافت نشد.');
     }

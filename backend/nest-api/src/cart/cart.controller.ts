@@ -1,4 +1,5 @@
-// src/cart/cart.controller.ts
+// backend/nest-api/src/cart/cart.controller.ts
+
 import {
   Controller,
   Post,
@@ -12,8 +13,8 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
+import { ProductIdParamDto } from './dto/product-id-param.dto';
 
-// تمام مسیرهای این کنترلر نیاز به احراز هویت دارند
 @UseGuards(AuthGuard('jwt'))
 @Controller('cart')
 export class CartController {
@@ -21,7 +22,7 @@ export class CartController {
 
   @Post()
   addToCart(@Request() req: any, @Body() addToCartDto: AddToCartDto) {
-    const userId = req.user.userId; // آیدی کاربر را از توکن جی دبلیو تی می‌خوانیم
+    const userId = req.user.userId; // read userId from jwt token
     return this.cartService.addToCart(userId, addToCartDto);
   }
 
@@ -32,8 +33,8 @@ export class CartController {
   }
 
   @Delete(':productId')
-  removeFromCart(@Request() req: any, @Param('productId') productId: string) {
+  removeFromCart(@Request() req: any, @Param() params: ProductIdParamDto) {
     const userId = req.user.userId;
-    return this.cartService.removeFromCart(userId, productId);
+    return this.cartService.removeFromCart(userId, String(params.productId));
   }
 }

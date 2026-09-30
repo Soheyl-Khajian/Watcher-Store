@@ -1,11 +1,16 @@
-// src/auth/dto/login-user.dto.ts
-import { IsEmail, IsString, MinLength } from 'class-validator';
+// backend/nest-api/src/auth/dto/login-user.dto.ts
+
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class LoginUserDto {
   @IsEmail({}, { message: 'ایمیل وارد شده معتبر نیست.' })
-  email: string;
+  @IsNotEmpty()
+  email!: string;
 
   @IsString()
-  @MinLength(8, { message: 'رمز عبور باید حداقل ۸ کاراکتر باشد.' })
-  password: string;
+  @IsNotEmpty()
+  @MinLength(8, {
+    message: 'رمز عبور باید حداقل ۸ کاراکتر باشد.',
+  })
+  password!: string;
 }

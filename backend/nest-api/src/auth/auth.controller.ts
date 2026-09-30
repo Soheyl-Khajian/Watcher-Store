@@ -1,35 +1,38 @@
-// src/auth/auth.controller.ts
+// backend/nest-api/src/auth/auth.controller.ts
+
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  UseGuards,
-  Request,
   HttpCode,
+  Post,
+  Request,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
+import { LoginUserDto } from './dto/login-user.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @UseGuards(AuthGuard('jwt')) // این مسیر را با استراتژی jwt محافظت می‌کند
+  @UseGuards(AuthGuard('jwt'))
   @Get('profile')
   getProfile(@Request() req: any) {
-    return req.user; // اطلاعات کاربر از توکن استخراج شده و در دسترس است
+    return req.user;
   }
 
-  // @Post('register')
-  // async register(@Body() registerUserDto: RegisterUserDto) {
-  //   // در یک پروژه واقعی از DTO برای اعتبارسنجی ورودی استفاده می‌شود
-  //   return this.authService.register(registerUserDto);
-  // }
-
-  @UseGuards(AuthGuard('local'))
   @HttpCode(200)
   @Post('login')
-  async login(@Request() req: any) {
-    return this.authService.login(req.user);
+  async login(@Body() loginDto: LoginUserDto) {
+    const user = await this.authService.validateUser(loginDto);
+
+    if (!user) {
+      throw new UnauthorizedException('ایمیل یا رمز عبور اشتباه است.');
+    }
+
+    return this.authService.login(user);
   }
 }

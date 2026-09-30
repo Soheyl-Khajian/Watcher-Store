@@ -1,8 +1,11 @@
-// src/payment/dto/initiate-payment.dto.ts
-import { IsNotEmpty, IsNumber } from 'class-validator';
+// backend/nest-api/src/payment/dto/initiate-payment.dto.ts
+
+import { Type } from 'class-transformer';
+import { IsInt, Min } from 'class-validator';
 
 export class InitiatePaymentDto {
-  @IsNumber()
-  @IsNotEmpty()
-  orderId: number;
+  @Type(() => Number) // transformation
+  @IsInt()
+  @Min(1)
+  orderId!: number;
 }
