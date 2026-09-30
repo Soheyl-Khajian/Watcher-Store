@@ -1,53 +1,55 @@
 // backend/nest-api/src/payment/payment.service.ts
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OrdersService } from '../orders/orders.service';
 import { OrderStatus } from '../orders/entities/order.entity';
-import { VerifyPaymentDto } from './dto/verify-payment.dto';
+import { PaymentStatus, VerifyPaymentDto } from './dto/verify-payment.dto';
 import { env } from '../env';
 
 @Injectable()
 export class PaymentService {
   constructor(private readonly ordersService: OrdersService) {}
 
-  // mock payment
-  initiatePayment(orderId: number, userId: number): { paymentUrl: string } {
-    const baseUrl = `${env.FRONTEND_URL}/payment/verify`; // frontend address
-    const successUrl = `${baseUrl}?status=success&orderId=${orderId}`;
+  async initiatePayment(
+    orderId: number,
+    userId: number,
+  ): Promise<{ paymentUrl: string }> {
+    await this.ordersService.findPendingOrderForPayment(orderId, userId);
 
-    // return always successful for mock payment
+    const baseUrl = `${env.FRONTEND_URL}/payment/verify`;
+    const successUrl = `${baseUrl}?status=${PaymentStatus.SUCCESS}&orderId=${orderId}`;
+
     console.log(`ساخت لینک پرداخت برای سفارش ${orderId}: ${successUrl}`);
+
     return { paymentUrl: successUrl };
   }
 
-  // mock verify payment
   async verifyPayment(
     verifyDto: VerifyPaymentDto,
     userId: number,
   ): Promise<{ message: string }> {
     const { orderId, status } = verifyDto;
 
-    // first find the product and make sure it belongs to the same user
-    const order = await this.ordersService.findOne(orderId, userId);
-
-    if (!order) {
-      throw new NotFoundException('سفارش یافت نشد.');
-    }
-
-    if (status === 'success') {
-      // if payment was successful, update user's order
-      await this.ordersService.updateOrderStatus(
-        order.id,
+    if (status === PaymentStatus.SUCCESS) {
+      await this.ordersService.transitionPendingOrderAfterPayment(
+        orderId,
+        userId,
         OrderStatus.PROCESSING,
       );
-      return { message: 'پرداخت با موفقیت تایید شد.' };
-    } else {
-      // if payment was unsuccessful, update user's order
-      await this.ordersService.updateOrderStatus(
-        order.id,
-        OrderStatus.CANCELLED,
-      );
-      return { message: 'پرداخت ناموفق بود.' };
+
+      return {
+        message: 'پرداخت با موفقیت تایید شد.',
+      };
     }
+
+    await this.ordersService.transitionPendingOrderAfterPayment(
+      orderId,
+      userId,
+      OrderStatus.CANCELLED,
+    );
+
+    return {
+      message: 'پرداخت ناموفق بود.',
+    };
   }
 }
