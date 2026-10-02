@@ -65,6 +65,13 @@ export class OrdersService {
       for (const item of cartItems) {
         const product = await this.productsService.findOne(item.productId);
         const currentPrice = this.productsService.getCurrentPrice(product);
+        const availableStock = this.productsService.getAvailableStock(product);
+
+        if (availableStock < item.quantity) {
+          throw new ConflictException(
+            `موجودی محصول با شناسه ${item.productId} کافی نیست.`,
+          );
+        }
 
         const orderItem = orderItemRepository.create({
           productId: item.productId,

@@ -18,8 +18,14 @@ export class ProductsService {
       `${this.payloadApiUrl}/products/${id}?depth=0`,
     );
 
-    if (!response.ok) {
+    // Treat inaccessible drafts like nonexistent products so checkout does
+    // not disclose unpublished product records.
+    if (response.status === 403 || response.status === 404) {
       throw new NotFoundException(`محصول با شناسه ${id} یافت نشد.`);
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException('امکان دریافت اطلاعات محصول وجود ندارد.');
     }
 
     return response.json();
@@ -40,5 +46,23 @@ export class ProductsService {
     }
 
     return currentPrice;
+  }
+
+  getAvailableStock(product: ProductDto): number {
+    if (product.status !== 'published') {
+      throw new NotFoundException(`محصول با شناسه ${product.id} یافت نشد.`);
+    }
+
+    if (
+      typeof product.stock !== 'number' ||
+      !Number.isSafeInteger(product.stock) ||
+      product.stock < 0
+    ) {
+      throw new BadGatewayException(
+        `موجودی محصول با شناسه ${product.id} نامعتبر است.`,
+      );
+    }
+
+    return product.stock;
   }
 }
