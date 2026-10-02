@@ -13,6 +13,7 @@ import { CartItem } from '../cart/entities/cart-item.entity';
 import { ProductsService } from '../products/products.service';
 import { OrderItem } from './entities/order-item.entity';
 import { Order, OrderStatus } from './entities/order.entity';
+import { isTomanAmount } from '../common/money/toman';
 
 type PaymentResultOrderStatus = OrderStatus.PROCESSING | OrderStatus.CANCELLED;
 
@@ -72,7 +73,15 @@ export class OrdersService {
         });
 
         orderItems.push(orderItem);
-        total += currentPrice * item.quantity;
+
+        const lineTotal = currentPrice * item.quantity;
+        const nextTotal = total + lineTotal;
+
+        if (!isTomanAmount(lineTotal) || !isTomanAmount(nextTotal)) {
+          throw new BadRequestException('مبلغ سفارش از محدوده مجاز بیشتر است.');
+        }
+
+        total = nextTotal;
       }
 
       const order = orderRepository.create({
