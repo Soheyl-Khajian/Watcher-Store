@@ -4,10 +4,11 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
 import { ProductsService } from '../products/products.service';
@@ -16,6 +17,21 @@ import { Order, OrderStatus } from './entities/order.entity';
 import { isTomanAmount } from '../common/money/toman';
 
 type PaymentResultOrderStatus = OrderStatus.PROCESSING | OrderStatus.CANCELLED;
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) {
+    return false;
+  }
+
+  const driverError: unknown = error.driverError;
+
+  return (
+    typeof driverError === 'object' &&
+    driverError !== null &&
+    'code' in driverError &&
+    driverError.code === '23505'
+  );
+}
 
 @Injectable()
 export class OrdersService {
@@ -26,84 +42,148 @@ export class OrdersService {
     private readonly productsService: ProductsService,
   ) {}
 
-  async createOrder(userId: number): Promise<Order> {
-    return this.dataSource.transaction(async (manager) => {
-      const cartRepository = manager.getRepository(Cart);
-      const cartItemRepository = manager.getRepository(CartItem);
-      const orderRepository = manager.getRepository(Order);
-      const orderItemRepository = manager.getRepository(OrderItem);
+  async createOrder(userId: number, checkoutKey: string): Promise<Order> {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const cartRepository = manager.getRepository(Cart);
+        const cartItemRepository = manager.getRepository(CartItem);
+        const orderRepository = manager.getRepository(Order);
+        const orderItemRepository = manager.getRepository(OrderItem);
 
-      // Serialize checkout attempts for this user's cart. Cart items must be
-      // loaded only after this lock has been acquired.
-      const cart = await cartRepository.findOne({
-        where: { userId },
-        lock: { mode: 'pessimistic_write' },
-      });
+        const existingOrder = await this.findOrderByCheckoutKey(
+          orderRepository,
+          userId,
+          checkoutKey,
+        );
 
-      if (!cart) {
-        throw new BadRequestException('سبد خرید شما خالی است.');
-      }
+        if (existingOrder) {
+          return existingOrder;
+        }
 
-      const cartItems = await cartItemRepository.find({
-        where: {
-          cart: {
-            id: cart.id,
+        const cart = await cartRepository.findOne({
+          where: { userId },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (!cart) {
+          throw new BadRequestException('سبد خرید شما خالی است.');
+        }
+
+        // A concurrent request with the same key may have committed while this
+        // request was waiting for the cart lock.
+        const orderCreatedWhileWaiting = await this.findOrderByCheckoutKey(
+          orderRepository,
+          userId,
+          checkoutKey,
+        );
+
+        if (orderCreatedWhileWaiting) {
+          return orderCreatedWhileWaiting;
+        }
+
+        const cartItems = await cartItemRepository.find({
+          where: {
+            cart: {
+              id: cart.id,
+            },
           },
-        },
-        order: {
-          id: 'ASC',
-        },
-      });
+          order: {
+            id: 'ASC',
+          },
+        });
 
-      if (cartItems.length === 0) {
-        throw new BadRequestException('سبد خرید شما خالی است.');
-      }
+        if (cartItems.length === 0) {
+          throw new BadRequestException('سبد خرید شما خالی است.');
+        }
 
-      const orderItems: OrderItem[] = [];
-      let total = 0;
+        const orderItems: OrderItem[] = [];
+        let total = 0;
 
-      for (const item of cartItems) {
-        const product = await this.productsService.findOne(item.productId);
-        const currentPrice = this.productsService.getCurrentPrice(product);
-        const availableStock = this.productsService.getAvailableStock(product);
+        for (const item of cartItems) {
+          const product = await this.productsService.findOne(item.productId);
+          const currentPrice = this.productsService.getCurrentPrice(product);
+          const availableStock =
+            this.productsService.getAvailableStock(product);
 
-        if (availableStock < item.quantity) {
-          throw new ConflictException(
-            `موجودی محصول با شناسه ${item.productId} کافی نیست.`,
+          if (availableStock < item.quantity) {
+            throw new ConflictException(
+              `موجودی محصول با شناسه ${item.productId} کافی نیست.`,
+            );
+          }
+
+          const orderItem = orderItemRepository.create({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: currentPrice,
+          });
+
+          orderItems.push(orderItem);
+
+          const lineTotal = currentPrice * item.quantity;
+          const nextTotal = total + lineTotal;
+
+          if (!isTomanAmount(lineTotal) || !isTomanAmount(nextTotal)) {
+            throw new BadRequestException(
+              'مبلغ سفارش از محدوده مجاز بیشتر است.',
+            );
+          }
+
+          total = nextTotal;
+        }
+
+        const order = orderRepository.create({
+          userId,
+          checkoutKey,
+          items: orderItems,
+          total,
+          status: OrderStatus.PENDING,
+        });
+
+        await orderRepository.save(order);
+        await cartItemRepository.remove(cartItems);
+
+        const createdOrder = await this.findOrderByCheckoutKey(
+          orderRepository,
+          userId,
+          checkoutKey,
+        );
+
+        if (!createdOrder) {
+          throw new InternalServerErrorException(
+            'امکان بارگذاری سفارش ثبت‌شده وجود ندارد.',
           );
         }
 
-        const orderItem = orderItemRepository.create({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: currentPrice,
-        });
+        return createdOrder;
+      });
+    } catch (error) {
+      if (isPostgresUniqueViolation(error)) {
+        const existingOrder = await this.findOrderByCheckoutKey(
+          this.orderRepository,
+          userId,
+          checkoutKey,
+        );
 
-        orderItems.push(orderItem);
-
-        const lineTotal = currentPrice * item.quantity;
-        const nextTotal = total + lineTotal;
-
-        if (!isTomanAmount(lineTotal) || !isTomanAmount(nextTotal)) {
-          throw new BadRequestException('مبلغ سفارش از محدوده مجاز بیشتر است.');
+        if (existingOrder) {
+          return existingOrder;
         }
-
-        total = nextTotal;
       }
 
-      const order = orderRepository.create({
+      throw error;
+    }
+  }
+
+  private findOrderByCheckoutKey(
+    orderRepository: Repository<Order>,
+    userId: number,
+    checkoutKey: string,
+  ): Promise<Order | null> {
+    return orderRepository.findOne({
+      where: {
         userId,
-        items: orderItems,
-        total,
-        status: OrderStatus.PENDING,
-      });
-
-      const savedOrder = await orderRepository.save(order);
-
-      // This deletion and the order insert commit or roll back together.
-      await cartItemRepository.remove(cartItems);
-
-      return savedOrder;
+        checkoutKey,
+      },
+      relations: ['items'],
     });
   }
 

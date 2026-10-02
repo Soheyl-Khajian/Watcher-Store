@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -18,12 +19,21 @@ export enum OrderStatus {
 }
 
 @Entity()
+@Index('UQ_order_user_checkout_key', ['userId', 'checkoutKey'], {
+  unique: true,
+})
 export class Order {
   @PrimaryGeneratedColumn()
   id!: number;
 
   @Column()
   userId!: number;
+
+  @Column({
+    type: 'uuid',
+    select: false,
+  })
+  checkoutKey!: string;
 
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items!: OrderItem[];

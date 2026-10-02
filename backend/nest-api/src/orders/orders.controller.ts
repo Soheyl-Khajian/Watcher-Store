@@ -1,8 +1,18 @@
-// src/orders/orders.controller.ts
-import { Controller, Post, Get, UseGuards, Request } from '@nestjs/common';
+// backend/nest-api/src/orders/orders.controller.ts
+
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Headers,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { isUUID } from 'class-validator';
+import { OrderResponseDto } from './dto/order-response.dto';
 import { OrdersService } from './orders.service';
-import { OrderResponseDto } from './dto/order-response.dto'; // <-- DTO را وارد کنید
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('orders')
@@ -10,16 +20,19 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  // نوع خروجی را مشخص می‌کنیم
-  createOrder(@Request() req: any): Promise<OrderResponseDto> {
-    const userId = req.user.userId;
-    return this.ordersService.createOrder(userId);
+  createOrder(
+    @Request() req: any,
+    @Headers('idempotency-key') checkoutKey: string | undefined,
+  ): Promise<OrderResponseDto> {
+    if (!checkoutKey || !isUUID(checkoutKey, '4')) {
+      throw new BadRequestException('Idempotency-Key must be a valid UUID v4.');
+    }
+
+    return this.ordersService.createOrder(req.user.userId, checkoutKey);
   }
 
   @Get()
-  // نوع خروجی را مشخص می‌کنیم
   getUserOrders(@Request() req: any): Promise<OrderResponseDto[]> {
-    const userId = req.user.userId;
-    return this.ordersService.findUserOrders(userId);
+    return this.ordersService.findUserOrders(req.user.userId);
   }
 }

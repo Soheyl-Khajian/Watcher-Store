@@ -1,9 +1,10 @@
-// مسیر فایل: src/app/(main)/checkout/page.tsx
+// frontend/src/app/(main)/checkout/page.tsx
+
 'use client';
 
 import { useAuthStore } from '@/lib/store/auth';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Product, CartItem } from '@/types';
 import { fetchProductsByIds } from '@/lib/api/payload';
 import { createOrder, initiatePayment } from '@/lib/api/nestjs';
@@ -17,13 +18,16 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { getCurrentPrice } from '@/lib/utils/pricing'; // ۱. تابع کمکی را وارد کنید
+import { getCurrentPrice } from '@/lib/utils/pricing';
 
 export default function CheckoutPage() {
   const { cart, token, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const checkoutKeyRef = useRef<string | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -52,7 +56,11 @@ export default function CheckoutPage() {
     if (!token) return;
     setIsProcessing(true);
 
-    const order = await createOrder(token);
+    const checkoutKey = checkoutKeyRef.current ?? crypto.randomUUID();
+
+    checkoutKeyRef.current = checkoutKey;
+
+    const order = await createOrder(token, checkoutKey);
 
     if (order && order.id) {
       setCart(null);
@@ -79,7 +87,6 @@ export default function CheckoutPage() {
         (p: Product) => String(p.id) === String(item.productId),
       );
       if (!product) return total;
-      // ۲. از تابع کمکی برای محاسبه جمع کل استفاده کنید
       const price = getCurrentPrice(product);
       return total + price * item.quantity;
     }, 0);
@@ -107,7 +114,6 @@ export default function CheckoutPage() {
               );
               if (!product) return null;
 
-              // ۳. قیمت صحیح را برای هر آیتم بگیرید
               const currentPrice = getCurrentPrice(product);
 
               return (
@@ -115,12 +121,10 @@ export default function CheckoutPage() {
                   <div>
                     <p className="font-semibold">{product.name}</p>
                     <p className="text-muted-foreground text-sm" dir="ltr">
-                      {/* ۴. قیمت صحیح را نمایش دهید */}
                       {item.quantity} x {formatPrice(currentPrice)}
                     </p>
                   </div>
                   <p className="font-semibold">
-                    {/* ۵. جمع کل صحیح آیتم را نمایش دهید */}
                     {formatPrice(currentPrice * item.quantity)}
                   </p>
                 </li>

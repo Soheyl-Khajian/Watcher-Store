@@ -1,4 +1,5 @@
 // frontend/src/lib/api/nestjs.ts
+
 import { env } from '../env';
 
 const NESTJS_API_URL = env.NEXT_PUBLIC_NESTJS_API_URL;
@@ -113,15 +114,17 @@ export async function removeFromCart(productId: string, token: string) {
   }
 }
 
-export async function createOrder(token: string) {
+export async function createOrder(token: string, checkoutKey: string) {
   try {
     const res = await fetch(`${NESTJS_API_URL}/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
+        'Idempotency-Key': checkoutKey,
       },
     });
+
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
