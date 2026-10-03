@@ -1,4 +1,5 @@
-// src/cart/entities/cart-item.entity.ts
+// backend/nest-api/src/cart/entities/cart-item.entity.ts
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -20,6 +21,9 @@ export class CartItem {
   @Column()
   quantity!: number;
 
-  @ManyToOne(() => Cart, (cart) => cart.items)
+  @ManyToOne(() => Cart, (cart) => cart.items, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   cart!: Cart;
 }
