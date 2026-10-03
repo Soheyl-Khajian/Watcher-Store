@@ -1,4 +1,5 @@
 // backend/nest-api/src/env.ts
+
 import { config } from 'dotenv';
 import { join } from 'path';
 import { z } from 'zod';
@@ -19,6 +20,10 @@ const envSchema = z.object({
     .string()
     .regex(/^[a-z_][a-z0-9_]*$/, 'must be a bare lowercase SQL identifier')
     .default('nest_schema'),
+  PAYLOAD_SCHEMA: z
+    .string()
+    .regex(/^[a-z_][a-z0-9_]*$/, 'must be a bare lowercase SQL identifier')
+    .default('payload_schema'),
   PORT: z
     .string()
     .default('3001')

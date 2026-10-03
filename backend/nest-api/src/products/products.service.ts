@@ -1,9 +1,11 @@
 // backend/nest-api/src/products/products.service.ts
 
+import type { EntityManager } from 'typeorm';
 import {
   BadGatewayException,
   Injectable,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { isTomanAmount } from '../common/money/toman';
 import { env } from '../env';
@@ -64,5 +66,44 @@ export class ProductsService {
     }
 
     return product.stock;
+  }
+
+  async consumeStock(
+    manager: EntityManager,
+    productId: string,
+    quantity: number,
+  ): Promise<boolean> {
+    const numericProductId = Number(productId);
+
+    if (
+      !Number.isSafeInteger(numericProductId) ||
+      numericProductId < 1 ||
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1
+    ) {
+      throw new InternalServerErrorException(
+        'اطلاعات محصول سفارش نامعتبر است.',
+      );
+    }
+
+    // PAYLOAD_SCHEMA is validated as a safe SQL identifier in env.ts.
+    // Values remain parameterized.
+    const [updatedProducts, affectedRows] = (await manager.query(
+      `
+        UPDATE "${env.PAYLOAD_SCHEMA}"."products"
+        SET
+          "stock" = "stock" - $2,
+          "updated_at" = now()
+        WHERE "id" = $1
+          AND "status" = 'published'
+          AND "stock" IS NOT NULL
+          AND "stock" = trunc("stock")
+          AND "stock" >= $2
+        RETURNING "id"
+      `,
+      [numericProductId, quantity],
+    )) as [Array<{ id: number }>, number];
+
+    return affectedRows === 1 && updatedProducts.length === 1;
   }
 }

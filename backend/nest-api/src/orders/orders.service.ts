@@ -214,28 +214,67 @@ export class OrdersService {
     userId: number,
     nextStatus: PaymentResultOrderStatus,
   ): Promise<Order> {
-    const result = await this.orderRepository.update(
-      {
-        id,
-        userId,
-        status: OrderStatus.PENDING,
-      },
-      {
-        status: nextStatus,
-      },
-    );
+    return this.dataSource.transaction(async (manager) => {
+      const orderRepository = manager.getRepository(Order);
+      const orderItemRepository = manager.getRepository(OrderItem);
 
-    if (result.affected === 1) {
-      return this.findOne(id, userId);
-    }
+      const order = await orderRepository.findOne({
+        where: {
+          id,
+          userId,
+        },
+        lock: {
+          mode: 'pessimistic_write',
+        },
+      });
 
-    // Distinguish an inaccessible/nonexistent order from an invalid state
-    // without revealing another user's order.
-    await this.findOne(id, userId);
+      if (!order) {
+        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+      }
 
-    throw new ConflictException(
-      'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
-    );
+      if (order.status !== OrderStatus.PENDING) {
+        throw new ConflictException(
+          'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
+        );
+      }
+
+      if (nextStatus === OrderStatus.PROCESSING) {
+        const orderItems = await orderItemRepository.find({
+          where: {
+            order: {
+              id: order.id,
+            },
+          },
+          order: {
+            productId: 'ASC',
+            id: 'ASC',
+          },
+        });
+
+        if (orderItems.length === 0) {
+          throw new InternalServerErrorException(
+            'سفارش ثبت‌شده فاقد آیتم است.',
+          );
+        }
+
+        for (const item of orderItems) {
+          const consumed = await this.productsService.consumeStock(
+            manager,
+            item.productId,
+            item.quantity,
+          );
+
+          if (!consumed) {
+            throw new ConflictException(
+              `موجودی محصول با شناسه ${item.productId} برای تکمیل پرداخت کافی نیست.`,
+            );
+          }
+        }
+      }
+
+      order.status = nextStatus;
+      return orderRepository.save(order);
+    });
   }
 
   async findUserOrders(userId: number): Promise<Order[]> {
