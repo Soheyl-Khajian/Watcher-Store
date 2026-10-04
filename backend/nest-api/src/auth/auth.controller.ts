@@ -1,5 +1,6 @@
 // backend/nest-api/src/auth/auth.controller.ts
 
+import type { AuthenticatedRequest } from './auth.types';
 import {
   Body,
   Controller,
@@ -20,7 +21,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
-  getProfile(@Request() req: any) {
+  getProfile(@Request() req: AuthenticatedRequest) {
     return req.user;
   }
 

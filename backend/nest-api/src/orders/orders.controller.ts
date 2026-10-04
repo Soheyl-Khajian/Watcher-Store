@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { isUUID } from 'class-validator';
+import type { AuthenticatedRequest } from '../auth/auth.types';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { OrderResponseDto } from './dto/order-response.dto';
 import { OrdersService } from './orders.service';
 
@@ -21,7 +23,7 @@ export class OrdersController {
 
   @Post()
   createOrder(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('idempotency-key') checkoutKey: string | undefined,
   ): Promise<OrderResponseDto> {
     if (!checkoutKey || !isUUID(checkoutKey, '4')) {
@@ -31,8 +33,16 @@ export class OrdersController {
     return this.ordersService.createOrder(req.user.userId, checkoutKey);
   }
 
+  @Get('admin')
+  @UseGuards(AdminGuard)
+  getAllOrdersForAdmin(): Promise<OrderResponseDto[]> {
+    return this.ordersService.findAllOrdersForAdmin();
+  }
+
   @Get()
-  getUserOrders(@Request() req: any): Promise<OrderResponseDto[]> {
+  getUserOrders(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<OrderResponseDto[]> {
     return this.ordersService.findUserOrders(req.user.userId);
   }
 }

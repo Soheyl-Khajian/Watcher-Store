@@ -277,6 +277,15 @@ export class OrdersService {
     });
   }
 
+  async findAllOrdersForAdmin(): Promise<Order[]> {
+    return this.orderRepository.find({
+      relations: ['items'],
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
   async findUserOrders(userId: number): Promise<Order[]> {
     return this.orderRepository.find({
       where: { userId },
