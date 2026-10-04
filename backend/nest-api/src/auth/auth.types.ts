@@ -10,6 +10,8 @@ export interface PayloadAuthenticatedUser {
   role: UserRole;
 }
 
+// The email and role claims are informational. JwtStrategy resolves current
+// authorization data from Payload before attaching a user to the request.
 export interface JwtPayload {
   sub: number;
   email: string;
