@@ -66,6 +66,7 @@ services:
       NEST_SCHEMA: ${NEST_SCHEMA}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       JWT_SECRET: ${JWT_SECRET}
+      ALLOW_MOCK_PAYMENT: 'false'
       PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
       FRONTEND_URL: ${FRONTEND_URL}
       PORT: 3001

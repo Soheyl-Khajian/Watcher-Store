@@ -1,6 +1,6 @@
 // backend/nest-api/src/payment/payment.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { OrdersService } from '../orders/orders.service';
 import { OrderStatus } from '../orders/entities/order.entity';
 import { PaymentStatus, VerifyPaymentDto } from './dto/verify-payment.dto';
@@ -10,16 +10,26 @@ import { env } from '../env';
 export class PaymentService {
   constructor(private readonly ordersService: OrdersService) {}
 
+  // The simulated flow trusts a client-supplied payment status, so it must
+  // never run unless a developer enabled it explicitly.
+  private assertMockPaymentEnabled(): void {
+    if (!env.ALLOW_MOCK_PAYMENT) {
+      throw new ServiceUnavailableException(
+        'پرداخت آنلاین در حال حاضر در دسترس نیست.',
+      );
+    }
+  }
+
   async initiatePayment(
     orderId: number,
     userId: number,
   ): Promise<{ paymentUrl: string }> {
+    this.assertMockPaymentEnabled();
+
     await this.ordersService.findPendingOrderForPayment(orderId, userId);
 
     const baseUrl = `${env.FRONTEND_URL}/payment/verify`;
     const successUrl = `${baseUrl}?status=${PaymentStatus.SUCCESS}&orderId=${orderId}`;
-
-    console.log(`ساخت لینک پرداخت برای سفارش ${orderId}: ${successUrl}`);
 
     return { paymentUrl: successUrl };
   }
@@ -28,6 +38,8 @@ export class PaymentService {
     verifyDto: VerifyPaymentDto,
     userId: number,
   ): Promise<{ message: string }> {
+    this.assertMockPaymentEnabled();
+
     const { orderId, status } = verifyDto;
 
     if (status === PaymentStatus.SUCCESS) {
