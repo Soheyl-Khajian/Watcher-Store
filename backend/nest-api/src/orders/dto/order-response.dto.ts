@@ -17,3 +17,11 @@ export class OrderResponseDto {
   createdAt!: Date;
   items!: OrderItemResponseDto[];
 }
+
+export class PaginatedOrdersResponseDto {
+  items!: OrderResponseDto[];
+  page!: number;
+  limit!: number;
+  totalItems!: number;
+  totalPages!: number;
+}

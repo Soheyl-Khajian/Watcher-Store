@@ -6,6 +6,7 @@ import {
   Get,
   Headers,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -13,7 +14,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { isUUID } from 'class-validator';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import { AdminGuard } from '../auth/guards/admin.guard';
-import { OrderResponseDto } from './dto/order-response.dto';
+import { AdminOrdersQueryDto } from './dto/admin-orders-query.dto';
+import {
+  OrderResponseDto,
+  PaginatedOrdersResponseDto,
+} from './dto/order-response.dto';
 import { OrdersService } from './orders.service';
 
 @UseGuards(AuthGuard('jwt'))
@@ -35,8 +40,10 @@ export class OrdersController {
 
   @Get('admin')
   @UseGuards(AdminGuard)
-  getAllOrdersForAdmin(): Promise<OrderResponseDto[]> {
-    return this.ordersService.findAllOrdersForAdmin();
+  getAllOrdersForAdmin(
+    @Query() query: AdminOrdersQueryDto,
+  ): Promise<PaginatedOrdersResponseDto> {
+    return this.ordersService.findOrdersForAdmin(query.page, query.limit);
   }
 
   @Get()

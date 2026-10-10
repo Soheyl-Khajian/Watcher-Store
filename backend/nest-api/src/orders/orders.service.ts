@@ -14,6 +14,7 @@ import { CartItem } from '../cart/entities/cart-item.entity';
 import { ProductsService } from '../products/products.service';
 import { OrderItem } from './entities/order-item.entity';
 import { Order, OrderStatus } from './entities/order.entity';
+import { PaginatedOrdersResponseDto } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 
 type PaymentResultOrderStatus = OrderStatus.PROCESSING | OrderStatus.CANCELLED;
@@ -277,13 +278,35 @@ export class OrdersService {
     });
   }
 
-  async findAllOrdersForAdmin(): Promise<Order[]> {
-    return this.orderRepository.find({
+  async findOrdersForAdmin(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedOrdersResponseDto> {
+    const [items, totalItems] = await this.orderRepository.findAndCount({
       relations: ['items'],
+      // The id tiebreaker keeps page boundaries deterministic when several
+      // orders share a creation timestamp.
       order: {
         createdAt: 'DESC',
+        id: 'DESC',
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    // TypeORM's two-step skip/take query is fragile when ordering by joined columns.
+    // This ensures the items are sorted deterministically.
+    for (const order of items) {
+      order.items.sort((a, b) => a.id - b.id);
+    }
+
+    return {
+      items,
+      page,
+      limit,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+    };
   }
 
   async findUserOrders(userId: number): Promise<Order[]> {
