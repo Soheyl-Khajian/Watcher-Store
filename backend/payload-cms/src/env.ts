@@ -12,6 +12,7 @@ const envSchema = z.object({
   DATABASE_URI: z.string().startsWith('postgres://'),
   FRONTEND_URL: z.string().url(),
   PAYLOAD_INTERNAL_URL: z.string().url().optional(),
+  NEST_INTERNAL_URL: z.string().url().optional(), // Server-side URL of the Nest API, used by the admin Orders view.
 });
 
 export const env = envSchema.parse(process.env);

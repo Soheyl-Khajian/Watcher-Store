@@ -35,6 +35,16 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(__dirname),
     },
+    components: {
+      afterNavLinks: ['/components/OrdersNavLink'],
+      views: {
+        orders: {
+          Component: '/views/OrdersView',
+          path: '/orders',
+          exact: true,
+        },
+      },
+    },
   },
   i18n: {
     supportedLanguages: { en, fa },

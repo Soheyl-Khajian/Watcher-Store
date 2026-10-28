@@ -42,6 +42,8 @@ import { UnorderedListElement as UnorderedListElement_0b388c087d9de8c4f011dd323a
 import { UploadElementButton as UploadElementButton_0b388c087d9de8c4f011dd323a130cfb } from '@payloadcms/richtext-slate/client';
 import { UploadElement as UploadElement_0b388c087d9de8c4f011dd323a130cfb } from '@payloadcms/richtext-slate/client';
 import { WithUpload as WithUpload_0b388c087d9de8c4f011dd323a130cfb } from '@payloadcms/richtext-slate/client';
+import { default as default_cf5682690eaedfd3bade4cefddd3ab16 } from '../../../components/OrdersNavLink';
+import { default as default_868e202c4d3f229544f40257555c9dbc } from '../../../views/OrdersView';
 
 export const importMap = {
   '/components/ApplyPriceChangeButton#default':
@@ -132,4 +134,6 @@ export const importMap = {
     UploadElement_0b388c087d9de8c4f011dd323a130cfb,
   '@payloadcms/richtext-slate/client#WithUpload':
     WithUpload_0b388c087d9de8c4f011dd323a130cfb,
+  '/components/OrdersNavLink#default': default_cf5682690eaedfd3bade4cefddd3ab16,
+  '/views/OrdersView#default': default_868e202c4d3f229544f40257555c9dbc,
 };
