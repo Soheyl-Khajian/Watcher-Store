@@ -25,6 +25,10 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
   },
   access: {
+    // Only administrators may enter the admin panel. Customers still
+    // authenticate through the API for the storefront; this rule governs the
+    // admin UI only.
+    admin: ({ req: { user } }) => user?.role === 'admin',
     create: () => true,
     read: isSelfOrAdmin,
     update: isSelfOrAdmin,
