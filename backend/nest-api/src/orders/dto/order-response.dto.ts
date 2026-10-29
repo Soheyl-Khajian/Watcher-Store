@@ -1,6 +1,10 @@
 // backend/nest-api/src/orders/dto/order-response.dto.ts
 
-import { OrderStatus } from '../entities/order.entity';
+import {
+  OrderCancelReason,
+  OrderRefundStatus,
+  OrderStatus,
+} from '../entities/order.entity';
 
 class OrderItemResponseDto {
   id!: number;
@@ -26,6 +30,13 @@ export class OrderResponseDto {
   userId!: number;
   total!: number;
   status!: OrderStatus;
+  refundStatus!: OrderRefundStatus;
+  cancelReason!: OrderCancelReason | null;
+  trackingCode!: string | null;
+  paidAt!: Date | null;
+  shippedAt!: Date | null;
+  completedAt!: Date | null;
+  cancelledAt!: Date | null;
   createdAt!: Date;
   items!: OrderItemResponseDto[];
   shipping!: ShippingDetailsResponseDto;

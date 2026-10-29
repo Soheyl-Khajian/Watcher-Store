@@ -14,7 +14,8 @@ import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
 import { ProductsService } from '../products/products.service';
 import { OrderItem } from './entities/order-item.entity';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Order, OrderCancelReason, OrderStatus } from './entities/order.entity';
+import { assertTransition } from './order-state';
 import { PaginatedOrdersResponseDto } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 
@@ -249,11 +250,11 @@ export class OrdersService {
         throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
       }
 
-      if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException(
-          'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
-        );
-      }
+      assertTransition(
+        order.status,
+        nextStatus,
+        'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
+      );
 
       if (nextStatus === OrderStatus.PROCESSING) {
         const orderItems = await orderItemRepository.find({
@@ -289,8 +290,69 @@ export class OrdersService {
         }
       }
 
+      const now = new Date();
+
+      if (nextStatus === OrderStatus.PROCESSING) {
+        order.paidAt = now;
+      } else {
+        order.cancelledAt = now;
+        order.cancelReason = OrderCancelReason.PAYMENT_FAILED;
+      }
+
       order.status = nextStatus;
       return orderRepository.save(order);
+    });
+  }
+
+  // Customers may cancel only their own unpaid orders. Paid orders hold stock
+  // and money, so those go through an administrator.
+  async cancelOwnPendingOrder(id: number, userId: number): Promise<Order> {
+    return this.dataSource.transaction(async (manager) => {
+      const orderRepository = manager.getRepository(Order);
+
+      // The row lock serialises this with payment verification, so a cancel
+      // and a payment can never both succeed.
+      const order = await orderRepository.findOne({
+        where: { id, userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) {
+        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+      }
+
+      if (order.status !== OrderStatus.PENDING) {
+        throw new ConflictException(
+          'فقط سفارش‌های پرداخت‌نشده قابل لغو هستند. برای سفارش‌های پرداخت‌شده با پشتیبانی تماس بگیرید.',
+        );
+      }
+
+      assertTransition(
+        order.status,
+        OrderStatus.CANCELLED,
+        'این سفارش دیگر قابل لغو نیست.',
+      );
+
+      order.status = OrderStatus.CANCELLED;
+      order.cancelledAt = new Date();
+      order.cancelReason = OrderCancelReason.CUSTOMER_REQUEST;
+      await orderRepository.save(order);
+
+      // Loaded separately: row locks cannot be combined with joined relations.
+      const cancelled = await orderRepository.findOne({
+        where: { id },
+        relations: ['items'],
+      });
+
+      if (!cancelled) {
+        throw new InternalServerErrorException(
+          'امکان بارگذاری سفارش لغوشده وجود ندارد.',
+        );
+      }
+
+      cancelled.items.sort((a, b) => a.id - b.id);
+
+      return cancelled;
     });
   }
 
