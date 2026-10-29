@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { tomanColumnTransformer } from '../../common/money/toman';
 import { OrderItem } from './order-item.entity';
+import { ShippingDetails } from './shipping-details';
 
 export enum OrderStatus {
   PENDING = 'pending',
@@ -37,6 +38,9 @@ export class Order {
 
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items!: OrderItem[];
+
+  @Column(() => ShippingDetails)
+  shipping!: ShippingDetails;
 
   @Column({
     type: 'decimal',

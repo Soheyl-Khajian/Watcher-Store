@@ -9,6 +9,18 @@ class OrderItemResponseDto {
   price!: number;
 }
 
+class ShippingDetailsResponseDto {
+  recipientName!: string | null;
+  phone!: string | null;
+  province!: string | null;
+  city!: string | null;
+  address!: string | null;
+  postalCode!: string | null;
+  unit!: string | null;
+  floor!: string | null;
+  deliveryNotes!: string | null;
+}
+
 export class OrderResponseDto {
   id!: number;
   userId!: number;
@@ -16,6 +28,7 @@ export class OrderResponseDto {
   status!: OrderStatus;
   createdAt!: Date;
   items!: OrderItemResponseDto[];
+  shipping!: ShippingDetailsResponseDto;
 }
 
 export class PaginatedOrdersResponseDto {

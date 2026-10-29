@@ -1,5 +1,6 @@
 // backend/nest-api/src/orders/orders.service.ts
 
+import type { ShippingDetailsDto } from './dto/create-order.dto';
 import {
   BadRequestException,
   ConflictException,
@@ -43,7 +44,11 @@ export class OrdersService {
     private readonly productsService: ProductsService,
   ) {}
 
-  async createOrder(userId: number, checkoutKey: string): Promise<Order> {
+  async createOrder(
+    userId: number,
+    checkoutKey: string,
+    shipping: ShippingDetailsDto,
+  ): Promise<Order> {
     try {
       return await this.dataSource.transaction(async (manager) => {
         const cartRepository = manager.getRepository(Cart);
@@ -136,6 +141,17 @@ export class OrdersService {
           userId,
           checkoutKey,
           items: orderItems,
+          shipping: {
+            recipientName: shipping.recipientName,
+            phone: shipping.phone,
+            province: shipping.province,
+            city: shipping.city,
+            address: shipping.address,
+            postalCode: shipping.postalCode,
+            unit: shipping.unit ?? null,
+            floor: shipping.floor ?? null,
+            deliveryNotes: shipping.deliveryNotes ?? null,
+          },
           total,
           status: OrderStatus.PENDING,
         });
