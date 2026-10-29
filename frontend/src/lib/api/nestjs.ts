@@ -1,5 +1,6 @@
 // frontend/src/lib/api/nestjs.ts
 
+import type { ShippingPayload } from '../validation/shipping';
 import { env } from '../env';
 
 const NESTJS_API_URL = env.NEXT_PUBLIC_NESTJS_API_URL;
@@ -114,7 +115,15 @@ export async function removeFromCart(productId: string, token: string) {
   }
 }
 
-export async function createOrder(token: string, checkoutKey: string) {
+export type CreateOrderResult =
+  | { ok: true; order: { id: number } }
+  | { ok: false; status: number | null; message: string | null };
+
+export async function createOrder(
+  token: string,
+  checkoutKey: string,
+  shipping: ShippingPayload,
+): Promise<CreateOrderResult> {
   try {
     const res = await fetch(`${NESTJS_API_URL}/orders`, {
       method: 'POST',
@@ -123,14 +132,40 @@ export async function createOrder(token: string, checkoutKey: string) {
         Authorization: `Bearer ${token}`,
         'Idempotency-Key': checkoutKey,
       },
+      body: JSON.stringify({ shipping }),
     });
 
-    if (!res.ok) return null;
-    return await res.json();
+    if (!res.ok) {
+      // Only conflicts (for example insufficient stock) carry a message that
+      // is written for customers. Validation messages are not shown.
+      let message: string | null = null;
+
+      if (res.status === 409) {
+        try {
+          const body: unknown = await res.json();
+          const candidate = (body as { message?: unknown } | null)?.message;
+          if (typeof candidate === 'string') {
+            message = candidate;
+          }
+        } catch {
+          // Ignore unreadable error bodies.
+        }
+      }
+
+      return { ok: false, status: res.status, message };
+    }
+
+    const order = (await res.json()) as { id?: unknown };
+
+    if (typeof order.id !== 'number') {
+      return { ok: false, status: null, message: null };
+    }
+
+    return { ok: true, order: { id: order.id } };
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to create order:', error);
-    return null;
+    return { ok: false, status: null, message: null };
   }
 }
 
