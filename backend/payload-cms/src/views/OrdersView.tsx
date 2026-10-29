@@ -57,6 +57,51 @@ function Notice({ children }: { children: React.ReactNode }) {
   return <p style={{ padding: '1rem 0' }}>{children}</p>;
 }
 
+const wrappingText: React.CSSProperties = {
+  overflowWrap: 'anywhere',
+  whiteSpace: 'pre-wrap',
+};
+
+function ShippingCell({ shipping }: { shipping: NestOrder['shipping'] }) {
+  const hasDetails =
+    !!shipping && Object.values(shipping).some((value) => value !== null);
+
+  if (!shipping || !hasDetails) {
+    return <span>ثبت نشده</span>;
+  }
+
+  const location = [shipping.province, shipping.city]
+    .filter((part): part is string => !!part)
+    .join('، ');
+
+  const unitAndFloor = [
+    shipping.unit ? `واحد ${shipping.unit}` : null,
+    shipping.floor ? `طبقه ${shipping.floor}` : null,
+  ]
+    .filter((part): part is string => part !== null)
+    .join('، ');
+
+  return (
+    <div style={{ ...wrappingText, minWidth: '14rem', maxWidth: '24rem' }}>
+      {shipping.recipientName && <strong>{shipping.recipientName}</strong>}
+      {shipping.phone && (
+        <div>
+          <bdi dir="ltr">{shipping.phone}</bdi>
+        </div>
+      )}
+      {location && <div>{location}</div>}
+      {shipping.address && <div>{shipping.address}</div>}
+      {unitAndFloor && <div>{unitAndFloor}</div>}
+      {shipping.postalCode && (
+        <div>
+          کد پستی: <bdi dir="ltr">{shipping.postalCode}</bdi>
+        </div>
+      )}
+      {shipping.deliveryNotes && <div>توضیحات: {shipping.deliveryNotes}</div>}
+    </div>
+  );
+}
+
 // Customer emails and product names live in Payload. Lookups run as the
 // logged-in administrator with access control applied, and any failure falls
 // back to raw IDs instead of breaking the page.
@@ -188,6 +233,7 @@ async function renderContent(
               <th style={cellStyle}>مشتری</th>
               <th style={cellStyle}>وضعیت</th>
               <th style={cellStyle}>اقلام</th>
+              <th style={cellStyle}>اطلاعات ارسال</th>
               <th style={cellStyle}>جمع کل</th>
               <th style={cellStyle}>تاریخ ثبت</th>
             </tr>
@@ -216,6 +262,9 @@ async function renderContent(
                       </li>
                     ))}
                   </ul>
+                </td>
+                <td style={cellStyle}>
+                  <ShippingCell shipping={order.shipping} />
                 </td>
                 <td style={cellStyle}>{formatToman(order.total)}</td>
                 <td style={cellStyle}>{formatDate(order.createdAt)}</td>

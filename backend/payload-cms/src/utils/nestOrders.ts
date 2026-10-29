@@ -15,6 +15,18 @@ const orderItemSchema = z.object({
   price: z.number().int().nonnegative(),
 });
 
+const shippingSchema = z.object({
+  recipientName: z.string().nullable(),
+  phone: z.string().nullable(),
+  province: z.string().nullable(),
+  city: z.string().nullable(),
+  address: z.string().nullable(),
+  postalCode: z.string().nullable(),
+  unit: z.string().nullable(),
+  floor: z.string().nullable(),
+  deliveryNotes: z.string().nullable(),
+});
+
 const orderSchema = z.object({
   id: z.number().int(),
   userId: z.number().int(),
@@ -22,6 +34,9 @@ const orderSchema = z.object({
   status: z.string(),
   createdAt: z.string(),
   items: z.array(orderItemSchema),
+  // Orders created before shipping details existed have only null columns, and
+  // an older Nest may omit the field, so treat it as optional.
+  shipping: shippingSchema.nullish(),
 });
 
 // z.object strips unknown keys, so only the fields declared here can ever
