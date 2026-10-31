@@ -1,6 +1,6 @@
 // frontend/src/lib/api/payload.ts
 
-import type { Category } from '@/types';
+import type { Category, Product } from '@/types';
 import { env } from '../env';
 
 const PAYLOAD_API_URL =
@@ -76,7 +76,11 @@ export async function fetchProductBySlug(slug: string) {
   return data?.docs?.[0] || null;
 }
 
-export async function fetchProductsByIds(ids: (string | number)[]) {
+// Returns null when the request itself failed, which is different from an
+// empty list (the products really do not exist or are not published).
+export async function fetchProductsByIds(
+  ids: (string | number)[],
+): Promise<Product[] | null> {
   if (ids.length === 0) {
     return [];
   }
@@ -85,7 +89,8 @@ export async function fetchProductsByIds(ids: (string | number)[]) {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
   );
-  return data?.docs || [];
+
+  return data ? (data.docs ?? []) : null;
 }
 
 //------------------------------------------------------------

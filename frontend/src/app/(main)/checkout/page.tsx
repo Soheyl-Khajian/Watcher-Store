@@ -20,8 +20,11 @@ import { fetchProductsByIds } from '@/lib/api/payload';
 import {
   createOrder,
   initiatePayment,
+  removeFromCart,
   type CreateOrderResult,
 } from '@/lib/api/nestjs';
+import { findUnavailableItems } from '@/lib/utils/cart';
+import { UnavailableCartItem } from '@/components/cart/unavailable-cart-item';
 import {
   EMPTY_SHIPPING_FORM,
   SHIPPING_FIELD_ORDER,
@@ -52,12 +55,19 @@ function orderErrorMessage(
   if (result.status === 401) {
     return 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید.';
   }
+
   if (result.status === 409 && result.message) {
     return result.message;
   }
+
+  if (result.status === 404) {
+    return 'یکی از محصولات سبد خرید دیگر در دسترس نیست. صفحه را دوباره بارگذاری کنید.';
+  }
+
   if (result.status === 400) {
     return 'اطلاعات ارسال یا سبد خرید معتبر نیست. لطفاً فرم را بررسی کنید.';
   }
+
   return 'خطا در ثبت سفارش. لطفاً دوباره تلاش کنید.';
 }
 
@@ -104,6 +114,7 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [form, setForm] = useState<ShippingFormValues>(EMPTY_SHIPPING_FORM);
+  const [productsFailed, setProductsFailed] = useState(false);
   const [errors, setErrors] = useState<ShippingErrors>({});
   // Set once the order exists on the server. From then on the page only
   // retries payment for this order and never creates another one.
@@ -129,12 +140,33 @@ export default function CheckoutPage() {
       if (cart && cart.items.length > 0) {
         const productIds = cart.items.map((item: CartItem) => item.productId);
         const fetchedProducts = await fetchProductsByIds(productIds);
-        setProducts(fetchedProducts);
+        setProducts(fetchedProducts ?? []);
+        setProductsFailed(fetchedProducts === null);
       }
       setIsLoading(false);
     };
     getProducts();
   }, [cart]);
+
+  const unavailableItems = useMemo(() => {
+    if (isLoading || productsFailed || !cart) return [];
+    return findUnavailableItems(cart.items, products);
+  }, [isLoading, productsFailed, cart, products]);
+
+  const checkoutBlocked = productsFailed || unavailableItems.length > 0;
+
+  const handleRemoveUnavailable = async (productId: string) => {
+    if (!token || isProcessing) return;
+
+    const updatedCart = await removeFromCart(String(productId), token);
+
+    if (updatedCart) {
+      setCart(updatedCart);
+      toast.success('محصول از سبد خرید حذف شد.');
+    } else {
+      toast.error('خطا در حذف محصول.');
+    }
+  };
 
   const handleChange = (field: ShippingField, value: string) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -175,7 +207,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!token || isProcessing) return;
+    if (!token || isProcessing || checkoutBlocked) return;
 
     const result = validateShipping(form);
 
@@ -401,6 +433,30 @@ export default function CheckoutPage() {
               );
             })}
           </ul>
+          {unavailableItems.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <ul className="space-y-4">
+                {unavailableItems.map((item: CartItem) => (
+                  <UnavailableCartItem
+                    key={item.id}
+                    disabled={isProcessing}
+                    onRemove={() =>
+                      handleRemoveUnavailable(String(item.productId))
+                    }
+                  />
+                ))}
+              </ul>
+              <p className="text-destructive text-sm">
+                برای ثبت سفارش، ابتدا محصولات ناموجود را از سبد حذف کنید.
+              </p>
+            </div>
+          )}
+          {productsFailed && (
+            <p className="text-destructive mt-4 text-sm">
+              امکان دریافت اطلاعات محصولات وجود ندارد. صفحه را دوباره بارگذاری
+              کنید.
+            </p>
+          )}
           <Separator className="my-4" />
           <div className="flex justify-between text-lg font-bold">
             <p>جمع کل</p>
@@ -414,7 +470,7 @@ export default function CheckoutPage() {
           <Button
             type="submit"
             className="w-full cursor-pointer"
-            disabled={isProcessing}
+            disabled={isProcessing || checkoutBlocked}
           >
             {isProcessing ? 'در حال پردازش...' : 'ثبت سفارش و پرداخت'}
           </Button>

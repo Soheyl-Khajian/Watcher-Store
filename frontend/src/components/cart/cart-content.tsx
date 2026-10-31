@@ -1,4 +1,4 @@
-// مسیر فایل: src/components/layout/cart-content.tsx
+// frontend/src/components/layout/cart-content.tsx
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -12,11 +12,13 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { fetchCart, removeFromCart } from '@/lib/api/nestjs';
 import { fetchProductsByIds } from '@/lib/api/payload';
-import { getCurrentPrice } from '@/lib/utils/pricing'; // تابع کمکی ما
+import { getCurrentPrice } from '@/lib/utils/pricing';
+import { findUnavailableItems } from '@/lib/utils/cart';
 import type { Product, CartItem } from '@/types';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { UnavailableCartItem } from '@/components/cart/unavailable-cart-item';
 import { toast } from 'sonner';
 
 interface CartContentProps {
@@ -26,7 +28,11 @@ interface CartContentProps {
 export function CartContent({ onClose }: CartContentProps) {
   const { token, cart, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsFailed, setProductsFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // The item ids the product list was last resolved for. Until it matches the
+  // current cart, we do not yet know which items are available.
+  const [resolvedIds, setResolvedIds] = useState<string | null>(null);
 
   const itemIds = useMemo(() => {
     return cart?.items.map((item: CartItem) => item.productId).join(',') || '';
@@ -41,23 +47,32 @@ export function CartContent({ onClose }: CartContentProps) {
       }
 
       setIsLoading(true);
+      let resolved = '';
+
       try {
         const currentCart = await fetchCart(token);
         setCart(currentCart);
 
-        if (currentCart?.items?.length > 0) {
-          const productIds = currentCart.items.map(
-            (it: CartItem) => it.productId,
-          );
+        const productIds: string[] = (currentCart?.items ?? []).map(
+          (it: CartItem) => it.productId,
+        );
+        resolved = productIds.join(',');
+
+        if (productIds.length > 0) {
           const fetched = await fetchProductsByIds(productIds);
-          setProducts(fetched);
+          setProducts(fetched ?? []);
+          setProductsFailed(fetched === null);
         } else {
           setProducts([]);
+          setProductsFailed(false);
         }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error syncing cart and products:', error);
+        setProductsFailed(true);
+        resolved = itemIds;
       } finally {
+        setResolvedIds(resolved);
         setIsLoading(false);
       }
     };
@@ -68,7 +83,7 @@ export function CartContent({ onClose }: CartContentProps) {
   const handleRemoveItem = async (productId: string) => {
     if (!token) return;
 
-    const updatedCart = await removeFromCart(String(productId), token); // اطمینان از ارسال رشته
+    const updatedCart = await removeFromCart(String(productId), token);
 
     if (updatedCart) {
       setCart(updatedCart);
@@ -85,7 +100,6 @@ export function CartContent({ onClose }: CartContentProps) {
         (p) => String(p.id) === String(item.productId),
       );
       if (!product) return total;
-      // ۱. تغییر کلیدی: استفاده از getCurrentPrice برای محاسبه جمع کل
       const price = getCurrentPrice(product);
       return total + price * item.quantity;
     }, 0);
@@ -96,6 +110,12 @@ export function CartContent({ onClose }: CartContentProps) {
   };
 
   const itemCount = cart?.items?.length ?? 0;
+  const isResolved = !isLoading && resolvedIds === itemIds;
+  const unavailableCount =
+    isResolved && !productsFailed
+      ? findUnavailableItems(cart?.items ?? [], products).length
+      : 0;
+  const checkoutBlocked = !isResolved || productsFailed || unavailableCount > 0;
 
   return (
     <>
@@ -108,17 +128,34 @@ export function CartContent({ onClose }: CartContentProps) {
         </SheetDescription>
       </SheetHeader>
       <div className="flex-1 overflow-y-auto py-4">
-        {isLoading ? (
+        {itemCount === 0 ? (
+          <p className="text-muted-foreground flex h-full items-center justify-center">
+            سبد خرید شما در حال حاضر خالی است.
+          </p>
+        ) : !isResolved ? (
           <p>در حال بارگذاری...</p>
-        ) : itemCount > 0 && cart?.items ? (
+        ) : productsFailed ? (
+          <p className="text-destructive">
+            امکان دریافت اطلاعات محصولات وجود ندارد. چند لحظه بعد دوباره تلاش
+            کنید.
+          </p>
+        ) : (
           <ul className="space-y-4">
-            {cart.items.map((item: CartItem) => {
+            {cart?.items.map((item: CartItem) => {
               const product = products.find(
                 (p: Product) => String(p.id) === String(item.productId),
               );
-              if (!product) return null; // اگر محصول یافت نشد، چیزی رندر نکن
 
-              // ۲. تغییر کلیدی: گرفتن قیمت صحیح برای نمایش هر آیتم
+              // Not returned by Payload: deleted, unpublished, or unknown.
+              if (!product) {
+                return (
+                  <UnavailableCartItem
+                    key={item.id}
+                    onRemove={() => handleRemoveItem(String(item.productId))}
+                  />
+                );
+              }
+
               const pricePerItem = getCurrentPrice(product);
 
               return (
@@ -126,12 +163,10 @@ export function CartContent({ onClose }: CartContentProps) {
                   <div className="flex-grow">
                     <p className="font-semibold">{product.name}</p>
                     <p className="text-muted-foreground text-sm" dir="ltr">
-                      {/* ۳. نمایش قیمت صحیح برای هر آیتم */}
                       {item.quantity} x {formatPrice(pricePerItem)}
                     </p>
                   </div>
                   <p className="font-semibold">
-                    {/* ۴. نمایش جمع کل صحیح برای هر آیتم */}
                     {formatPrice(pricePerItem * item.quantity)}
                   </p>
                   <Button
@@ -146,10 +181,6 @@ export function CartContent({ onClose }: CartContentProps) {
               );
             })}
           </ul>
-        ) : (
-          <p className="text-muted-foreground flex h-full items-center justify-center">
-            سبد خرید شما در حال حاضر خالی است.
-          </p>
         )}
       </div>
       {itemCount > 0 && (
@@ -160,9 +191,20 @@ export function CartContent({ onClose }: CartContentProps) {
               <p>جمع کل</p>
               <p>{formatPrice(cartTotal)}</p>
             </div>
-            <Button asChild className="mt-6 w-full" onClick={onClose}>
-              <Link href="/checkout">ادامه و تسویه حساب</Link>
-            </Button>
+            {unavailableCount > 0 && (
+              <p className="text-destructive text-sm">
+                برای ادامه، محصولات ناموجود را از سبد حذف کنید.
+              </p>
+            )}
+            {checkoutBlocked ? (
+              <Button className="mt-6 w-full" disabled>
+                ادامه و تسویه حساب
+              </Button>
+            ) : (
+              <Button asChild className="mt-6 w-full" onClick={onClose}>
+                <Link href="/checkout">ادامه و تسویه حساب</Link>
+              </Button>
+            )}
           </div>
         </SheetFooter>
       )}
