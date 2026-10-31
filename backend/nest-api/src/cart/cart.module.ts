@@ -1,14 +1,17 @@
+// backend/nest-api/src/cart/cart.module.ts
+
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProductsModule } from '../products/products.module';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cart, CartItem])],
+  imports: [TypeOrmModule.forFeature([Cart, CartItem]), ProductsModule],
   controllers: [CartController],
   providers: [CartService],
-  exports: [CartService], // سرویس سبد خرید را برای استفاده در سایر ماژول‌ها صادر می‌کنیم
+  exports: [CartService], // exports cart service for other modules to use
 })
 export class CartModule {}

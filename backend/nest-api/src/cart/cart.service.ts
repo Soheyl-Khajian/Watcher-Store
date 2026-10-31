@@ -1,12 +1,14 @@
 // backend/nest-api/src/cart/cart.service.ts
 
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { ProductsService } from '../products/products.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
@@ -17,6 +19,7 @@ export class CartService {
     @InjectRepository(Cart)
     private readonly cartRepository: Repository<Cart>,
     private readonly dataSource: DataSource,
+    private readonly productsService: ProductsService,
   ) {}
 
   private async createCartIfMissing(
@@ -57,6 +60,13 @@ export class CartService {
   }
 
   async addToCart(userId: number, addToCartDto: AddToCartDto): Promise<Cart> {
+    // Validate the product before taking the cart lock so the lock is not held
+    // across an HTTP call to Payload. Stock is checked again at order creation
+    // and at payment, so a race here cannot oversell.
+    const product = await this.productsService.findOne(addToCartDto.productId);
+    this.productsService.getCurrentPrice(product);
+    const availableStock = this.productsService.getAvailableStock(product);
+
     return this.dataSource.transaction(async (manager) => {
       const cartRepository = manager.getRepository(Cart);
       const cartItemRepository = manager.getRepository(CartItem);
@@ -72,8 +82,18 @@ export class CartService {
         },
       });
 
+      const requestedQuantity = (item?.quantity ?? 0) + addToCartDto.quantity;
+
+      if (requestedQuantity > availableStock) {
+        throw new ConflictException(
+          availableStock === 0
+            ? 'این محصول در حال حاضر موجود نیست.'
+            : `حداکثر ${availableStock} عدد از این محصول قابل سفارش است.`,
+        );
+      }
+
       if (item) {
-        item.quantity += addToCartDto.quantity;
+        item.quantity = requestedQuantity;
       } else {
         item = cartItemRepository.create({
           productId,
