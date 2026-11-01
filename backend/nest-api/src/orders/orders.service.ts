@@ -6,15 +6,26 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
 import { ProductsService } from '../products/products.service';
 import { OrderItem } from './entities/order-item.entity';
-import { Order, OrderCancelReason, OrderStatus } from './entities/order.entity';
+import {
+  Order,
+  OrderCancelReason,
+  OrderRefundStatus,
+  OrderStatus,
+} from './entities/order.entity';
 import { assertTransition } from './order-state';
 import { PaginatedOrdersResponseDto } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
@@ -38,6 +49,8 @@ function isPostgresUniqueViolation(error: unknown): boolean {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
@@ -354,6 +367,137 @@ export class OrdersService {
 
       return cancelled;
     });
+  }
+
+  // Runs an administrator action on an order inside a transaction that holds
+  // the row lock, so concurrent actions and payments are serialised.
+  private async mutateOrder(
+    id: number,
+    mutate: (order: Order, manager: EntityManager) => Promise<void>,
+  ): Promise<Order> {
+    return this.dataSource.transaction(async (manager) => {
+      const orderRepository = manager.getRepository(Order);
+
+      const order = await orderRepository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) {
+        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+      }
+
+      await mutate(order, manager);
+      await orderRepository.save(order);
+
+      // Loaded separately: row locks cannot be combined with joined relations.
+      const updated = await orderRepository.findOne({
+        where: { id },
+        relations: ['items'],
+      });
+
+      if (!updated) {
+        throw new InternalServerErrorException(
+          'امکان بارگذاری سفارش وجود ندارد.',
+        );
+      }
+
+      updated.items.sort((a, b) => a.id - b.id);
+
+      return updated;
+    });
+  }
+
+  async shipOrder(id: number, trackingCode: string | null): Promise<Order> {
+    return this.mutateOrder(id, (order) => {
+      assertTransition(
+        order.status,
+        OrderStatus.SHIPPED,
+        'فقط سفارش‌های پرداخت‌شده (در حال پردازش) قابل ارسال هستند.',
+      );
+
+      order.status = OrderStatus.SHIPPED;
+      order.shippedAt = new Date();
+      order.trackingCode = trackingCode;
+
+      return Promise.resolve();
+    });
+  }
+
+  async completeOrder(id: number): Promise<Order> {
+    return this.mutateOrder(id, (order) => {
+      assertTransition(
+        order.status,
+        OrderStatus.COMPLETED,
+        'فقط سفارش‌های ارسال‌شده قابل تکمیل هستند.',
+      );
+
+      order.status = OrderStatus.COMPLETED;
+      order.completedAt = new Date();
+
+      return Promise.resolve();
+    });
+  }
+
+  // Cancelling a paid order puts its stock back and flags it for a manual
+  // refund. Cancelling an unpaid order changes neither.
+  async cancelOrderAsAdmin(id: number): Promise<Order> {
+    return this.mutateOrder(id, async (order, manager) => {
+      assertTransition(
+        order.status,
+        OrderStatus.CANCELLED,
+        'این سفارش دیگر قابل لغو نیست.',
+      );
+
+      if (order.status === OrderStatus.PROCESSING) {
+        await this.restoreOrderStock(manager, order.id);
+        order.refundStatus = OrderRefundStatus.REQUIRED;
+      }
+
+      order.status = OrderStatus.CANCELLED;
+      order.cancelledAt = new Date();
+      order.cancelReason = OrderCancelReason.ADMIN;
+    });
+  }
+
+  async markOrderRefunded(id: number): Promise<Order> {
+    return this.mutateOrder(id, (order) => {
+      if (order.refundStatus !== OrderRefundStatus.REQUIRED) {
+        throw new ConflictException(
+          'این سفارش نیازی به بازپرداخت ندارد یا قبلاً بازپرداخت شده است.',
+        );
+      }
+
+      order.refundStatus = OrderRefundStatus.REFUNDED;
+
+      return Promise.resolve();
+    });
+  }
+
+  private async restoreOrderStock(
+    manager: EntityManager,
+    orderId: number,
+  ): Promise<void> {
+    const orderItems = await manager.getRepository(OrderItem).find({
+      where: { order: { id: orderId } },
+      order: { productId: 'ASC', id: 'ASC' },
+    });
+
+    for (const item of orderItems) {
+      const restored = await this.productsService.restoreStock(
+        manager,
+        item.productId,
+        item.quantity,
+      );
+
+      // A product deleted after the sale cannot get its stock back, but that
+      // must not stop an administrator from cancelling the order.
+      if (!restored) {
+        this.logger.warn(
+          `Stock not restored for product ${item.productId} on order ${orderId}: product not found.`,
+        );
+      }
+    }
   }
 
   async findOrdersForAdmin(

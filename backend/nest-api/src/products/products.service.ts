@@ -106,4 +106,42 @@ export class ProductsService {
 
     return affectedRows === 1 && updatedProducts.length === 1;
   }
+
+  // Puts units back after a paid order is cancelled. Unlike consumeStock this
+  // does not require the product to be published, because a product that was
+  // unpublished after the sale must still get its stock back.
+  async restoreStock(
+    manager: EntityManager,
+    productId: string,
+    quantity: number,
+  ): Promise<boolean> {
+    const numericProductId = Number(productId);
+
+    if (
+      !Number.isSafeInteger(numericProductId) ||
+      numericProductId < 1 ||
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1
+    ) {
+      throw new InternalServerErrorException(
+        'اطلاعات محصول سفارش نامعتبر است.',
+      );
+    }
+
+    // PAYLOAD_SCHEMA is validated as a safe SQL identifier in env.ts.
+    // Values remain parameterized.
+    const [updatedProducts, affectedRows] = (await manager.query(
+      `
+        UPDATE "${env.PAYLOAD_SCHEMA}"."products"
+        SET
+          "stock" = COALESCE("stock", 0) + $2,
+          "updated_at" = now()
+        WHERE "id" = $1
+        RETURNING "id"
+      `,
+      [numericProductId, quantity],
+    )) as [Array<{ id: number }>, number];
+
+    return affectedRows === 1 && updatedProducts.length === 1;
+  }
 }
