@@ -33,7 +33,15 @@ const envSchema = z
     JWT_SECRET: z.string().min(32),
     PAYLOAD_INTERNAL_URL: z.string().url(),
     FRONTEND_URL: z.string().url(),
+
+    // Unpaid orders older than this are cancelled automatically.
+    PENDING_ORDER_TTL_HOURS: z
+      .string()
+      .default('24')
+      .transform(Number)
+      .pipe(z.number().int().min(1).max(720)),
     NODE_ENV: z.string().optional(),
+
     // Development-only. Enables the simulated payment flow, which trusts the
     // client-supplied status. Anything other than 'true' or 'false' fails
     // startup so a typo cannot silently change behavior.

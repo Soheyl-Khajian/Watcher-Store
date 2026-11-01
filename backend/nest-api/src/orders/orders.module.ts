@@ -8,11 +8,12 @@ import { OrderItem } from './entities/order-item.entity';
 import { Order } from './entities/order.entity';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { OrderExpiryService } from './order-expiry.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Order, OrderItem]), ProductsModule],
   controllers: [OrdersController, AdminOrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrderExpiryService],
   exports: [OrdersService],
 })
 export class OrdersModule {}
