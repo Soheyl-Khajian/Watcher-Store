@@ -10,6 +10,12 @@ The supported way to run this project is a **VS Code / Cursor Dev Container**. D
 
 ---
 
+## Demo
+
+![Project demonstration](assets/demo.gif)
+
+---
+
 ## Architecture
 
 ```
