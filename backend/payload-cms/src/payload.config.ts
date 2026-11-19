@@ -11,7 +11,6 @@ config({ path: join(__dirname, '../../../.env') });
 import { env } from './env';
 
 import { postgresAdapter } from '@payloadcms/db-postgres';
-import { payloadCloudPlugin } from '@payloadcms/payload-cloud';
 import { slateEditor } from '@payloadcms/richtext-slate';
 import path from 'path';
 import { buildConfig } from 'payload';
@@ -67,7 +66,6 @@ export default buildConfig({
   }),
   sharp,
   plugins: [
-    payloadCloudPlugin(),
     // TODO: add S3/R2 storage adapter for production media persistence
   ],
 });
