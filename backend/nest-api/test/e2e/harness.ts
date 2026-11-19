@@ -45,6 +45,26 @@ function randomToken(): string {
   return `${part()}.${part()}.${part()}`;
 }
 
+// Waits (up to timeoutMs) until no session is connected to the database.
+async function waitForNoSessions(
+  admin: Pool,
+  databaseName: string,
+  timeoutMs = 5000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const { rows } = await admin.query(
+      'SELECT count(*)::int AS sessions FROM pg_stat_activity WHERE datname = $1',
+      [databaseName],
+    );
+    if (rows[0].sessions === 0) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
 // Starts the stub and the application inside an already-created database.
 async function boot(
   adminUrl: URL,
@@ -104,9 +124,22 @@ export async function createTestApp(): Promise<TestApp> {
   const started: { stub?: PayloadStub; app?: INestApplication } = {};
 
   const close = async () => {
+    // TypeORM's pool resolves end() before Postgres has finished closing its
+    // sessions. Ignore the "terminating connection" notice a lingering
+    // session may still receive, then wait for the sessions to go away so
+    // the database can be dropped without killing anything.
+    if (started.app) {
+      const { DataSource } = await import('typeorm');
+      const driver = started.app.get(DataSource).driver as {
+        master?: Pool;
+      };
+      driver.master?.on('error', () => undefined);
+    }
+
     await started.app?.close();
     await started.stub?.close();
     await db.end();
+    await waitForNoSessions(admin, databaseName);
     await admin.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`);
     await admin.end();
   };
