@@ -6,7 +6,6 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --webpack -p 3000",
-    "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build --webpack",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
@@ -45,7 +44,6 @@
   "devDependencies": {
     "@playwright/test": "1.65.1",
     "@testing-library/react": "16.3.0",
-    "@types/express": "^5.0.3",
     "@types/node": "^22.5.4",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.2",

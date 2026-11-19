@@ -12,6 +12,7 @@
 **/.payload
 
 frontend/cache
+backend/payload-cms/cache
 
 .cache
 .eslintcache
