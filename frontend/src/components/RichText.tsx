@@ -2,19 +2,7 @@
 import React, { Fragment } from 'react';
 import escapeHTML from 'escape-html';
 import { Text } from 'slate';
-
-// تعریف تایپ‌ها بر اساس ساختار Rich Text پیلود
-type RichTextNode = {
-  type?: string;
-  value?: {
-    url: string;
-    alt: string;
-  };
-  children?: RichTextNode[];
-  url?: string;
-  [key: string]: unknown;
-  text?: string;
-};
+import type { RichTextNode } from '@/types';
 
 // کامپوننت اصلی برای رندر کردن
 export const RichText: React.FC<{ content: RichTextNode[] }> = ({

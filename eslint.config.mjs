@@ -1,27 +1,15 @@
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import nextPlugin from '@next/eslint-plugin-next';
 import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// The two Next.js apps in this workspace. Next.js rules need each app's root
+// to resolve its pages and public directory.
+const nextApps = ['frontend', 'backend/payload-cms'];
 
 export default tseslint.config(
-  eslint.configs.recommended,
-  ...tseslint.configs.recommended,
-  prettier,
-  {
-    languageOptions: {
-      parserOptions: {
-        project: [
-          join(__dirname, 'frontend/tsconfig.json'),
-          join(__dirname, 'backend/payload-cms/tsconfig.json'),
-          join(__dirname, 'backend/nest-api/tsconfig.json'),
-        ],
-        tsconfigRootDir: __dirname,
-      },
-    },
-  },
   {
     ignores: [
       '**/node_modules/**',
@@ -29,8 +17,76 @@ export default tseslint.config(
       '**/dist/**',
       '**/build/**',
       '**/cache/**',
+      '**/coverage/**',
+      // Generated files.
+      '**/next-env.d.ts',
       '**/payload-types.ts',
       '**/importMap.js',
     ],
   },
+
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+
+  {
+    rules: {
+      // Allow intentionally unused values when they are prefixed with "_".
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      // Logging goes through console.error/warn on purpose; anything else
+      // should be removed before it ships.
+      'no-console': 'warn',
+    },
+  },
+
+  // Server-side code and tooling run on Node.js.
+  {
+    files: [
+      'backend/**/*.{ts,tsx,js,mjs,cjs}',
+      'scripts/**/*.{js,mjs,cjs}',
+      '*.{js,mjs,cjs}',
+      '**/*.config.{js,mjs,cjs,ts}',
+    ],
+    languageOptions: { globals: { ...globals.node } },
+  },
+
+  // Both Next.js apps render in the browser and on the server.
+  {
+    files: nextApps.map((app) => `${app}/src/**/*.{ts,tsx}`),
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+    plugins: {
+      '@next/next': nextPlugin,
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      ...nextPlugin.configs['core-web-vitals'].rules,
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+    },
+    settings: { next: { rootDir: nextApps } },
+  },
+
+  // Payload generates migrations with a fixed signature, and command-line
+  // scripts report progress on the console.
+  {
+    files: ['backend/payload-cms/src/migrations/**/*.ts'],
+    rules: { '@typescript-eslint/no-unused-vars': 'off' },
+  },
+  {
+    files: [
+      'backend/payload-cms/src/seed.ts',
+      'backend/nest-api/src/database/*.cli.ts',
+      'scripts/**/*.{js,mjs}',
+    ],
+    rules: { 'no-console': 'off' },
+  },
+
+  // Must stay last: turns off stylistic rules that Prettier owns.
+  prettier,
 );

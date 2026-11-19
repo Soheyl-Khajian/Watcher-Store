@@ -1,14 +1,14 @@
 // lib/store/auth.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Cart } from '@/types';
+import type { AuthUser, Cart } from '@/types';
 
 interface AuthState {
   token: string | null;
-  user: any | null;
+  user: AuthUser | null;
   cart: Cart | null;
   setToken: (token: string | null) => void; // می‌تواند null هم باشد
-  setUser: (user: any | null) => void; // می‌تواند null هم باشد
+  setUser: (user: AuthUser | null) => void; // می‌تواند null هم باشد
   setCart: (cart: Cart | null) => void; // <-- تغییر اصلی اینجاست
   logout: () => void;
 }
