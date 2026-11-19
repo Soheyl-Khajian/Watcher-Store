@@ -8,7 +8,8 @@
     "start": "next start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
@@ -46,7 +47,9 @@
     "@types/slate": "^0.47.16",
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "5.1.4",
+    "vitest": "3.2.3"
   },
   "engines": {
     "node": ">=24 <25"

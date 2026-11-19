@@ -9,6 +9,8 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter nest-api test:e2e",
     "sync:payload-types": "node scripts/sync-payload-types.mjs",
     "start:payload": "pnpm --filter payload-cms dev",
     "start:nest": "pnpm --filter nest-api start:dev",
