@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # frontend/Dockerfile
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -42,7 +42,7 @@ ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
 
 RUN pnpm build
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

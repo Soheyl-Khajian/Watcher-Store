@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # backend/payload-cms/Dockerfile
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -47,7 +47,7 @@ RUN if [ -d backend/payload-cms/public ]; then \
       cp -a backend/payload-cms/public /out/public; \
     fi
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

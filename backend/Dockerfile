@@ -4,7 +4,7 @@
 #
 # Rules:
 # - corepack enable writes to /usr/bin; that RUN must be root.
-# - Uninstall the image's global pnpm. It is often newer than Node 20
+# - Uninstall the image's global pnpm. It is often newer than the pinned pnpm
 #   and shadows Corepack on PATH (/usr/local/share/npm-global).
 # - COREPACK_HOME must be a fixed, node-owned path baked into the image.
 #   Otherwise the node user has an empty corepack cache and re-downloads the
@@ -13,7 +13,7 @@
 # - Final USER must be node (remoteUser + compose user).
 # - Do not npm install -g pnpm or corepack prepare in postCreate.
 
-FROM mcr.microsoft.com/devcontainers/typescript-node:20-bookworm
+FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm
 
 USER root
 

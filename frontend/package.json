@@ -40,7 +40,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/escape-html": "^1.0.4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/slate": "^0.47.16",
@@ -49,5 +49,8 @@
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=24 <25"
   }
 }
