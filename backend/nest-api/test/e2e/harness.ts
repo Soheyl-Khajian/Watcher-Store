@@ -6,9 +6,9 @@
 // files can run in parallel and never share state. Nest runs its migrations
 // on boot exactly as in production.
 //
-// Connection: E2E_DATABASE_URL points at any database on a Postgres server
+// Connection: TEST_DATABASE_URL points at any database on a Postgres server
 // where the user may create databases. Default: a local Postgres.
-//   Dev container:  E2E_DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+//   Dev container:  TEST_DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
 
 import { randomBytes } from 'crypto';
 import type { INestApplication } from '@nestjs/common';
@@ -91,7 +91,7 @@ async function boot(
 }
 
 export async function createTestApp(): Promise<TestApp> {
-  const adminUrl = new URL(process.env.E2E_DATABASE_URL ?? DEFAULT_ADMIN_URL);
+  const adminUrl = new URL(process.env.TEST_DATABASE_URL ?? DEFAULT_ADMIN_URL);
   const databaseName = `nest_e2e_${process.pid}_${randomBytes(4).toString('hex')}`;
 
   const admin = new Pool({ connectionString: adminUrl.toString(), max: 1 });
