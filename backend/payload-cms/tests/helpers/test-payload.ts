@@ -17,6 +17,7 @@ import { join } from 'path';
 import { Pool } from 'pg';
 import type { Payload, SanitizedConfig } from 'payload';
 import { getPayload, handleEndpoints } from 'payload';
+import sharp from 'sharp';
 
 const DEFAULT_ADMIN_URL =
   'postgres://postgres:postgres@localhost:5432/postgres';
@@ -57,6 +58,8 @@ export interface TestPayload {
     email: string,
     role?: 'admin' | 'customer',
   ): Promise<{ id: number; token: string }>;
+  // Uploads a small PNG through the REST API and returns the media id.
+  uploadImage(token: string, alt?: string): Promise<number>;
   close(): Promise<void>;
 }
 
@@ -170,6 +173,26 @@ export async function createTestPayload(): Promise<TestPayload> {
     return { id: user.id, token: login.body.token };
   };
 
+  const uploadImage: TestPayload['uploadImage'] = async (
+    token,
+    alt = 'image',
+  ) => {
+    const png = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: '#2c3e50' },
+    })
+      .png()
+      .toBuffer();
+    const form = new FormData();
+    form.append('file', new Blob([png], { type: 'image/png' }), `${alt}.png`);
+    form.append('_payload', JSON.stringify({ alt }));
+
+    const response = await api('POST', '/media', { token, form });
+    if (response.status !== 201) {
+      throw new Error(`Could not upload ${alt}: HTTP ${response.status}`);
+    }
+    return (response.body.doc as { id: number }).id;
+  };
+
   const close = async () => {
     // The adapter's destroy() leaves its pg pool open, and the pool never
     // drains. Dropping the database WITH (FORCE) ends those connections on
@@ -182,5 +205,5 @@ export async function createTestPayload(): Promise<TestPayload> {
     await rm(mediaDir, { recursive: true, force: true });
   };
 
-  return { payload: instance, api, createUser, close };
+  return { payload: instance, api, createUser, uploadImage, close };
 }

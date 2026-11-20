@@ -1,9 +1,13 @@
 // src/collections/Media.ts
 
 import type { CollectionConfig } from 'payload';
+import { preventDeletingUsedMedia } from '../hooks/preventReferencedDelete';
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  hooks: {
+    beforeDelete: [preventDeletingUsedMedia],
+  },
   admin: {
     description: 'فایل‌های رسانه‌ای مانند تصاویر محصولات',
   },

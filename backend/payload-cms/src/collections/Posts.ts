@@ -34,13 +34,18 @@ const populateAuthorName: CollectionBeforeChangeHook = async ({
     return data;
   }
 
+  // Authors cannot be deleted while they have posts, but if the user cannot
+  // be loaded anyway, fall back to the team name instead of failing the save.
   const author = await req.payload.findByID({
     collection: 'users',
     id: authorID,
+    depth: 0,
+    disableErrors: true,
+    req,
   });
 
   const displayName =
-    typeof author.displayName === 'string' && author.displayName.trim()
+    typeof author?.displayName === 'string' && author.displayName.trim()
       ? author.displayName.trim()
       : PUBLIC_AUTHOR_FALLBACK;
 

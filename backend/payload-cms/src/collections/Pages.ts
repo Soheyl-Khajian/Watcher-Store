@@ -47,7 +47,7 @@ export const Pages: CollectionConfig = {
         beforeValidate: [
           ({ value, data }) => {
             if (value) {
-              return slugify(value); // clear if it was manual
+              return slugify(value); // normalize a slug typed by hand
             }
             if (data?.title) {
               return slugify(data.title); // build from title if empty
