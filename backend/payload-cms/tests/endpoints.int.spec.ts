@@ -66,6 +66,100 @@ describe('Custom endpoints', () => {
       const response = await t.api('GET', '/products-by-category/missing');
       expect(response.status).toBe(404);
     });
+
+    it('includes products from every level of subcategories', async () => {
+      const grandchild = await t.payload.create({
+        collection: 'categories',
+        data: {
+          name: 'Dome cameras 4K',
+          slug: 'dome-cameras-4k',
+          parent: childId,
+        },
+      });
+      await createProduct('cat-grandchild-product', 400_000, [grandchild.id]);
+
+      const response = await t.api('GET', '/products-by-category/cameras');
+      const slugs = (
+        response.body.productsResult as { docs: Array<{ slug: string }> }
+      ).docs.map((doc) => doc.slug);
+
+      expect(slugs).toContain('cat-grandchild-product');
+    });
+
+    describe('paging', () => {
+      const paging = async (query: string) => {
+        const response = await t.api(
+          'GET',
+          `/products-by-category/cameras${query}`,
+        );
+        expect(response.status).toBe(200);
+        return response.body.productsResult as {
+          limit: number;
+          page: number;
+        };
+      };
+
+      it('defaults to 15 products on page 1', async () => {
+        expect(await paging('')).toMatchObject({ limit: 15, page: 1 });
+      });
+
+      it('accepts a page size within the cap', async () => {
+        expect((await paging('?limit=24')).limit).toBe(24);
+      });
+
+      // The category has several products by now, so page 2 of a
+      // one-per-page listing exists. (Payload reports page 1 for a page
+      // past the end.)
+      it('accepts a page number', async () => {
+        expect(await paging('?page=2&limit=1')).toMatchObject({
+          limit: 1,
+          page: 2,
+        });
+      });
+
+      // Without a cap a single request could load the whole catalog with
+      // its relationships.
+      it('caps the page size at 48', async () => {
+        expect((await paging('?limit=1000000')).limit).toBe(48);
+      });
+
+      it.each(['0', '-5', 'abc', '15abc', '1.5', ''])(
+        'falls back to the defaults for limit=%p and page=%p',
+        async (value) => {
+          expect(await paging(`?limit=${value}&page=${value}`)).toMatchObject({
+            limit: 15,
+            page: 1,
+          });
+        },
+      );
+    });
+
+    // An administrator can make two categories each other's parent; that
+    // must not take the endpoint down.
+    it('survives a cycle in the category tree', async () => {
+      const a = await t.payload.create({
+        collection: 'categories',
+        data: { name: 'Loop A', slug: 'loop-a' },
+      });
+      const b = await t.payload.create({
+        collection: 'categories',
+        data: { name: 'Loop B', slug: 'loop-b', parent: a.id },
+      });
+      await t.payload.update({
+        collection: 'categories',
+        id: a.id,
+        data: { parent: b.id },
+      });
+      await createProduct('loop-product', 100_000, [b.id]);
+
+      const response = await t.api('GET', '/products-by-category/loop-a');
+
+      expect(response.status).toBe(200);
+      const slugs = (
+        response.body.productsResult as { docs: Array<{ slug: string }> }
+      ).docs.map((doc) => doc.slug);
+      expect(slugs).toEqual(['loop-product']);
+    });
   });
 
   describe('POST /categories/:id/apply-price-adjustment', () => {

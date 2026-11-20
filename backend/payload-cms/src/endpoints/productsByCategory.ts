@@ -1,39 +1,49 @@
 // backend/payload-cms/src/endpoints/productsByCategory.ts
 
-import type { Endpoint } from 'payload';
-import type { PayloadRequest } from 'payload';
-import type { Category } from '../payload-types';
+import type { Endpoint, PayloadRequest } from 'payload';
+import { collectCategoryIds, findAllCategories } from '../utils/categoryTree';
 
-const findAllDescendantIds = (
-  allCategories: Category[],
-  parentId: number,
-): number[] => {
-  const children = allCategories.filter((cat) => {
-    const pID = typeof cat.parent === 'object' ? cat.parent?.id : cat.parent;
-    return pID === parentId;
-  });
+const DEFAULT_LIMIT = 15;
+// A public endpoint: without a cap one request could load the whole catalog
+// with its relationships.
+export const MAX_LIMIT = 48;
+const MAX_PAGE = 1000;
 
-  let ids: number[] = children.map((cat) => cat.id);
+// Reads a positive integer query parameter. Anything else (missing,
+// repeated, negative, fractional, or trailing characters) yields the
+// fallback, and values above max are clamped.
+function readPositiveInt(
+  value: unknown,
+  fallback: number,
+  max: number,
+): number {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    return fallback;
+  }
 
-  children.forEach((child) => {
-    ids = [...ids, ...findAllDescendantIds(allCategories, child.id)];
-  });
-  return ids;
-};
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.min(parsed, max);
+}
 
 export const productsByCategoryEndpoint: Endpoint = {
   path: '/products-by-category/:slug',
   method: 'get',
   handler: async (req: PayloadRequest) => {
-    if (!req.routeParams?.slug) {
+    const slug = req.routeParams?.slug;
+
+    if (typeof slug !== 'string' || slug.length === 0) {
       return Response.json(
         { message: 'Slug parameter is missing' },
         { status: 400 },
       );
     }
-    const slug = req.routeParams.slug as string;
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 15;
+
+    const page = readPositiveInt(req.query.page, 1, MAX_PAGE);
+    const limit = readPositiveInt(req.query.limit, DEFAULT_LIMIT, MAX_LIMIT);
 
     try {
       const { docs: parentCategories } = await req.payload.find({
@@ -48,34 +58,23 @@ export const productsByCategoryEndpoint: Endpoint = {
         req,
       });
 
-      if (!parentCategories || parentCategories.length === 0) {
+      const parentCategory = parentCategories[0];
+
+      if (!parentCategory) {
         return Response.json(
           { message: 'Category not found' },
           { status: 404 },
         );
       }
 
-      const parentCategory = parentCategories[0];
-
-      const { docs: allCategories } = await req.payload.find({
-        collection: 'categories',
-        limit: 1000,
-        depth: 0,
-        overrideAccess: false,
-        req,
-      });
-
-      const descendantIds = findAllDescendantIds(
-        allCategories,
-        parentCategory.id,
-      );
-      const allCategoryIds = [parentCategory.id, ...descendantIds];
+      const allCategories = await findAllCategories(req);
+      const categoryIds = collectCategoryIds(allCategories, parentCategory.id);
 
       const productsResult = await req.payload.find({
         collection: 'products',
         where: {
           categories: {
-            in: allCategoryIds,
+            in: categoryIds,
           },
           status: {
             equals: 'published',
