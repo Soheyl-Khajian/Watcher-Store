@@ -1,0 +1,47 @@
+import {
+  MAX_TOMAN_AMOUNT,
+  isTomanAmount,
+  tomanColumnTransformer,
+} from './toman';
+
+describe('isTomanAmount', () => {
+  it.each([0, 1, 1_500_000, MAX_TOMAN_AMOUNT])('accepts %p', (value) => {
+    expect(isTomanAmount(value)).toBe(true);
+  });
+
+  it.each([
+    ['a negative amount', -1],
+    ['a fractional amount', 10.5],
+    ['an amount above the column limit', MAX_TOMAN_AMOUNT + 1],
+    ['NaN', Number.NaN],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['a numeric string', '1000'],
+    ['null', null],
+    ['undefined', undefined],
+  ])('rejects %s', (_label, value) => {
+    expect(isTomanAmount(value)).toBe(false);
+  });
+});
+
+describe('tomanColumnTransformer', () => {
+  it('writes integers as strings', () => {
+    expect(tomanColumnTransformer.to(1_500_000)).toBe('1500000');
+  });
+
+  it('reads Postgres numeric strings back as integers', () => {
+    expect(tomanColumnTransformer.from('1500000.00')).toBe(1_500_000);
+    expect(tomanColumnTransformer.from(250)).toBe(250);
+  });
+
+  it('refuses to write an invalid amount', () => {
+    expect(() => tomanColumnTransformer.to(-5)).toThrow(RangeError);
+    expect(() => tomanColumnTransformer.to(1.25)).toThrow(RangeError);
+  });
+
+  it('refuses to read an invalid amount', () => {
+    expect(() => tomanColumnTransformer.from('12.50')).toThrow(RangeError);
+    expect(() => tomanColumnTransformer.from('not a number')).toThrow(
+      RangeError,
+    );
+  });
+});

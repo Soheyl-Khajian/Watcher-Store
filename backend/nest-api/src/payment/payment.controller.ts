@@ -9,6 +9,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { AuthenticatedRequest } from '../auth/auth.types';
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
@@ -20,7 +21,7 @@ export class PaymentController {
 
   @Post('initiate')
   initiatePayment(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() initiatePaymentDto: InitiatePaymentDto,
   ) {
     const userId = req.user.userId;
@@ -32,7 +33,10 @@ export class PaymentController {
 
   // این اندپوینت بازگشت از درگاه پرداخت را شبیه‌سازی می‌کند
   @Get('verify')
-  verifyPayment(@Request() req: any, @Query() verifyDto: VerifyPaymentDto) {
+  verifyPayment(
+    @Request() req: AuthenticatedRequest,
+    @Query() verifyDto: VerifyPaymentDto,
+  ) {
     const userId = req.user.userId;
     return this.paymentService.verifyPayment(verifyDto, userId);
   }

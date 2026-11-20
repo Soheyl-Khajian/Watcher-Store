@@ -59,4 +59,11 @@ const envSchema = z
     },
   );
 
-export const env = envSchema.parse(process.env);
+export type Env = z.infer<typeof envSchema>;
+
+// Exported separately so the validation rules can be unit-tested.
+export function parseEnv(source: NodeJS.ProcessEnv): Env {
+  return envSchema.parse(source);
+}
+
+export const env = parseEnv(process.env);

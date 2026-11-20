@@ -77,7 +77,27 @@ export interface Product {
       }[]
     | null;
 
-  description: any;
+  description: RichTextNode[] | null;
+}
+
+// A node of Payload's Slate rich text, as rendered by components/RichText.
+export type RichTextNode = {
+  type?: string;
+  value?: {
+    url: string;
+    alt: string;
+  };
+  children?: RichTextNode[];
+  url?: string;
+  [key: string]: unknown;
+  text?: string;
+};
+
+// The signed-in customer, as returned by the Nest /auth/profile endpoint.
+export interface AuthUser {
+  userId: number;
+  email: string;
+  role: 'admin' | 'customer';
 }
 
 export interface CartItem {
@@ -115,7 +135,7 @@ export interface Post {
   authorName?: string | null;
   publishedDate: string;
   thumbnail: Media;
-  content: any;
+  content: RichTextNode[];
   status: 'draft' | 'published';
   excerpt?: string;
 }

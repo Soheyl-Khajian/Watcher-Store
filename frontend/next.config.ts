@@ -15,18 +15,23 @@ const payloadOrigin = new URL(payloadUrl);
 const payloadProtocol: 'http' | 'https' =
   payloadOrigin.protocol === 'https:' ? 'https' : 'http';
 
-  const nextConfig: NextConfig = {
-    output: 'standalone',
-    images: {
-      remotePatterns: [
-        {
-          protocol: payloadProtocol,
-          hostname: payloadOrigin.hostname,
-          port: payloadOrigin.port,
-          pathname: '/api/media/**',
-        },
-      ],
-    },
-  };
+const nextConfig: NextConfig = {
+  output: 'standalone',
+  // Linting runs once for the whole workspace (pnpm lint, and in CI) with
+  // the root eslint.config.mjs, so next build does not run it again.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: payloadProtocol,
+        hostname: payloadOrigin.hostname,
+        port: payloadOrigin.port,
+        pathname: '/api/media/**',
+      },
+    ],
+  },
+};
 
 export default nextConfig;

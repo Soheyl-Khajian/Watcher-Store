@@ -221,4 +221,6 @@ Watcher-Store/
 
 ## License
 
-MIT
+The code is released under the [MIT License](LICENSE). The sample images in
+`frontend/public/images/` and the store's name and branding are not covered;
+see [LICENSE](LICENSE) for details.

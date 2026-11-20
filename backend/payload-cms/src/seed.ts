@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import configPromise from './payload.config';
-import type { Payload } from 'payload';
+import type { Payload, RequiredDataFromCollectionSlug, Where } from 'payload';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,8 +19,8 @@ interface SeedCategory {
 const upsertDoc = async (
   payload: Payload,
   collection: 'categories',
-  query: any,
-  data: any,
+  query: Where,
+  data: RequiredDataFromCollectionSlug<'categories'>,
 ) => {
   const { docs } = await payload.find({ collection, where: query, limit: 1 });
   if (docs.length > 0) {

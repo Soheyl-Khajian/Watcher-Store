@@ -90,7 +90,10 @@ export const productsByCategoryEndpoint: Endpoint = {
 
       return Response.json({ category: parentCategory, productsResult });
     } catch (error) {
-      console.error(error);
+      req.payload.logger.error({
+        err: error,
+        msg: 'Failed to fetch products by category',
+      });
       return Response.json(
         { message: 'Error fetching products' },
         { status: 500 },

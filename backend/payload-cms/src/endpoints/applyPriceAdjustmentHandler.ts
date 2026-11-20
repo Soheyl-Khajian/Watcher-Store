@@ -353,7 +353,10 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
           : `${adjustmentType} was applied to ${updates.length} products.`,
     });
   } catch (error) {
-    console.error('Bulk price adjustment failed:', error);
+    req.payload.logger.error({
+      err: error,
+      msg: 'Bulk price adjustment failed',
+    });
 
     return Response.json(
       {
