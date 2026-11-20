@@ -29,7 +29,10 @@ export const Media: CollectionConfig = {
       },
     ],
     adminThumbnail: 'thumbnail',
-    mimeTypes: ['image/*'],
+    // Raster images only. SVG is excluded because it can carry scripts and
+    // media is served from the CMS's own origin, where the admin session
+    // lives. (File size is limited globally in payload.config.ts.)
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
   },
   fields: [
     {

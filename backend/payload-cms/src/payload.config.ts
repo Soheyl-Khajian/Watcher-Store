@@ -63,6 +63,14 @@ export default buildConfig({
   graphQL: {
     disable: true,
   },
+  // Product photos stay well under this; it stops oversized uploads before
+  // they are processed or stored.
+  upload: {
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+    },
+    abortOnLimit: true,
+  },
   typescript: {
     outputFile: path.resolve(__dirname, 'payload-types.ts'),
   },

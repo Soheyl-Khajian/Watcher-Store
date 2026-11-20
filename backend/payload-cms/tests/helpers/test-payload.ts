@@ -11,6 +11,9 @@
 // where the user may create databases. Default: a local Postgres.
 
 import { randomBytes } from 'crypto';
+import { mkdtemp, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { Pool } from 'pg';
 import type { Payload, SanitizedConfig } from 'payload';
 import { getPayload, handleEndpoints } from 'payload';
@@ -45,6 +48,8 @@ export interface TestPayload {
     options?: {
       token?: string;
       body?: unknown;
+      // Sent as multipart/form-data instead of JSON (file uploads).
+      form?: FormData;
       headers?: Record<string, string>;
     },
   ): Promise<ApiResponse>;
@@ -73,6 +78,8 @@ export async function createTestPayload(): Promise<TestPayload> {
   let payload: Payload | undefined;
   let config: SanitizedConfig;
   const cacheKey = databaseName;
+  // Uploaded files go to a temporary folder, never to the project's media/.
+  const mediaDir = await mkdtemp(join(tmpdir(), 'payload-media-'));
 
   try {
     const db = new Pool({ connectionString: testUrl.toString(), max: 1 });
@@ -92,6 +99,11 @@ export async function createTestPayload(): Promise<TestPayload> {
     // Payload regenerates src/payload-types.ts on every non-production start;
     // tests must never write to the source tree.
     config.typescript.autoGenerate = false;
+    for (const collection of config.collections) {
+      if (collection.upload) {
+        collection.upload.staticDir = mediaDir;
+      }
+    }
     payload = await getPayload({ config, key: cacheKey });
 
     // Pass the generated migration list instead of letting Payload import
@@ -104,6 +116,7 @@ export async function createTestPayload(): Promise<TestPayload> {
   } catch (error) {
     await payload?.destroy().catch(() => undefined);
     await dropDatabase().catch(() => undefined);
+    await rm(mediaDir, { recursive: true, force: true });
     throw error;
   }
 
@@ -114,7 +127,7 @@ export async function createTestPayload(): Promise<TestPayload> {
     if (options.token) {
       headers.set('Authorization', `JWT ${options.token}`);
     }
-    if (options.body !== undefined) {
+    if (options.body !== undefined && !options.form) {
       headers.set('Content-Type', 'application/json');
     }
 
@@ -125,7 +138,10 @@ export async function createTestPayload(): Promise<TestPayload> {
         method,
         headers,
         body:
-          options.body === undefined ? undefined : JSON.stringify(options.body),
+          options.form ??
+          (options.body === undefined
+            ? undefined
+            : JSON.stringify(options.body)),
       }),
     });
 
@@ -163,6 +179,7 @@ export async function createTestPayload(): Promise<TestPayload> {
     pool?.on('error', () => undefined);
     await instance.destroy();
     await dropDatabase();
+    await rm(mediaDir, { recursive: true, force: true });
   };
 
   return { payload: instance, api, createUser, close };
