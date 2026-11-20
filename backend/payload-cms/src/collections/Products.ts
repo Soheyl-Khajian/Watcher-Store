@@ -3,6 +3,12 @@
 import type { CollectionConfig } from 'payload';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
+import {
+  MAX_PRICE,
+  validatePrice,
+  validateSalePrice,
+  validateStock,
+} from './productValidation';
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -135,7 +141,10 @@ export const Products: CollectionConfig = {
       name: 'status',
       label: 'وضعیت نمایش',
       type: 'select',
-      options: ['published', 'draft'],
+      options: [
+        { label: 'منتشر شده', value: 'published' },
+        { label: 'پیش‌نویس', value: 'draft' },
+      ],
       defaultValue: 'draft',
       admin: { position: 'sidebar' },
     },
@@ -144,6 +153,9 @@ export const Products: CollectionConfig = {
       label: 'قیمت اصلی (تومان)',
       type: 'number',
       required: true,
+      min: 1,
+      max: MAX_PRICE,
+      validate: (value: unknown) => validatePrice(value),
       admin: { position: 'sidebar' },
     },
     {
@@ -163,6 +175,11 @@ export const Products: CollectionConfig = {
       name: 'salePrice',
       label: 'قیمت فروش ویژه (تومان)',
       type: 'number',
+      min: 1,
+      validate: (
+        value: unknown,
+        { siblingData }: { siblingData: Record<string, unknown> },
+      ) => validateSalePrice(value, siblingData),
       admin: {
         position: 'sidebar',
         description:
@@ -183,6 +200,8 @@ export const Products: CollectionConfig = {
       label: 'موجودی انبار',
       type: 'number',
       defaultValue: 0,
+      min: 0,
+      validate: (value: unknown) => validateStock(value),
       admin: { position: 'sidebar' },
     },
     {
