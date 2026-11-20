@@ -53,6 +53,16 @@ export default buildConfig({
   endpoints: [productsByCategoryEndpoint],
   editor: slateEditor({}),
   secret: env.PAYLOAD_SECRET,
+  serverURL: env.PAYLOAD_PUBLIC_URL,
+  // Cookie-authenticated requests are honoured only from the CMS itself.
+  // The storefront does not use Payload's session cookie, so it is not
+  // trusted: a script injected into the shop could otherwise act with an
+  // administrator's session.
+  csrf: [env.PAYLOAD_PUBLIC_URL],
+  // Nothing uses GraphQL; the REST API covers the storefront and admin.
+  graphQL: {
+    disable: true,
+  },
   typescript: {
     outputFile: path.resolve(__dirname, 'payload-types.ts'),
   },

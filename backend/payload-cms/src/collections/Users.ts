@@ -1,6 +1,36 @@
 // backend/payload-cms/src/collections/Users.ts
 
-import type { CollectionConfig, Access } from 'payload';
+import type {
+  CollectionBeforeValidateHook,
+  CollectionConfig,
+  Access,
+} from 'payload';
+import { ValidationError } from 'payload';
+import { env } from '../env';
+
+// Matches the storefront login, which rejects shorter passwords.
+export const MIN_PASSWORD_LENGTH = 8;
+
+// Payload has no built-in password policy. The password is only present in
+// the data when it is being set or changed.
+const enforcePasswordLength: CollectionBeforeValidateHook = ({ data, req }) => {
+  const password: unknown = data?.password;
+
+  if (typeof password === 'string' && password.length < MIN_PASSWORD_LENGTH) {
+    throw new ValidationError({
+      collection: 'users',
+      errors: [
+        {
+          path: 'password',
+          message: `رمز عبور باید حداقل ${MIN_PASSWORD_LENGTH} نویسه باشد.`,
+        },
+      ],
+      req,
+    });
+  }
+
+  return data;
+};
 
 const isSelfOrAdmin: Access = ({ req: { user } }) => {
   if (!user) {
@@ -20,9 +50,22 @@ const isSelfOrAdmin: Access = ({ req: { user } }) => {
 
 export const Users: CollectionConfig = {
   slug: 'users',
-  auth: true, // auth: true alone is enough to enable authentication features
+  auth: {
+    cookies: {
+      // Sent only over https once the CMS is served over https.
+      secure: env.PAYLOAD_PUBLIC_URL.startsWith('https://'),
+      sameSite: 'Lax',
+    },
+    // Payload's defaults, stated explicitly: 5 failed logins lock the
+    // account for 10 minutes.
+    maxLoginAttempts: 5,
+    lockTime: 10 * 60 * 1000,
+  },
   admin: {
     useAsTitle: 'email',
+  },
+  hooks: {
+    beforeValidate: [enforcePasswordLength],
   },
   access: {
     // Only administrators may enter the admin panel. Customers still

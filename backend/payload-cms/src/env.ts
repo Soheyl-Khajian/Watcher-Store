@@ -11,6 +11,14 @@ const envSchema = z.object({
   PAYLOAD_SCHEMA: z.string().default('payload_schema'),
   DATABASE_URI: z.string().startsWith('postgres://'),
   FRONTEND_URL: z.string().url(),
+  // Where browsers reach this CMS (admin panel and media). Used as Payload's
+  // serverURL and as the only origin trusted for cookie-authenticated
+  // requests. Reduced to its origin (scheme, host, port).
+  PAYLOAD_PUBLIC_URL: z
+    .string()
+    .url()
+    .default('http://localhost:3000')
+    .transform((value) => new URL(value).origin),
   PAYLOAD_INTERNAL_URL: z.string().url().optional(),
   NEST_INTERNAL_URL: z.string().url().optional(), // Server-side URL of the Nest API, used by the admin Orders view.
 });

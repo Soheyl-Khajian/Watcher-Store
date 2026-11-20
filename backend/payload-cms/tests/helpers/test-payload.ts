@@ -28,7 +28,13 @@ type MigrationList = NonNullable<
 export interface ApiResponse {
   status: number;
   body: Json;
+  headers: Headers;
 }
+
+// The public CMS URL the test instance runs under (https, so auth cookies are
+// marked Secure, as in production).
+export const TEST_SERVER_URL = 'https://cms.example.test';
+export const TEST_FRONTEND_URL = 'https://shop.example.test';
 
 export interface TestPayload {
   payload: Payload;
@@ -36,7 +42,11 @@ export interface TestPayload {
   api(
     method: string,
     path: string,
-    options?: { token?: string; body?: unknown },
+    options?: {
+      token?: string;
+      body?: unknown;
+      headers?: Record<string, string>;
+    },
   ): Promise<ApiResponse>;
   createUser(
     email: string,
@@ -74,7 +84,8 @@ export async function createTestPayload(): Promise<TestPayload> {
       DATABASE_URI: testUrl.toString(),
       PAYLOAD_SCHEMA: SCHEMA,
       PAYLOAD_SECRET: randomBytes(32).toString('hex'),
-      FRONTEND_URL: 'http://localhost:3002',
+      FRONTEND_URL: TEST_FRONTEND_URL,
+      PAYLOAD_PUBLIC_URL: TEST_SERVER_URL,
     });
 
     config = await (await import('../../src/payload.config')).default;
@@ -99,7 +110,7 @@ export async function createTestPayload(): Promise<TestPayload> {
   const instance = payload;
 
   const api: TestPayload['api'] = async (method, path, options = {}) => {
-    const headers = new Headers();
+    const headers = new Headers(options.headers);
     if (options.token) {
       headers.set('Authorization', `JWT ${options.token}`);
     }
@@ -110,7 +121,7 @@ export async function createTestPayload(): Promise<TestPayload> {
     const response = await handleEndpoints({
       config,
       payloadInstanceCacheKey: cacheKey,
-      request: new Request(`http://localhost:3000/api${path}`, {
+      request: new Request(`${TEST_SERVER_URL}/api${path}`, {
         method,
         headers,
         body:
@@ -122,6 +133,7 @@ export async function createTestPayload(): Promise<TestPayload> {
     return {
       status: response.status,
       body: text ? (JSON.parse(text) as Json) : {},
+      headers: response.headers,
     };
   };
 
