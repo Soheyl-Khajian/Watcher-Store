@@ -195,6 +195,9 @@ importers:
       payload:
         specifier: ^3.94.0
         version: 3.94.0(graphql@16.11.0)(typescript@5.7.3)
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
       react:
         specifier: 19.1.10
         version: 19.1.10
@@ -229,9 +232,6 @@ importers:
       '@types/slug':
         specifier: ^5.0.9
         version: 5.0.9
-      pg:
-        specifier: 8.20.0
-        version: 8.20.0
       prettier:
         specifier: 3.9.6
         version: 3.9.6
