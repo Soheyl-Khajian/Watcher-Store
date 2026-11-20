@@ -22,11 +22,22 @@ export default tseslint.config(
       '**/next-env.d.ts',
       '**/payload-types.ts',
       '**/importMap.js',
+      // Local tool state, including git worktrees: full copies of this repo
+      // that must not be linted as part of it.
+      '.claude/**',
     ],
   },
 
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+
+  // Anchor typescript-eslint to this repository root instead of letting it
+  // infer one, which fails when another copy of the repo is nested inside.
+  {
+    languageOptions: {
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
+    },
+  },
 
   {
     rules: {
