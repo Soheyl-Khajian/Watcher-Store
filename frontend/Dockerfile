@@ -53,10 +53,8 @@ ENV HOSTNAME=0.0.0.0
 
 COPY --from=builder /app/frontend/.next/standalone ./
 COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
-
-RUN if [ -d /app/frontend/public ]; then \
-      cp -a /app/frontend/public ./frontend/public; \
-    fi
+# The standalone output does not include public/; copy it from the builder.
+COPY --from=builder /app/frontend/public ./frontend/public
 
 WORKDIR /app/frontend
 
