@@ -1,6 +1,7 @@
 // backend/payload-cms/src/collections/Users.ts
 
 import type {
+  CollectionBeforeChangeHook,
   CollectionBeforeValidateHook,
   CollectionConfig,
   Access,
@@ -27,6 +28,25 @@ const enforcePasswordLength: CollectionBeforeValidateHook = ({ data, req }) => {
       ],
       req,
     });
+  }
+
+  return data;
+};
+
+// The admin panel's first-user screen (POST /api/users/first-register) is
+// open only while no account exists. Whatever role is submitted there, that
+// account must be an administrator, or nobody could ever open the panel.
+// Ordinary sign-ups (POST /api/users) are unaffected, so on an empty
+// database the first shopper still becomes a customer.
+const FIRST_REGISTER_PATH = /\/users\/first-register\/?$/;
+
+const makeFirstRegisteredUserAdmin: CollectionBeforeChangeHook = ({
+  data,
+  operation,
+  req,
+}) => {
+  if (operation === 'create' && FIRST_REGISTER_PATH.test(req.pathname ?? '')) {
+    return { ...data, role: 'admin' };
   }
 
   return data;
@@ -66,6 +86,7 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [enforcePasswordLength],
+    beforeChange: [makeFirstRegisteredUserAdmin],
   },
   access: {
     // Only administrators may enter the admin panel. Customers still
