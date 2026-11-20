@@ -14,8 +14,10 @@ describe('First administrator', () => {
   });
 
   // Every test starts from an empty users table, like a fresh deployment.
+  // Deleted through the database adapter, below the collection hooks that
+  // (rightly) refuse to delete the last administrator.
   beforeEach(async () => {
-    await t.payload.delete({ collection: 'users', where: {} });
+    await t.payload.db.deleteMany({ collection: 'users', where: {} });
   });
 
   const roleOf = async (email: string) => {

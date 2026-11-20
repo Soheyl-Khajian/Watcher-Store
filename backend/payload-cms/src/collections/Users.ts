@@ -8,7 +8,7 @@ import type {
 } from 'payload';
 import { ValidationError } from 'payload';
 import { env } from '../env';
-import { preventDeletingAuthors } from '../hooks/preventReferencedDelete';
+import { preventDeletingLastAdmin } from '../hooks/deleteGuards';
 
 // Matches the storefront login, which rejects shorter passwords.
 export const MIN_PASSWORD_LENGTH = 8;
@@ -88,7 +88,7 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeValidate: [enforcePasswordLength],
     beforeChange: [makeFirstRegisteredUserAdmin],
-    beforeDelete: [preventDeletingAuthors],
+    beforeDelete: [preventDeletingLastAdmin],
   },
   access: {
     // Only administrators may enter the admin panel. Customers still

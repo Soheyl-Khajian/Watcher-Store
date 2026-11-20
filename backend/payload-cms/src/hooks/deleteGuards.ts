@@ -1,10 +1,14 @@
-// backend/payload-cms/src/hooks/preventReferencedDelete.ts
+// backend/payload-cms/src/hooks/deleteGuards.ts
 //
-// Some relationships are required (a post's author and thumbnail, a product
-// gallery image) but their database links use ON DELETE SET NULL. Deleting
-// a document that is still referenced there would fail inside the database
-// with an unhelpful error. These hooks refuse such deletes up front with a
-// 409 that names what still uses the document.
+// Guards that refuse a delete up front with a clear 409 instead of letting it
+// fail inside the database or leave the store unmanageable:
+// - an image still used where one is required (a post thumbnail, a product
+//   gallery image): those links are NOT NULL with ON DELETE SET NULL, so the
+//   database would reject the delete with an unhelpful error
+// - the last administrator, without whom nobody could manage the store
+//
+// Writers are deliberately not guarded: deleting one clears the post's
+// author link and the post keeps its byline (see Posts).
 
 import { APIError } from 'payload';
 import type {
@@ -78,19 +82,6 @@ function preventDeleteWhileUsed(
   };
 }
 
-export const preventDeletingAuthors = preventDeleteWhileUsed(
-  'این کاربر',
-  'ابتدا نویسنده این نوشته‌ها را تغییر دهید.',
-  [
-    {
-      collection: 'posts',
-      where: (id) => ({ author: { equals: id } }),
-      titleField: 'title',
-      label: 'نویسنده نوشته‌های',
-    },
-  ],
-);
-
 export const preventDeletingUsedMedia = preventDeleteWhileUsed(
   'این تصویر',
   'ابتدا تصویر دیگری جایگزین آن کنید.',
@@ -109,3 +100,35 @@ export const preventDeletingUsedMedia = preventDeleteWhileUsed(
     },
   ],
 );
+
+export const preventDeletingLastAdmin: CollectionBeforeDeleteHook = async ({
+  id,
+  req,
+}) => {
+  const user = await req.payload.findByID({
+    collection: 'users',
+    id,
+    depth: 0,
+    disableErrors: true,
+    req,
+  });
+
+  if (user?.role !== 'admin') {
+    return;
+  }
+
+  const { totalDocs: admins } = await req.payload.count({
+    collection: 'users',
+    where: { role: { equals: 'admin' } },
+    req,
+  });
+
+  if (admins <= 1) {
+    throw new APIError(
+      'این آخرین مدیر فروشگاه است و حذف نمی‌شود. ابتدا مدیر دیگری بسازید.',
+      409,
+      null,
+      true,
+    );
+  }
+};

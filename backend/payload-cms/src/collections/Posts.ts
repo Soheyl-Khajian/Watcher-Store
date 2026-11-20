@@ -23,6 +23,29 @@ function getRelationshipID(value: unknown): string | number | null {
   return null;
 }
 
+// A post needs an author when it is created. Later the author may be empty
+// only because the writer's account was deleted, and then the post keeps
+// the byline it was published with.
+const requireAuthorOrByline = (
+  value: unknown,
+  {
+    operation,
+    siblingData,
+  }: { operation?: string; siblingData: { authorName?: unknown } },
+): true | string => {
+  if (value !== null && value !== undefined && value !== '') {
+    return true;
+  }
+
+  const hasByline =
+    typeof siblingData.authorName === 'string' &&
+    siblingData.authorName.trim() !== '';
+
+  return operation !== 'create' && hasByline
+    ? true
+    : 'نویسنده نوشته را انتخاب کنید.';
+};
+
 const populateAuthorName: CollectionBeforeChangeHook = async ({
   data,
   originalDoc,
@@ -123,9 +146,14 @@ export const Posts: CollectionConfig = {
       label: 'نویسنده',
       type: 'relationship',
       relationTo: 'users',
-      required: true,
+      // Not required in the database: when a writer's account is deleted,
+      // the link is cleared and the post keeps its byline (authorName). A
+      // new post still needs an author.
+      validate: requireAuthorOrByline,
       admin: {
         position: 'sidebar',
+        description:
+          'اگر حساب نویسنده حذف شود، نام او روی نوشته باقی می‌ماند و این فیلد خالی می‌شود.',
       },
       access: {
         read: ({ req: { user } }) => user?.role === 'admin',

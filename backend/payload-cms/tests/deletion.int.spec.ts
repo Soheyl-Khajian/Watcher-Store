@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestPayload, type TestPayload } from './helpers/test-payload';
 
-// Posts require an author and a thumbnail, and product gallery rows require
-// an image. Deleting something still referenced there must be refused with
-// a clear message instead of failing inside the database.
-describe('Deleting referenced users and images', () => {
+// Post thumbnails and product gallery images are required, so deleting an
+// image still used there must be refused with a clear message. Writers, on
+// the other hand, can always be deleted; their posts keep the byline.
+describe('Deleting writers and images', () => {
   let t: TestPayload;
   let token: string;
   let counter = 0;
@@ -55,46 +55,76 @@ describe('Deleting referenced users and images', () => {
       })
     ).totalDocs === 1;
 
-  describe('users', () => {
-    it('refuses to delete the author of a post, naming the posts', async () => {
+  // Writers come and go; their posts keep the byline they were published
+  // with. Deleting a writer only clears the link to the account.
+  describe('writers', () => {
+    const getPost = (id: number) =>
+      t.payload.findByID({ collection: 'posts', id, depth: 0 });
+
+    it('deletes a writer who has posts and keeps their byline', async () => {
       const author = await createAuthor();
-      const post = await createPost(author.id, await t.uploadImage(token));
-
-      const response = await t.api('DELETE', `/users/${author.id}`, { token });
-
-      expect(response.status).toBe(409);
-      expect(JSON.stringify(response.body)).toContain(post.title);
-      expect(await exists('users', author.id)).toBe(true);
-    });
-
-    it('deletes a user who has no posts', async () => {
-      const author = await createAuthor();
+      const image = await t.uploadImage(token);
+      const first = await createPost(author.id, image);
+      const second = await createPost(author.id, image);
 
       const response = await t.api('DELETE', `/users/${author.id}`, { token });
 
       expect(response.status).toBe(200);
       expect(await exists('users', author.id)).toBe(false);
+      for (const post of [first, second]) {
+        const stored = await getPost(post.id);
+        expect(stored.author ?? null).toBeNull();
+        expect(stored.authorName).toBe(author.displayName);
+      }
+
+      const publicPost = await t.api('GET', `/posts/${first.id}`);
+      expect(publicPost.status).toBe(200);
+      expect(publicPost.body.authorName).toBe(author.displayName);
     });
 
-    it('deletes an author once their posts are reassigned', async () => {
+    it('keeps the byline when a post of a deleted writer is edited', async () => {
       const author = await createAuthor();
-      const other = await createAuthor();
       const post = await createPost(author.id, await t.uploadImage(token));
+      await t.api('DELETE', `/users/${author.id}`, { token });
 
-      await t.payload.update({
-        collection: 'posts',
-        id: post.id,
-        data: { author: other.id },
+      const response = await t.api('PATCH', `/posts/${post.id}`, {
+        token,
+        body: { title: 'Updated title' },
       });
 
-      const response = await t.api('DELETE', `/users/${author.id}`, { token });
       expect(response.status).toBe(200);
+      expect((await getPost(post.id)).authorName).toBe(author.displayName);
+    });
 
-      const reassigned = await t.payload.findByID({
-        collection: 'posts',
-        id: post.id,
+    it('uses the new byline when another writer is assigned', async () => {
+      const author = await createAuthor();
+      const successor = await createAuthor();
+      const post = await createPost(author.id, await t.uploadImage(token));
+      await t.api('DELETE', `/users/${author.id}`, { token });
+
+      const response = await t.api('PATCH', `/posts/${post.id}`, {
+        token,
+        body: { author: successor.id },
       });
-      expect(reassigned.authorName).toBe(other.displayName);
+
+      expect(response.status).toBe(200);
+      expect((await getPost(post.id)).authorName).toBe(successor.displayName);
+    });
+
+    it('still requires an author for a new post', async () => {
+      counter += 1;
+      const response = await t.api('POST', '/posts', {
+        token,
+        body: {
+          title: 'No author',
+          excerpt: 'Excerpt',
+          slug: `no-author-${counter}`,
+          status: 'draft',
+          thumbnail: await t.uploadImage(token),
+        },
+      });
+
+      expect(response.status).toBe(400);
     });
   });
 

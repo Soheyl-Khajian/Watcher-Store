@@ -11,6 +11,7 @@ import * as migration_20260924_130553_secure_price_adjustment from './20260924_1
 import * as migration_20260925_141103 from './20260925_141103';
 import * as migration_20260927_191809 from './20260927_191809';
 import * as migration_20261119_005011_payload_394_upgrade from './20261119_005011_payload_394_upgrade';
+import * as migration_20261120_161215_posts_author_optional from './20261120_161215_posts_author_optional';
 
 export const migrations = [
   {
@@ -77,5 +78,10 @@ export const migrations = [
     up: migration_20261119_005011_payload_394_upgrade.up,
     down: migration_20261119_005011_payload_394_upgrade.down,
     name: '20261119_005011_payload_394_upgrade',
+  },
+  {
+    up: migration_20261120_161215_posts_author_optional.up,
+    down: migration_20261120_161215_posts_author_optional.down,
+    name: '20261120_161215_posts_author_optional',
   },
 ];

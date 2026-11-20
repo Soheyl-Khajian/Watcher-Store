@@ -1,7 +1,7 @@
 // src/collections/Media.ts
 
 import type { CollectionConfig } from 'payload';
-import { preventDeletingUsedMedia } from '../hooks/preventReferencedDelete';
+import { preventDeletingUsedMedia } from '../hooks/deleteGuards';
 
 export const Media: CollectionConfig = {
   slug: 'media',
