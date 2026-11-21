@@ -1,7 +1,8 @@
 // backend/payload-cms/src/endpoints/applyPriceAdjustmentHandler.ts
 
 import type { PayloadRequest } from 'payload';
-import type { Category, Product } from '../payload-types';
+import type { Product } from '../payload-types';
+import { collectCategoryIds, findAllCategories } from '../utils/categoryTree';
 
 const PAGE_SIZE = 100;
 
@@ -11,48 +12,6 @@ type ProductPriceUpdate = Pick<
   Product,
   'price' | 'priceAdjustmentBasePrice' | 'salePrice' | 'isOnSale'
 >;
-
-function collectCategoryIds(categories: Category[], rootId: number): number[] {
-  const childrenByParent = new Map<number, number[]>();
-
-  for (const category of categories) {
-    const parentId =
-      typeof category.parent === 'object'
-        ? category.parent?.id
-        : category.parent;
-
-    if (typeof parentId !== 'number') {
-      continue;
-    }
-
-    const children = childrenByParent.get(parentId) ?? [];
-    children.push(category.id);
-    childrenByParent.set(parentId, children);
-  }
-
-  // BFS algorithm to find all categories of rootId
-  const visited = new Set<number>([rootId]);
-  const queue = [rootId];
-
-  while (queue.length > 0) {
-    const parentId = queue.shift();
-
-    if (typeof parentId !== 'number') {
-      continue;
-    }
-
-    for (const childId of childrenByParent.get(parentId) ?? []) {
-      if (visited.has(childId)) {
-        continue;
-      }
-
-      visited.add(childId);
-      queue.push(childId);
-    }
-  }
-
-  return [...visited];
-}
 
 async function readAction(
   req: PayloadRequest,
@@ -74,30 +33,6 @@ async function readAction(
   } catch {
     return null;
   }
-}
-
-// Payload doesn't necessarily return every category in one request. It uses pagination.
-async function findAllCategories(req: PayloadRequest): Promise<Category[]> {
-  const categories: Category[] = [];
-  let page = 1;
-  let hasNextPage = true;
-
-  while (hasNextPage) {
-    const result = await req.payload.find({
-      collection: 'categories',
-      page,
-      limit: PAGE_SIZE,
-      depth: 0,
-      overrideAccess: false,
-      req,
-    });
-
-    categories.push(...result.docs);
-    hasNextPage = result.hasNextPage;
-    page += 1;
-  }
-
-  return categories;
 }
 
 async function findAllProducts(

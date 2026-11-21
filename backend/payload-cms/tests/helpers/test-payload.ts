@@ -11,9 +11,13 @@
 // where the user may create databases. Default: a local Postgres.
 
 import { randomBytes } from 'crypto';
+import { mkdtemp, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { Pool } from 'pg';
 import type { Payload, SanitizedConfig } from 'payload';
 import { getPayload, handleEndpoints } from 'payload';
+import sharp from 'sharp';
 
 const DEFAULT_ADMIN_URL =
   'postgres://postgres:postgres@localhost:5432/postgres';
@@ -28,7 +32,13 @@ type MigrationList = NonNullable<
 export interface ApiResponse {
   status: number;
   body: Json;
+  headers: Headers;
 }
+
+// The public CMS URL the test instance runs under (https, so auth cookies are
+// marked Secure, as in production).
+export const TEST_SERVER_URL = 'https://cms.example.test';
+export const TEST_FRONTEND_URL = 'https://shop.example.test';
 
 export interface TestPayload {
   payload: Payload;
@@ -36,12 +46,20 @@ export interface TestPayload {
   api(
     method: string,
     path: string,
-    options?: { token?: string; body?: unknown },
+    options?: {
+      token?: string;
+      body?: unknown;
+      // Sent as multipart/form-data instead of JSON (file uploads).
+      form?: FormData;
+      headers?: Record<string, string>;
+    },
   ): Promise<ApiResponse>;
   createUser(
     email: string,
     role?: 'admin' | 'customer',
   ): Promise<{ id: number; token: string }>;
+  // Uploads a small PNG through the REST API and returns the media id.
+  uploadImage(token: string, alt?: string): Promise<number>;
   close(): Promise<void>;
 }
 
@@ -63,6 +81,8 @@ export async function createTestPayload(): Promise<TestPayload> {
   let payload: Payload | undefined;
   let config: SanitizedConfig;
   const cacheKey = databaseName;
+  // Uploaded files go to a temporary folder, never to the project's media/.
+  const mediaDir = await mkdtemp(join(tmpdir(), 'payload-media-'));
 
   try {
     const db = new Pool({ connectionString: testUrl.toString(), max: 1 });
@@ -74,13 +94,19 @@ export async function createTestPayload(): Promise<TestPayload> {
       DATABASE_URI: testUrl.toString(),
       PAYLOAD_SCHEMA: SCHEMA,
       PAYLOAD_SECRET: randomBytes(32).toString('hex'),
-      FRONTEND_URL: 'http://localhost:3002',
+      FRONTEND_URL: TEST_FRONTEND_URL,
+      PAYLOAD_PUBLIC_URL: TEST_SERVER_URL,
     });
 
     config = await (await import('../../src/payload.config')).default;
     // Payload regenerates src/payload-types.ts on every non-production start;
     // tests must never write to the source tree.
     config.typescript.autoGenerate = false;
+    for (const collection of config.collections) {
+      if (collection.upload) {
+        collection.upload.staticDir = mediaDir;
+      }
+    }
     payload = await getPayload({ config, key: cacheKey });
 
     // Pass the generated migration list instead of letting Payload import
@@ -93,28 +119,32 @@ export async function createTestPayload(): Promise<TestPayload> {
   } catch (error) {
     await payload?.destroy().catch(() => undefined);
     await dropDatabase().catch(() => undefined);
+    await rm(mediaDir, { recursive: true, force: true });
     throw error;
   }
 
   const instance = payload;
 
   const api: TestPayload['api'] = async (method, path, options = {}) => {
-    const headers = new Headers();
+    const headers = new Headers(options.headers);
     if (options.token) {
       headers.set('Authorization', `JWT ${options.token}`);
     }
-    if (options.body !== undefined) {
+    if (options.body !== undefined && !options.form) {
       headers.set('Content-Type', 'application/json');
     }
 
     const response = await handleEndpoints({
       config,
       payloadInstanceCacheKey: cacheKey,
-      request: new Request(`http://localhost:3000/api${path}`, {
+      request: new Request(`${TEST_SERVER_URL}/api${path}`, {
         method,
         headers,
         body:
-          options.body === undefined ? undefined : JSON.stringify(options.body),
+          options.form ??
+          (options.body === undefined
+            ? undefined
+            : JSON.stringify(options.body)),
       }),
     });
 
@@ -122,6 +152,7 @@ export async function createTestPayload(): Promise<TestPayload> {
     return {
       status: response.status,
       body: text ? (JSON.parse(text) as Json) : {},
+      headers: response.headers,
     };
   };
 
@@ -142,6 +173,26 @@ export async function createTestPayload(): Promise<TestPayload> {
     return { id: user.id, token: login.body.token };
   };
 
+  const uploadImage: TestPayload['uploadImage'] = async (
+    token,
+    alt = 'image',
+  ) => {
+    const png = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: '#2c3e50' },
+    })
+      .png()
+      .toBuffer();
+    const form = new FormData();
+    form.append('file', new Blob([png], { type: 'image/png' }), `${alt}.png`);
+    form.append('_payload', JSON.stringify({ alt }));
+
+    const response = await api('POST', '/media', { token, form });
+    if (response.status !== 201) {
+      throw new Error(`Could not upload ${alt}: HTTP ${response.status}`);
+    }
+    return (response.body.doc as { id: number }).id;
+  };
+
   const close = async () => {
     // The adapter's destroy() leaves its pg pool open, and the pool never
     // drains. Dropping the database WITH (FORCE) ends those connections on
@@ -151,7 +202,8 @@ export async function createTestPayload(): Promise<TestPayload> {
     pool?.on('error', () => undefined);
     await instance.destroy();
     await dropDatabase();
+    await rm(mediaDir, { recursive: true, force: true });
   };
 
-  return { payload: instance, api, createUser, close };
+  return { payload: instance, api, createUser, uploadImage, close };
 }

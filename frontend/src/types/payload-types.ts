@@ -290,7 +290,10 @@ export interface Post {
     | null;
   status?: ('draft' | 'published') | null;
   publishedDate?: string | null;
-  author: number | User;
+  /**
+   * اگر حساب نویسنده حذف شود، نام او روی نوشته باقی می‌ماند و این فیلد خالی می‌شود.
+   */
+  author?: (number | null) | User;
   /**
    * این مقدار از نام نمایشی کاربر نویسنده کپی می‌شود.
    */

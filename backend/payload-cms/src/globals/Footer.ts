@@ -7,6 +7,9 @@ export const Footer: GlobalConfig = {
   label: 'تنظیمات فوتر',
   access: {
     read: () => true,
+    // Without an explicit rule Payload lets any signed-in user update a
+    // global, and anyone can register a customer account.
+    update: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
     {

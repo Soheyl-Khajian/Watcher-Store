@@ -23,6 +23,7 @@ services:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       FRONTEND_URL: ${FRONTEND_URL}
+      PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL}
     command: ['./node_modules/.bin/payload', 'migrate']
     depends_on:
       db:
@@ -42,6 +43,7 @@ services:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       FRONTEND_URL: ${FRONTEND_URL}
+      PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL}
       NEST_INTERNAL_URL: http://nest-api:3001
       PORT: 3000
     depends_on:

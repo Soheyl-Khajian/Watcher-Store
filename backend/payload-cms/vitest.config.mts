@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: 'node',
-    include: ['tests/**/*.int.spec.ts'],
+    include: ['tests/**/*.spec.ts'],
     // Each test file boots Payload against its own throwaway database. Forks
     // give every file its own process, so environment variables and Payload's
     // instance cache never leak between files.

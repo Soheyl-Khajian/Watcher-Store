@@ -109,3 +109,50 @@ jobs:
 
       - name: End-to-end tests (nest-api)
         run: pnpm test:e2e
+
+  smoke:
+    name: Production stack smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # A throwaway configuration: the documented example with fresh secrets
+      # and database password, as a real deployment needs. (With
+      # NODE_ENV=production the services refuse placeholders and default
+      # passwords.)
+      - name: Create .env
+        run: |
+          db_password=$(openssl rand -hex 24)
+          cp .env.example .env
+          sed -i "s|^PAYLOAD_SECRET=.*|PAYLOAD_SECRET=$(openssl rand -hex 32)|" .env
+          sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
+          sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$db_password|" .env
+          sed -i "s|^DATABASE_URI=postgres://postgres:postgres@|DATABASE_URI=postgres://postgres:$db_password@|" .env
+
+      - name: Build images
+        run: docker compose -f docker-compose.prod.yml build
+
+      - name: Start the stack
+        run: docker compose -f docker-compose.prod.yml up -d
+
+      # Every service must answer, serve real pages, and work with the others.
+      - name: Smoke check
+        run: node scripts/smoke-check.mjs
+
+      - name: Show service status and logs
+        if: failure()
+        run: |
+          docker compose -f docker-compose.prod.yml ps -a
+          docker compose -f docker-compose.prod.yml logs --no-color --tail=200
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down -v
