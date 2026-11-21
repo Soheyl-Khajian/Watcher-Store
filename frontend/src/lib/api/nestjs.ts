@@ -188,14 +188,27 @@ export async function initiatePayment(orderId: number, token: string) {
   }
 }
 
-export async function verifyPayment(
+export type OrderStatus =
+  'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+
+const ORDER_STATUSES: readonly string[] = [
+  'pending',
+  'processing',
+  'shipped',
+  'completed',
+  'cancelled',
+];
+
+// The status of one of the customer's own orders, as the server records it.
+// After a payment this is the only trustworthy answer: the server verified
+// the payment with the gateway before the customer was sent back here.
+export async function fetchOrderStatus(
   orderId: string,
-  status: string,
   token: string,
-) {
+): Promise<OrderStatus | null> {
   try {
     const res = await fetch(
-      `${NESTJS_API_URL}/payment/verify?orderId=${orderId}&status=${status}`,
+      `${NESTJS_API_URL}/orders/${encodeURIComponent(orderId)}`,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -204,10 +217,17 @@ export async function verifyPayment(
       },
     );
     if (!res.ok) return null;
-    return await res.json();
+    const order: unknown = await res.json();
+    const status =
+      typeof order === 'object' && order !== null && 'status' in order
+        ? order.status
+        : null;
+    return typeof status === 'string' && ORDER_STATUSES.includes(status)
+      ? (status as OrderStatus)
+      : null;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to verify payment:', error);
+    console.error('Failed to fetch order status:', error);
     return null;
   }
 }

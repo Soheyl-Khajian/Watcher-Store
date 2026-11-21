@@ -39,7 +39,7 @@ export interface TestApp {
   createProduct(input: FixtureProductInput): Promise<number>;
   login(user: FixtureUser): Promise<string>;
   // Pays an order through the simulated gateway: starts the payment, then
-  // reports the customer's return with the given status.
+  // brings the customer back through the callback (OK or NOK).
   payOrder(
     headers: Record<string, string>,
     orderId: number,
@@ -233,16 +233,18 @@ export async function createTestApp(
     orderId,
     status = 'success',
   ) => {
-    await http()
+    const started = await http()
       .post('/payment/initiate')
       .set(headers)
       .send({ orderId })
       .expect(201);
+    const Authority = new URL(started.body.paymentUrl).searchParams.get(
+      'Authority',
+    );
     return http()
-      .get('/payment/verify')
-      .query({ orderId, status })
-      .set(headers)
-      .expect(200);
+      .get('/payment/callback')
+      .query({ Authority, Status: status === 'success' ? 'OK' : 'NOK' })
+      .expect(302);
   };
 
   return {

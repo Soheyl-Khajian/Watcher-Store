@@ -8,6 +8,7 @@ import { Payment } from './entities/payment.entity';
 import { MockGateway } from './gateways/mock.gateway';
 import { PAYMENT_GATEWAY } from './gateways/payment-gateway';
 import type { PaymentGateway } from './gateways/payment-gateway';
+import { ZarinpalGateway } from './gateways/zarinpal.gateway';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 
@@ -16,6 +17,13 @@ function createGateway(): PaymentGateway | null {
   switch (env.PAYMENT_GATEWAY) {
     case 'mock':
       return new MockGateway();
+    case 'zarinpal':
+      return new ZarinpalGateway({
+        // Required by env.ts with this gateway.
+        merchantId: env.ZARINPAL_MERCHANT_ID as string,
+        baseUrl: env.ZARINPAL_BASE_URL,
+        timeoutMs: env.PAYMENT_TIMEOUT_MS,
+      });
     case 'none':
       return null;
   }

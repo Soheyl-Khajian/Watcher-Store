@@ -21,8 +21,6 @@ export class MockGateway implements PaymentGateway {
     // Skip the gateway page: go straight back as if the payment succeeded.
     url.searchParams.set('Authority', authority);
     url.searchParams.set('Status', 'OK');
-    // The storefront's result page reads this one.
-    url.searchParams.set('status', 'success');
     return { authority, redirectUrl: url.toString() };
   }
 

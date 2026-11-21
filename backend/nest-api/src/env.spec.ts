@@ -51,6 +51,52 @@ describe('parseEnv', () => {
       ).toThrow(/PAYMENT_GATEWAY=mock/);
     });
 
+    describe('zarinpal', () => {
+      const merchant = '1344b5d4-0048-11e8-94db-005056a205be';
+
+      it('requires a merchant id', () => {
+        expect(() =>
+          parseEnv({ ...validEnv, PAYMENT_GATEWAY: 'zarinpal' }),
+        ).toThrow(/ZARINPAL_MERCHANT_ID/);
+        expect(() =>
+          parseEnv({
+            ...validEnv,
+            PAYMENT_GATEWAY: 'zarinpal',
+            ZARINPAL_MERCHANT_ID: 'not-a-merchant-id',
+          }),
+        ).toThrow(/ZARINPAL_MERCHANT_ID/);
+      });
+
+      it('uses the sandbox unless told otherwise', () => {
+        const env = parseEnv({
+          ...validEnv,
+          PAYMENT_GATEWAY: 'zarinpal',
+          ZARINPAL_MERCHANT_ID: merchant,
+        });
+        expect(env.ZARINPAL_BASE_URL).toBe('https://sandbox.zarinpal.com');
+        expect(env.PAYMENT_CALLBACK_URL).toBe(
+          'http://localhost:3001/payment/callback',
+        );
+      });
+
+      it('requires an explicit callback URL in production', () => {
+        const production = {
+          ...validEnv,
+          NODE_ENV: 'production',
+          POSTGRES_PASSWORD: 'a-strong-database-password',
+          PAYMENT_GATEWAY: 'zarinpal',
+          ZARINPAL_MERCHANT_ID: merchant,
+        };
+        expect(() => parseEnv(production)).toThrow(/PAYMENT_CALLBACK_URL/);
+        expect(
+          parseEnv({
+            ...production,
+            PAYMENT_CALLBACK_URL: 'https://shop.example/api/payment/callback',
+          }).PAYMENT_CALLBACK_URL,
+        ).toBe('https://shop.example/api/payment/callback');
+      });
+    });
+
     it('ignores ALLOW_MOCK_PAYMENT=false', () => {
       expect(
         parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'false' }).PAYMENT_GATEWAY,

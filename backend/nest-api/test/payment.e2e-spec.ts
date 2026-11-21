@@ -10,6 +10,8 @@ const shipping = {
   postalCode: '1234567890',
 };
 
+const RESULT_PAGE = 'http://localhost:3002/payment/verify';
+
 interface PaymentRow {
   orderId: number;
   gateway: string;
@@ -21,8 +23,9 @@ interface PaymentRow {
   gatewayResponse: unknown;
 }
 
-// Every payment attempt is recorded, with the amount sent to the gateway,
-// and its result is applied to the order exactly once.
+// The payment flow with the simulated gateway: every attempt is recorded
+// with the amount sent to the gateway, the customer comes back through
+// GET /payment/callback, and the result is applied to the order once.
 describe('Payments (e2e)', () => {
   let t: TestApp;
 
@@ -60,14 +63,25 @@ describe('Payments (e2e)', () => {
     };
   }
 
-  const initiate = (headers: Record<string, string>, orderId: number) =>
-    t.http().post('/payment/initiate').set(headers).send({ orderId });
-
-  const verify = (
+  // Starts a payment and returns its authority.
+  async function initiate(
     headers: Record<string, string>,
     orderId: number,
-    status: 'success' | 'failed' = 'success',
-  ) => t.http().get('/payment/verify').query({ orderId, status }).set(headers);
+  ): Promise<string> {
+    const response = await t
+      .http()
+      .post('/payment/initiate')
+      .set(headers)
+      .send({ orderId })
+      .expect(201);
+    return new URL(response.body.paymentUrl).searchParams.get(
+      'Authority',
+    ) as string;
+  }
+
+  // The customer's browser arriving back from the gateway.
+  const callback = (Authority: string, Status: 'OK' | 'NOK' = 'OK') =>
+    t.http().get('/payment/callback').query({ Authority, Status });
 
   async function paymentsOf(orderId: number): Promise<PaymentRow[]> {
     const { rows } = await t.db.query(
@@ -96,7 +110,12 @@ describe('Payments (e2e)', () => {
   it('records a pending payment for the order total in rial', async () => {
     const { headers, orderId, total } = await placeOrder('start@example.test');
 
-    const response = await initiate(headers, orderId).expect(201);
+    const response = await t
+      .http()
+      .post('/payment/initiate')
+      .set(headers)
+      .send({ orderId })
+      .expect(201);
 
     const [payment] = await paymentsOf(orderId);
     expect(payment).toMatchObject({
@@ -107,21 +126,21 @@ describe('Payments (e2e)', () => {
       verifiedAt: null,
     });
 
-    // The simulated gateway sends the customer straight back.
+    // The simulated gateway sends the customer straight back to the API.
     const url = new URL(response.body.paymentUrl);
     expect(url.origin + url.pathname).toBe(
-      'http://localhost:3002/payment/verify',
+      'http://localhost:3001/payment/callback',
     );
-    expect(url.searchParams.get('orderId')).toBe(String(orderId));
     expect(url.searchParams.get('Authority')).toBe(payment.authority);
   });
 
-  it('marks the payment paid and the order processing', async () => {
+  it('marks the payment paid and sends the customer to the result page', async () => {
     const { headers, orderId } = await placeOrder('paid@example.test');
-    await initiate(headers, orderId).expect(201);
+    const authority = await initiate(headers, orderId);
 
-    await verify(headers, orderId).expect(200);
+    const response = await callback(authority).expect(302);
 
+    expect(response.headers.location).toBe(`${RESULT_PAGE}?orderId=${orderId}`);
     const [payment] = await paymentsOf(orderId);
     expect(payment.status).toBe('paid');
     expect(payment.refId).toEqual(expect.any(String));
@@ -130,36 +149,33 @@ describe('Payments (e2e)', () => {
     expect(await orderStatus(orderId)).toBe('processing');
   });
 
-  it('does not settle a payment twice', async () => {
+  it('ignores a replayed callback', async () => {
     const { headers, orderId } = await placeOrder('twice@example.test');
-    await initiate(headers, orderId).expect(201);
-    await verify(headers, orderId).expect(200);
+    const authority = await initiate(headers, orderId);
+    await callback(authority).expect(302);
     const [before] = await paymentsOf(orderId);
 
-    await verify(headers, orderId).expect(409);
-    await verify(headers, orderId, 'failed').expect(409);
+    await callback(authority).expect(302);
+    await callback(authority, 'NOK').expect(302);
 
     const [after] = await paymentsOf(orderId);
     expect(after).toEqual(before);
     expect(await orderStatus(orderId)).toBe('processing');
   });
 
-  it('applies two simultaneous confirmations only once', async () => {
+  it('applies two simultaneous callbacks only once', async () => {
     const { headers, orderId, productId } = await placeOrder(
       'race@example.test',
       100_000,
       2,
     );
-    await initiate(headers, orderId).expect(201);
+    const authority = await initiate(headers, orderId);
 
-    const responses = await Promise.all([
-      verify(headers, orderId),
-      verify(headers, orderId),
+    await Promise.all([
+      callback(authority).expect(302),
+      callback(authority).expect(302),
     ]);
 
-    for (const response of responses) {
-      expect([200, 409]).toContain(response.status);
-    }
     const payments = await paymentsOf(orderId);
     expect(payments.map((p) => p.status)).toEqual(['paid']);
     expect(await orderStatus(orderId)).toBe('processing');
@@ -167,13 +183,13 @@ describe('Payments (e2e)', () => {
     expect(await stockOf(productId)).toBe(8);
   });
 
-  it('marks the payment failed and cancels the order', async () => {
+  it('marks the payment failed and cancels the order on NOK', async () => {
     const { headers, orderId, productId } = await placeOrder(
       'failed-payment@example.test',
     );
-    await initiate(headers, orderId).expect(201);
+    const authority = await initiate(headers, orderId);
 
-    await verify(headers, orderId, 'failed').expect(200);
+    await callback(authority, 'NOK').expect(302);
 
     const [payment] = await paymentsOf(orderId);
     expect(payment.status).toBe('failed');
@@ -181,23 +197,42 @@ describe('Payments (e2e)', () => {
     expect(await stockOf(productId)).toBe(10);
   });
 
-  it('refuses to confirm an order with no payment in progress', async () => {
-    const { headers, orderId } = await placeOrder('no-payment@example.test');
-
-    await verify(headers, orderId).expect(409);
-
-    expect(await orderStatus(orderId)).toBe('pending');
+  it('sends an unknown authority to the result page without an order', async () => {
+    const response = await callback(`MOCK-${randomUUID()}`).expect(302);
+    expect(response.headers.location).toBe(RESULT_PAGE);
   });
 
-  it('settles the latest attempt when the customer retried', async () => {
-    const { headers, orderId } = await placeOrder('retry@example.test');
-    await initiate(headers, orderId).expect(201);
-    await initiate(headers, orderId).expect(201);
+  it('refuses a malformed callback', async () => {
+    await callback('not valid!').expect(400);
+    await t
+      .http()
+      .get('/payment/callback')
+      .query({ Authority: 'MOCK-1', Status: 'PAID' })
+      .expect(400);
+  });
 
-    await verify(headers, orderId).expect(200);
+  it('settles only the attempt the customer came back from', async () => {
+    const { headers, orderId } = await placeOrder('retry@example.test');
+    await initiate(headers, orderId);
+    const second = await initiate(headers, orderId);
+
+    await callback(second).expect(302);
 
     const payments = await paymentsOf(orderId);
     expect(payments.map((p) => p.status)).toEqual(['pending', 'paid']);
-    expect(new Set(payments.map((p) => p.authority)).size).toBe(2);
+  });
+
+  // The old endpoint believed a status sent by the browser.
+  it('no longer offers client-reported verification', async () => {
+    const { headers, orderId } = await placeOrder('old-verify@example.test');
+    await initiate(headers, orderId);
+
+    await t
+      .http()
+      .get('/payment/verify')
+      .query({ orderId, status: 'success' })
+      .set(headers)
+      .expect(404);
+    expect(await orderStatus(orderId)).toBe('pending');
   });
 });

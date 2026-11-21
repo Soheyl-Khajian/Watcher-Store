@@ -1,7 +1,7 @@
 // backend/nest-api/src/payment/payment.service.ts
 
 import {
-  ConflictException,
+  HttpException,
   Inject,
   Injectable,
   Logger,
@@ -13,8 +13,6 @@ import { tomanToRial } from '../common/money/toman';
 import { env } from '../env';
 import { OrderStatus } from '../orders/entities/order.entity';
 import { OrdersService } from '../orders/orders.service';
-import { PaymentStatus as CallbackStatus } from './dto/verify-payment.dto';
-import type { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { PAYMENT_GATEWAY } from './gateways/payment-gateway';
 import type { PaymentGateway } from './gateways/payment-gateway';
@@ -59,7 +57,7 @@ export class PaymentService {
       orderId: order.id,
       amountRial,
       description: `پرداخت سفارش شماره ${order.id}`,
-      callbackUrl: `${env.FRONTEND_URL}/payment/verify?orderId=${order.id}`,
+      callbackUrl: env.PAYMENT_CALLBACK_URL,
     });
 
     await this.paymentRepository.save(
@@ -75,38 +73,52 @@ export class PaymentService {
     return { paymentUrl: started.redirectUrl };
   }
 
-  // The storefront's result page reports how the customer came back. Only
-  // the simulated gateway relies on that report.
-  async verifyPayment(
-    verifyDto: VerifyPaymentDto,
-    userId: number,
-  ): Promise<{ message: string }> {
-    this.requireGateway();
-    // Another customer's order answers 404 like a missing one.
-    await this.ordersService.findOne(verifyDto.orderId, userId);
+  // The customer is back from the gateway. Verifies the payment with the
+  // gateway and records the result. Returns the order to show the customer,
+  // or null when the authority matches no payment.
+  //
+  // Never throws: the customer is redirected either way. When the gateway
+  // cannot be reached the payment stays pending, and the storefront shows
+  // the order as awaiting confirmation.
+  async handleCallback(
+    authority: string,
+    callbackStatus: 'OK' | 'NOK',
+  ): Promise<number | null> {
+    const gateway = this.gateway;
+    if (!gateway) {
+      return null;
+    }
 
     const payment = await this.paymentRepository.findOne({
-      where: { orderId: verifyDto.orderId, status: PaymentStatus.PENDING },
-      order: { id: 'DESC' },
+      where: { gateway: gateway.name, authority },
     });
 
     if (!payment) {
-      throw new ConflictException(
-        'پرداختی در انتظار تأیید برای این سفارش وجود ندارد.',
-      );
+      this.logger.warn(`Payment callback for an unknown authority.`);
+      return null;
     }
 
-    const status = await this.settle(
-      payment,
-      verifyDto.status === CallbackStatus.SUCCESS ? 'OK' : 'NOK',
-    );
+    // A replayed or repeated callback: already settled.
+    if (payment.status !== PaymentStatus.PENDING) {
+      return payment.orderId;
+    }
 
-    return {
-      message:
-        status === PaymentStatus.PAID
-          ? 'پرداخت با موفقیت تایید شد.'
-          : 'پرداخت ناموفق بود.',
-    };
+    try {
+      await this.settle(payment, callbackStatus);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.logger.warn(
+          `Payment ${payment.id} for order ${payment.orderId} stays pending: ${error.message}`,
+        );
+      } else {
+        this.logger.error(
+          `Settling payment ${payment.id} for order ${payment.orderId} failed`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+
+    return payment.orderId;
   }
 
   // Asks the gateway whether the money arrived, then records the result on

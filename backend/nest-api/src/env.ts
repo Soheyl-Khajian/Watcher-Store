@@ -124,12 +124,34 @@ const envSchema = z
     // (node dist/database/migrate.js) runs them once before the API starts.
     MIGRATIONS_RUN_ON_BOOT: z.enum(['true', 'false']).optional(),
 
-    // Which gateway takes payments: none (payments answer 503) or mock
-    // (development only: no money moves and the customer's reported result
-    // is believed).
-    PAYMENT_GATEWAY: z.enum(['none', 'mock']).default('none'),
+    // Which gateway takes payments: none (payments answer 503), zarinpal, or
+    // mock (development only: no money moves and every return from the
+    // "gateway" counts as paid unless it says NOK).
+    PAYMENT_GATEWAY: z.enum(['none', 'mock', 'zarinpal']).default('none'),
     // Replaced by PAYMENT_GATEWAY; read only to point old settings there.
     ALLOW_MOCK_PAYMENT: z.string().optional(),
+    // Where the gateway sends the customer's browser back: this API's
+    // GET /payment/callback, as the browser can reach it. Required in
+    // production when a gateway is configured.
+    PAYMENT_CALLBACK_URL: z.string().url().optional(),
+    // How long to wait for the gateway before giving up.
+    PAYMENT_TIMEOUT_MS: z
+      .string()
+      .default('10000')
+      .transform(Number)
+      .pipe(z.number().int().min(100).max(60_000)),
+    // The merchant id from the Zarinpal panel (any UUID works on sandbox).
+    ZARINPAL_MERCHANT_ID: z
+      .string()
+      .uuid('ZARINPAL_MERCHANT_ID must be the 36-character merchant id')
+      .optional(),
+    // https://sandbox.zarinpal.com for testing, https://payment.zarinpal.com
+    // for real payments.
+    ZARINPAL_BASE_URL: z
+      .string()
+      .url()
+      .default('https://sandbox.zarinpal.com')
+      .transform((url) => url.replace(/\/+$/, '')),
   })
   .superRefine((value, ctx) => {
     // An old setting that would otherwise be ignored without a word.
@@ -142,8 +164,32 @@ const envSchema = z
       });
     }
 
+    if (
+      value.PAYMENT_GATEWAY === 'zarinpal' &&
+      value.ZARINPAL_MERCHANT_ID === undefined
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ZARINPAL_MERCHANT_ID'],
+        message:
+          'ZARINPAL_MERCHANT_ID is required with PAYMENT_GATEWAY=zarinpal.',
+      });
+    }
+
     if (value.NODE_ENV !== 'production') {
       return;
+    }
+
+    if (
+      value.PAYMENT_GATEWAY !== 'none' &&
+      value.PAYMENT_CALLBACK_URL === undefined
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_CALLBACK_URL'],
+        message:
+          'PAYMENT_CALLBACK_URL must be set in production: the public URL of GET /payment/callback.',
+      });
     }
 
     if (value.PAYMENT_GATEWAY === 'mock') {
@@ -187,6 +233,10 @@ const envSchema = z
       value.MIGRATIONS_RUN_ON_BOOT === undefined
         ? value.NODE_ENV !== 'production'
         : value.MIGRATIONS_RUN_ON_BOOT === 'true',
+    // Local default: the API on its default port.
+    PAYMENT_CALLBACK_URL:
+      value.PAYMENT_CALLBACK_URL ??
+      `http://localhost:${value.PORT}/payment/callback`,
   }));
 
 export type Env = z.infer<typeof envSchema>;
