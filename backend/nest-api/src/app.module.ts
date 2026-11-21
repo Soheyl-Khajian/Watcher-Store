@@ -2,9 +2,11 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmOptions } from './database/typeorm.options';
 import { env } from './env';
+import { buildPinoHttpOptions } from './logging/logging';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
@@ -14,6 +16,7 @@ import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({ pinoHttp: buildPinoHttpOptions(env) }),
     // Per client IP and per route. In-memory counters: with several API
     // instances, move them to a shared store.
     ThrottlerModule.forRoot([

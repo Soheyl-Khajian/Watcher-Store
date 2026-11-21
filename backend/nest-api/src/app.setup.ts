@@ -3,6 +3,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { Logger } from 'nestjs-pino';
 import { ErrorResponseFilter } from './common/http/error-response.filter';
 import { env } from './env';
 
@@ -15,6 +16,9 @@ const MAX_JSON_BODY = '32kb';
 // must be created with { bodyParser: false }; the parser is registered here
 // with its size limit.
 export function configureApp(app: NestExpressApplication): void {
+  // Nest's own Logger calls go through pino, with the current request id.
+  app.useLogger(app.get(Logger));
+
   // Rate limits key on the client IP. Only trusted proxies may supply it
   // through X-Forwarded-For (see TRUST_PROXY).
   app.set('trust proxy', env.TRUST_PROXY);

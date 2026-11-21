@@ -42,6 +42,8 @@ export interface ErrorBody {
   error: string;
   message: string;
   details?: string[];
+  // Matches the X-Request-Id header and the server's log line.
+  requestId?: string;
 }
 
 function defaultMessage(status: number): string {
@@ -110,6 +112,10 @@ export class ErrorResponseFilter implements ExceptionFilter {
     const response = context.getResponse<Response>();
     const request = context.getRequest<Request>();
     const body = toErrorBody(exception);
+    const requestId = (request as Request & { id?: unknown }).id;
+    if (typeof requestId === 'string') {
+      body.requestId = requestId;
+    }
 
     if (body.statusCode >= 500 && !(exception instanceof HttpException)) {
       this.logger.error(

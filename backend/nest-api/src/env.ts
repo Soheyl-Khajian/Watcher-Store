@@ -113,6 +113,9 @@ const envSchema = z
         }
         return /^\d+$/.test(trimmed) ? Number(trimmed) : trimmed;
       }),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),

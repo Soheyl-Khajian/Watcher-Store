@@ -14,6 +14,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     // configureApp registers the JSON parser with a size limit.
     bodyParser: false,
+    // Hold early log lines until the pino logger is in place.
+    bufferLogs: true,
   });
 
   configureApp(app);

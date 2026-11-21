@@ -91,6 +91,14 @@ export class AdminOrdersController {
 
   // Ids only: no customer names, addresses or phone numbers are logged.
   private audit(req: AuthenticatedRequest, orderId: number, action: string) {
-    this.logger.log(`Admin ${req.user.userId} ${action} order ${orderId}`);
+    this.logger.log(
+      {
+        event: 'admin_order_action',
+        adminId: req.user.userId,
+        orderId,
+        action,
+      },
+      'Admin order action',
+    );
   }
 }

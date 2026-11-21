@@ -102,6 +102,7 @@ async function boot(
     ALLOW_MOCK_PAYMENT: 'true',
     // Generous limits so suites can log in and order freely; the rate
     // limiting suite sets the production values through envOverrides.
+    LOG_LEVEL: 'silent',
     RATE_LIMIT_PER_MINUTE: '10000',
     RATE_LIMIT_LOGIN_PER_MINUTE: '10000',
     RATE_LIMIT_ORDERS_PER_MINUTE: '10000',
