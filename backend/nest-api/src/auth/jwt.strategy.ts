@@ -6,6 +6,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { DataSource } from 'typeorm';
 import { env } from '../env';
+import { JWT_ALGORITHM, JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants';
 import type { AuthenticatedUser, JwtPayload, UserRole } from './auth.types';
 
 interface PayloadUserRow {
@@ -24,6 +25,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: env.JWT_SECRET,
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
     });
   }
 

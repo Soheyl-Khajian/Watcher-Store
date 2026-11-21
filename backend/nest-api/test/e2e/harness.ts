@@ -38,6 +38,8 @@ export interface TestApp {
   }): Promise<FixtureUser>;
   createProduct(input: FixtureProductInput): Promise<number>;
   login(user: FixtureUser): Promise<string>;
+  // The JWT secret this app signs with, for tests that forge tokens.
+  jwtSecret: string;
   close(): Promise<void>;
 }
 
@@ -217,5 +219,14 @@ export async function createTestApp(
     return response.body.access_token as string;
   };
 
-  return { app, http, db, createUser, createProduct, login, close };
+  return {
+    app,
+    http,
+    db,
+    createUser,
+    createProduct,
+    login,
+    jwtSecret: process.env.JWT_SECRET as string,
+    close,
+  };
 }
