@@ -290,14 +290,19 @@ export class OrdersService {
     });
   }
 
+  // One of the customer's own orders, with its items. Another customer's
+  // order answers 404 like a missing one.
   async findOne(id: number, userId: number): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id, userId },
+      relations: ['items'],
     });
 
     if (!order) {
       throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
     }
+
+    order.items.sort((a, b) => a.id - b.id);
 
     return order;
   }
@@ -641,11 +646,29 @@ export class OrdersService {
     }
   }
 
-  async findOrdersForAdmin(
+  findOrdersForAdmin(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedOrdersResponseDto> {
+    return this.findOrdersPage({}, page, limit);
+  }
+
+  // A customer's own orders, newest first.
+  findUserOrders(
+    userId: number,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedOrdersResponseDto> {
+    return this.findOrdersPage({ userId }, page, limit);
+  }
+
+  private async findOrdersPage(
+    where: { userId?: number },
     page: number,
     limit: number,
   ): Promise<PaginatedOrdersResponseDto> {
     const [items, totalItems] = await this.orderRepository.findAndCount({
+      where,
       relations: ['items'],
       // The id tiebreaker keeps page boundaries deterministic when several
       // orders share a creation timestamp.
@@ -670,13 +693,5 @@ export class OrdersService {
       totalItems,
       totalPages: Math.ceil(totalItems / limit),
     };
-  }
-
-  async findUserOrders(userId: number): Promise<Order[]> {
-    return this.orderRepository.find({
-      where: { userId },
-      relations: ['items'],
-      order: { createdAt: 'DESC' },
-    });
   }
 }

@@ -25,7 +25,7 @@ export function configureApp(app: NestExpressApplication): void {
   // not needed. Only the methods the API uses are allowed.
   app.enableCors({
     origin: env.FRONTEND_URL,
-    methods: 'GET,HEAD,POST,DELETE',
+    methods: 'GET,HEAD,POST,PATCH,DELETE',
   });
 
   app.useGlobalPipes(

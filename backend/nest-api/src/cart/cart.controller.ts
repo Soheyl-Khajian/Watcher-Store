@@ -6,6 +6,7 @@ import {
   Body,
   Get,
   Delete,
+  Patch,
   Param,
   UseGuards,
   Request,
@@ -15,6 +16,7 @@ import type { AuthenticatedRequest } from '../auth/auth.types';
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('cart')
@@ -34,6 +36,19 @@ export class CartController {
   getCart(@Request() req: AuthenticatedRequest) {
     const userId = req.user.userId;
     return this.cartService.getCart(userId);
+  }
+
+  @Patch(':productId')
+  setQuantity(
+    @Request() req: AuthenticatedRequest,
+    @Param() params: ProductIdParamDto,
+    @Body() body: UpdateCartItemDto,
+  ) {
+    return this.cartService.setQuantity(
+      req.user.userId,
+      String(params.productId),
+      body.quantity,
+    );
   }
 
   @Delete(':productId')

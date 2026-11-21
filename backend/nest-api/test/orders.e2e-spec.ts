@@ -135,7 +135,7 @@ describe('Orders and payment (e2e)', () => {
     expect(retry.body.id).toBe(first.body.id);
 
     const orders = await t.http().get('/orders').set(headers).expect(200);
-    expect(orders.body).toHaveLength(1);
+    expect(orders.body.items).toHaveLength(1);
   });
 
   it('pays an order through the simulated gateway and takes the stock', async () => {
@@ -162,7 +162,7 @@ describe('Orders and payment (e2e)', () => {
     expect(await stockOf(productId)).toBe(1);
 
     const orders = await t.http().get('/orders').set(headers).expect(200);
-    expect(orders.body[0].status).toBe('processing');
+    expect(orders.body.items[0].status).toBe('processing');
 
     // A paid order cannot be paid again.
     await t
@@ -187,7 +187,7 @@ describe('Orders and payment (e2e)', () => {
       .expect(200);
 
     const orders = await t.http().get('/orders').set(headers).expect(200);
-    expect(orders.body[0].status).toBe('cancelled');
+    expect(orders.body.items[0].status).toBe('cancelled');
     expect(await stockOf(productId)).toBe(4);
   });
 
@@ -231,7 +231,7 @@ describe('Orders and payment (e2e)', () => {
       .get('/orders')
       .set(stranger)
       .expect(200);
-    expect(strangerOrders.body).toEqual([]);
+    expect(strangerOrders.body.items).toEqual([]);
 
     await t
       .http()
@@ -350,7 +350,7 @@ describe('Orders and payment (e2e)', () => {
 
     const orders = await t.http().get('/orders').set(headers).expect(200);
     const statusOf = (id: number) =>
-      orders.body.find((order: { id: number }) => order.id === id).status;
+      orders.body.items.find((order: { id: number }) => order.id === id).status;
     expect(statusOf(stale.body.id)).toBe('cancelled');
     expect(statusOf(fresh.body.id)).toBe('pending');
   });
@@ -401,7 +401,7 @@ describe('Orders and payment (e2e)', () => {
       const cart = await t.http().get('/cart').set(headers).expect(200);
       expect(cart.body.items).toHaveLength(1);
       const orders = await t.http().get('/orders').set(headers).expect(200);
-      expect(orders.body).toEqual([]);
+      expect(orders.body.items).toEqual([]);
     });
 
     it('lets only one of two customers buy the last unit', async () => {
@@ -509,6 +509,87 @@ describe('Orders and payment (e2e)', () => {
 
         expect(await stockOf(productId)).toBe(5);
       });
+    });
+  });
+
+  describe('order history', () => {
+    it('lists the customer orders newest first, a page at a time', async () => {
+      const headers = await customer('history@example.test');
+      const productId = await t.createProduct({ price: 100_000, stock: 10 });
+      const ids: number[] = [];
+      for (let n = 0; n < 3; n += 1) {
+        await addToCart(headers, productId, 1);
+        ids.push((await createOrder(headers).expect(201)).body.id);
+      }
+
+      const firstPage = await t
+        .http()
+        .get('/orders')
+        .query({ page: 1, limit: 2 })
+        .set(headers)
+        .expect(200);
+      expect(firstPage.body).toMatchObject({
+        page: 1,
+        limit: 2,
+        totalItems: 3,
+        totalPages: 2,
+      });
+      expect(firstPage.body.items.map((o: { id: number }) => o.id)).toEqual([
+        ids[2],
+        ids[1],
+      ]);
+
+      const secondPage = await t
+        .http()
+        .get('/orders')
+        .query({ page: 2, limit: 2 })
+        .set(headers)
+        .expect(200);
+      expect(secondPage.body.items.map((o: { id: number }) => o.id)).toEqual([
+        ids[0],
+      ]);
+    });
+
+    it.each([
+      ['page', { page: 0 }],
+      ['limit', { limit: 51 }],
+      ['limit', { limit: 'ten' }],
+    ])('rejects an invalid %s', async (_label, query) => {
+      const headers = await customer(
+        `bad-paging-${JSON.stringify(query)}@example.test`.replace(
+          /[^a-z0-9@.-]/g,
+          '',
+        ),
+      );
+      await t.http().get('/orders').query(query).set(headers).expect(400);
+    });
+
+    it('shows one order with its items, only to its owner', async () => {
+      const owner = await customer('detail@example.test');
+      const stranger = await customer('detail-stranger@example.test');
+      const productId = await t.createProduct({ price: 250_000 });
+      await addToCart(owner, productId, 2);
+      const order = await createOrder(owner).expect(201);
+
+      const detail = await t
+        .http()
+        .get(`/orders/${order.body.id}`)
+        .set(owner)
+        .expect(200);
+      expect(detail.body).toMatchObject({
+        id: order.body.id,
+        total: 500_000,
+        items: [
+          expect.objectContaining({
+            productId: String(productId),
+            quantity: 2,
+          }),
+        ],
+      });
+
+      await t.http().get(`/orders/${order.body.id}`).set(stranger).expect(404);
+      await t.http().get('/orders/999999').set(owner).expect(404);
+      await t.http().get('/orders/abc').set(owner).expect(400);
     });
   });
 });
