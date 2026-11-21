@@ -13,34 +13,48 @@ describe('parseEnv', () => {
     expect(env.PORT).toBe(3001);
     expect(env.NEST_SCHEMA).toBe('nest_schema');
     expect(env.PENDING_ORDER_TTL_HOURS).toBe(24);
-    expect(env.ALLOW_MOCK_PAYMENT).toBe(false);
+    expect(env.PAYMENT_GATEWAY).toBe('none');
   });
 
-  describe('simulated payment', () => {
-    it('is refused when NODE_ENV=production', () => {
+  describe('payment gateway', () => {
+    it('refuses the simulated gateway when NODE_ENV=production', () => {
       expect(() =>
         parseEnv({
           ...validEnv,
           NODE_ENV: 'production',
-          ALLOW_MOCK_PAYMENT: 'true',
+          POSTGRES_PASSWORD: 'a-strong-database-password',
+          PAYMENT_GATEWAY: 'mock',
         }),
-      ).toThrow(/ALLOW_MOCK_PAYMENT/);
+      ).toThrow(/PAYMENT_GATEWAY/);
     });
 
-    it('can be enabled outside production', () => {
+    it('allows the simulated gateway outside production', () => {
       const env = parseEnv({
         ...validEnv,
         NODE_ENV: 'development',
-        ALLOW_MOCK_PAYMENT: 'true',
+        PAYMENT_GATEWAY: 'mock',
       });
 
-      expect(env.ALLOW_MOCK_PAYMENT).toBe(true);
+      expect(env.PAYMENT_GATEWAY).toBe('mock');
     });
 
-    it('rejects values other than "true" and "false"', () => {
+    it('rejects an unknown gateway', () => {
       expect(() =>
-        parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'yes' }),
-      ).toThrow();
+        parseEnv({ ...validEnv, PAYMENT_GATEWAY: 'paypal' }),
+      ).toThrow(/PAYMENT_GATEWAY/);
+    });
+
+    // A forgotten old setting must not silently turn payments off.
+    it('points ALLOW_MOCK_PAYMENT=true to PAYMENT_GATEWAY', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'true' }),
+      ).toThrow(/PAYMENT_GATEWAY=mock/);
+    });
+
+    it('ignores ALLOW_MOCK_PAYMENT=false', () => {
+      expect(
+        parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'false' }).PAYMENT_GATEWAY,
+      ).toBe('none');
     });
   });
 

@@ -34,7 +34,8 @@ import {
 } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 
-type PaymentResultOrderStatus = OrderStatus.PROCESSING | OrderStatus.CANCELLED;
+export type PaymentResultOrderStatus =
+  OrderStatus.PROCESSING | OrderStatus.CANCELLED;
 
 function isPostgresUniqueViolation(error: unknown): boolean {
   if (!(error instanceof QueryFailedError)) {
@@ -320,72 +321,60 @@ export class OrdersService {
     return order;
   }
 
-  async transitionPendingOrderAfterPayment(
-    id: number,
-    userId: number,
+  // Applies a verified payment result to its order, inside the caller's
+  // transaction (the payment row and the order change together). Paid
+  // orders move to processing; a failed payment cancels the order and
+  // releases its stock.
+  async applyPaymentResult(
+    manager: EntityManager,
+    orderId: number,
     nextStatus: PaymentResultOrderStatus,
   ): Promise<Order> {
-    return this.dataSource.transaction(async (manager) => {
-      const orderRepository = manager.getRepository(Order);
-      const orderItemRepository = manager.getRepository(OrderItem);
+    const orderRepository = manager.getRepository(Order);
+    const orderItemRepository = manager.getRepository(OrderItem);
 
-      const order = await orderRepository.findOne({
-        where: {
-          id,
-          userId,
-        },
-        lock: {
-          mode: 'pessimistic_write',
-        },
+    const order = await orderRepository.findOne({
+      where: { id: orderId },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    if (!order) {
+      throw new NotFoundException('سفارش مورد نظر یافت نشد.');
+    }
+
+    assertTransition(
+      order.status,
+      nextStatus,
+      'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
+    );
+
+    // Orders placed before stock was reserved at checkout take it now.
+    if (nextStatus === OrderStatus.PROCESSING && !order.stockReserved) {
+      const orderItems = await orderItemRepository.find({
+        where: { order: { id: order.id } },
+        order: { productId: 'ASC', id: 'ASC' },
       });
 
-      if (!order) {
-        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
+      if (orderItems.length === 0) {
+        throw new InternalServerErrorException('سفارش ثبت‌شده فاقد آیتم است.');
       }
 
-      assertTransition(
-        order.status,
-        nextStatus,
-        'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
-      );
+      await this.takeStock(manager, orderItems);
+      order.stockReserved = true;
+    }
 
-      // Orders placed before stock was reserved at checkout take it now.
-      if (nextStatus === OrderStatus.PROCESSING && !order.stockReserved) {
-        const orderItems = await orderItemRepository.find({
-          where: {
-            order: {
-              id: order.id,
-            },
-          },
-          order: {
-            productId: 'ASC',
-            id: 'ASC',
-          },
-        });
+    const now = new Date();
 
-        if (orderItems.length === 0) {
-          throw new InternalServerErrorException(
-            'سفارش ثبت‌شده فاقد آیتم است.',
-          );
-        }
+    if (nextStatus === OrderStatus.PROCESSING) {
+      order.paidAt = now;
+    } else {
+      order.cancelledAt = now;
+      order.cancelReason = OrderCancelReason.PAYMENT_FAILED;
+      await this.releaseStock(manager, order);
+    }
 
-        await this.takeStock(manager, orderItems);
-        order.stockReserved = true;
-      }
-
-      const now = new Date();
-
-      if (nextStatus === OrderStatus.PROCESSING) {
-        order.paidAt = now;
-      } else {
-        order.cancelledAt = now;
-        order.cancelReason = OrderCancelReason.PAYMENT_FAILED;
-        await this.releaseStock(manager, order);
-      }
-
-      order.status = nextStatus;
-      return orderRepository.save(order);
-    });
+    order.status = nextStatus;
+    return orderRepository.save(order);
   }
 
   // Customers may cancel only their own unpaid orders. Paid orders hold stock

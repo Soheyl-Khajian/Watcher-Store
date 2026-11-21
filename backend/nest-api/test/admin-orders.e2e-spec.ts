@@ -49,12 +49,7 @@ describe('Admin orders (e2e)', () => {
       .expect(201);
 
     if (paid) {
-      await t
-        .http()
-        .get('/payment/verify')
-        .query({ orderId: order.body.id, status: 'success' })
-        .set(customerHeaders)
-        .expect(200);
+      await t.payOrder(customerHeaders, order.body.id);
     }
     return order.body.id as number;
   }

@@ -38,6 +38,13 @@ export interface TestApp {
   }): Promise<FixtureUser>;
   createProduct(input: FixtureProductInput): Promise<number>;
   login(user: FixtureUser): Promise<string>;
+  // Pays an order through the simulated gateway: starts the payment, then
+  // reports the customer's return with the given status.
+  payOrder(
+    headers: Record<string, string>,
+    orderId: number,
+    status?: 'success' | 'failed',
+  ): Promise<request.Response>;
   // The JWT secret this app signs with, for tests that forge tokens.
   jwtSecret: string;
   // The fake Payload; set .mode to simulate an outage.
@@ -97,9 +104,8 @@ async function boot(
     PAYLOAD_INTERNAL_URL: started.stub.url,
     FRONTEND_URL: 'http://localhost:3002',
     PENDING_ORDER_TTL_HOURS: '24',
-    // The simulated payment flow is the only payment flow until a real
-    // gateway exists; tests exercise it explicitly.
-    ALLOW_MOCK_PAYMENT: 'true',
+    // The simulated gateway: tests pay without a real gateway.
+    PAYMENT_GATEWAY: 'mock',
     // Generous limits so suites can log in and order freely; the rate
     // limiting suite sets the production values through envOverrides.
     LOG_LEVEL: 'silent',
@@ -222,6 +228,23 @@ export async function createTestApp(
     return response.body.access_token as string;
   };
 
+  const payOrder: TestApp['payOrder'] = async (
+    headers,
+    orderId,
+    status = 'success',
+  ) => {
+    await http()
+      .post('/payment/initiate')
+      .set(headers)
+      .send({ orderId })
+      .expect(201);
+    return http()
+      .get('/payment/verify')
+      .query({ orderId, status })
+      .set(headers)
+      .expect(200);
+  };
+
   return {
     app,
     http,
@@ -229,6 +252,7 @@ export async function createTestApp(
     createUser,
     createProduct,
     login,
+    payOrder,
     jwtSecret: process.env.JWT_SECRET as string,
     payload: stub,
     close,

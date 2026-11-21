@@ -124,25 +124,34 @@ const envSchema = z
     // (node dist/database/migrate.js) runs them once before the API starts.
     MIGRATIONS_RUN_ON_BOOT: z.enum(['true', 'false']).optional(),
 
-    // Development-only. Enables the simulated payment flow, which trusts the
-    // client-supplied status. Anything other than 'true' or 'false' fails
-    // startup so a typo cannot silently change behavior.
-    ALLOW_MOCK_PAYMENT: z
-      .enum(['true', 'false'])
-      .default('false')
-      .transform((value) => value === 'true'),
+    // Which gateway takes payments: none (payments answer 503) or mock
+    // (development only: no money moves and the customer's reported result
+    // is believed).
+    PAYMENT_GATEWAY: z.enum(['none', 'mock']).default('none'),
+    // Replaced by PAYMENT_GATEWAY; read only to point old settings there.
+    ALLOW_MOCK_PAYMENT: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.NODE_ENV !== 'production') {
-      return;
-    }
-
-    if (value.ALLOW_MOCK_PAYMENT) {
+    // An old setting that would otherwise be ignored without a word.
+    if (value.ALLOW_MOCK_PAYMENT?.trim().toLowerCase() === 'true') {
       ctx.addIssue({
         code: 'custom',
         path: ['ALLOW_MOCK_PAYMENT'],
         message:
-          'ALLOW_MOCK_PAYMENT must not be enabled when NODE_ENV=production.',
+          'ALLOW_MOCK_PAYMENT was replaced: set PAYMENT_GATEWAY=mock instead and remove ALLOW_MOCK_PAYMENT.',
+      });
+    }
+
+    if (value.NODE_ENV !== 'production') {
+      return;
+    }
+
+    if (value.PAYMENT_GATEWAY === 'mock') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_GATEWAY'],
+        message:
+          'PAYMENT_GATEWAY=mock must not be used when NODE_ENV=production.',
       });
     }
 
