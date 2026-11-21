@@ -40,6 +40,8 @@ export interface TestApp {
   login(user: FixtureUser): Promise<string>;
   // The JWT secret this app signs with, for tests that forge tokens.
   jwtSecret: string;
+  // The fake Payload; set .mode to simulate an outage.
+  payload: PayloadStub;
   close(): Promise<void>;
 }
 
@@ -227,6 +229,7 @@ export async function createTestApp(
     createProduct,
     login,
     jwtSecret: process.env.JWT_SECRET as string,
+    payload: stub,
     close,
   };
 }

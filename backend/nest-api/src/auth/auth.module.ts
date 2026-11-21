@@ -6,12 +6,14 @@ import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { env } from '../env';
+import { PayloadModule } from '../payload/payload.module';
 import { JWT_ALGORITHM, JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
     PassportModule,
+    PayloadModule,
     JwtModule.register({
       secret: env.JWT_SECRET,
       signOptions: {

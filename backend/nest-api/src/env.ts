@@ -63,6 +63,12 @@ const envSchema = z
       .regex(/^[1-9]\d*[smhd]$/, 'JWT_EXPIRES_IN must look like 60m, 12h or 7d')
       .default('60m'),
     PAYLOAD_INTERNAL_URL: z.string().url(),
+    // How long to wait for Payload before answering 503.
+    PAYLOAD_TIMEOUT_MS: z
+      .string()
+      .default('5000')
+      .transform(Number)
+      .pipe(z.number().int().min(100).max(60_000)),
     FRONTEND_URL: z.string().url(),
 
     // Unpaid orders older than this are cancelled automatically.
