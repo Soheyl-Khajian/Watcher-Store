@@ -119,6 +119,10 @@ const envSchema = z
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
+    // Apply pending migrations when the API starts. Default: on in
+    // development and tests, off in production, where the migrate job
+    // (node dist/database/migrate.js) runs them once before the API starts.
+    MIGRATIONS_RUN_ON_BOOT: z.enum(['true', 'false']).optional(),
 
     // Development-only. Enables the simulated payment flow, which trusts the
     // client-supplied status. Anything other than 'true' or 'false' fails
@@ -170,6 +174,10 @@ const envSchema = z
   .transform((value) => ({
     ...value,
     POSTGRES_PASSWORD: value.POSTGRES_PASSWORD ?? LOCAL_DATABASE_PASSWORD,
+    MIGRATIONS_RUN_ON_BOOT:
+      value.MIGRATIONS_RUN_ON_BOOT === undefined
+        ? value.NODE_ENV !== 'production'
+        : value.MIGRATIONS_RUN_ON_BOOT === 'true',
   }));
 
 export type Env = z.infer<typeof envSchema>;

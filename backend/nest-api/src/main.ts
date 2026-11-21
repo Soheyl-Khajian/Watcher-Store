@@ -11,7 +11,10 @@ import { env } from './env';
 async function bootstrap() {
   // Must run before NestFactory.create: TypeOrmModule.forRoot initialises the
   // DataSource (and runs migrations) while the module graph is being built.
-  await ensureSchema();
+  // Without migrations on boot the migrate job has created the schema.
+  if (env.MIGRATIONS_RUN_ON_BOOT) {
+    await ensureSchema();
+  }
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     // configureApp registers the JSON parser with a size limit.
     bodyParser: false,

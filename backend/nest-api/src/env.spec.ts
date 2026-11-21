@@ -124,6 +124,43 @@ describe('parseEnv', () => {
     }
   });
 
+  describe('MIGRATIONS_RUN_ON_BOOT', () => {
+    it.each([
+      ['development', true],
+      ['test', true],
+      ['production', false],
+    ] as const)('defaults by NODE_ENV=%s to %p', (NODE_ENV, expected) => {
+      const env = parseEnv({
+        ...validEnv,
+        NODE_ENV,
+        // Production also requires a real database password.
+        POSTGRES_PASSWORD: 'a-strong-database-password',
+      });
+      expect(env.MIGRATIONS_RUN_ON_BOOT).toBe(expected);
+    });
+
+    it('can be set explicitly either way', () => {
+      expect(
+        parseEnv({ ...validEnv, MIGRATIONS_RUN_ON_BOOT: 'false' })
+          .MIGRATIONS_RUN_ON_BOOT,
+      ).toBe(false);
+      expect(
+        parseEnv({
+          ...validEnv,
+          NODE_ENV: 'production',
+          POSTGRES_PASSWORD: 'a-strong-database-password',
+          MIGRATIONS_RUN_ON_BOOT: 'true',
+        }).MIGRATIONS_RUN_ON_BOOT,
+      ).toBe(true);
+    });
+
+    it('rejects values other than "true" and "false"', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, MIGRATIONS_RUN_ON_BOOT: 'yes' }),
+      ).toThrow(/MIGRATIONS_RUN_ON_BOOT/);
+    });
+  });
+
   it('rejects an unknown NODE_ENV', () => {
     expect(() => parseEnv({ ...validEnv, NODE_ENV: 'prod' })).toThrow(
       /NODE_ENV/,

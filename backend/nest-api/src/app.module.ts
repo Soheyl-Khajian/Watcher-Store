@@ -24,10 +24,9 @@ import { ProductsModule } from './products/products.module';
     ]),
     TypeOrmModule.forRoot({
       ...typeOrmOptions,
-      // Apply pending migrations on boot so a fresh clone or container is
-      // usable without a manual step. Flip to false and run
-      // `pnpm migration:run` explicitly if you ever add a real deploy pipeline.
-      migrationsRun: true,
+      // In production the migrate job applies migrations before the API
+      // starts (see src/database/migrate.ts); locally they run on boot.
+      migrationsRun: env.MIGRATIONS_RUN_ON_BOOT,
     }),
     AuthModule,
     CartModule,

@@ -16,6 +16,7 @@
     "migration:generate": "pnpm db:ensure-schema && pnpm typeorm migration:generate -d src/database/data-source.ts",
     "migration:run": "pnpm db:ensure-schema && pnpm typeorm migration:run -d src/database/data-source.ts",
     "migration:revert": "pnpm typeorm migration:revert -d src/database/data-source.ts",
+    "migrate:deploy": "node dist/database/migrate.js",
     "migration:show": "pnpm db:ensure-schema && pnpm typeorm migration:show -d src/database/data-source.ts",
     "test": "jest",
     "test:watch": "jest --watch",
