@@ -24,6 +24,8 @@ export class MockGateway implements PaymentGateway {
     return { authority, redirectUrl: url.toString() };
   }
 
+  // Paid only when the customer came back with OK: a customer who never
+  // came back did not pay.
   async verify(input: VerifyPaymentInput): Promise<VerifyPaymentResult> {
     const raw = { mock: true, status: input.callbackStatus };
     return input.callbackStatus === 'OK'

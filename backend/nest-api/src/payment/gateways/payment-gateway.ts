@@ -30,8 +30,9 @@ export interface VerifyPaymentInput {
   authority: string;
   amountRial: number;
   // The status the customer came back with: NOK means they cancelled or
-  // the payment failed, so there is nothing to verify.
-  callbackStatus: 'OK' | 'NOK';
+  // the payment failed, so there is nothing to verify. null: the customer
+  // never came back (reconciliation asks the gateway what happened).
+  callbackStatus: 'OK' | 'NOK' | null;
 }
 
 export type VerifyPaymentResult =

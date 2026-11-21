@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { PaymentService } from '../src/payment/payment.service';
 import { createTestApp, TestApp } from './e2e/harness';
 import { CARD_PAN, startZarinpalStub, ZarinpalStub } from './e2e/zarinpal-stub';
 
@@ -22,6 +23,7 @@ const shipping = {
 describe('Zarinpal payments (e2e)', () => {
   let zarinpal: ZarinpalStub;
   let t: TestApp;
+  let paymentService: PaymentService;
 
   beforeAll(async () => {
     zarinpal = await startZarinpalStub(MERCHANT_ID);
@@ -32,6 +34,9 @@ describe('Zarinpal payments (e2e)', () => {
       PAYMENT_CALLBACK_URL: CALLBACK_URL,
       PAYMENT_TIMEOUT_MS: '500',
     });
+    // Loaded after the harness has configured the environment.
+    const { PaymentService } = await import('../src/payment/payment.service');
+    paymentService = t.app.get(PaymentService);
   });
 
   afterEach(() => {
@@ -285,6 +290,117 @@ describe('Zarinpal payments (e2e)', () => {
     it('sends an unknown authority to the result page without an order', async () => {
       const response = await callback(`A${'9'.repeat(35)}`).expect(302);
       expect(response.headers.location).toBe(RESULT_PAGE);
+    });
+  });
+
+  // The customer paid and closed the browser: the callback never came.
+  describe('reconciling payments the customer never came back from', () => {
+    const backdate = (orderId: number, minutes: number) =>
+      t.db.query(
+        `UPDATE nest_schema.payment SET "createdAt" = now() - make_interval(mins => $2)
+         WHERE "orderId" = $1`,
+        [orderId, minutes],
+      );
+
+    const reconcile = () => paymentService.reconcilePendingPayments();
+
+    it('settles a payment Zarinpal confirms', async () => {
+      const { headers, orderId } = await placeOrder('zp-closed@example.test');
+      const authority = await start(headers, orderId);
+      zarinpal.pay(authority);
+      await backdate(orderId, 20);
+
+      await reconcile();
+
+      expect(verifyCalls(authority)).toBe(1);
+      expect(await paymentOf(orderId)).toMatchObject({
+        status: 'paid',
+        cardPan: CARD_PAN,
+      });
+      expect(await orderStatus(orderId)).toBe('processing');
+    });
+
+    it('fails a payment Zarinpal never received, keeping the order', async () => {
+      const { headers, orderId } = await placeOrder('zp-gave-up@example.test');
+      await start(headers, orderId);
+      await backdate(orderId, 20);
+
+      await reconcile();
+
+      expect((await paymentOf(orderId)).status).toBe('failed');
+      expect(await orderStatus(orderId)).toBe('pending');
+    });
+
+    it('does not ask about payments still in progress', async () => {
+      const { headers, orderId } = await placeOrder(
+        'zp-in-progress@example.test',
+      );
+      const authority = await start(headers, orderId);
+      await backdate(orderId, 5);
+
+      await reconcile();
+
+      expect(verifyCalls(authority)).toBe(0);
+      expect((await paymentOf(orderId)).status).toBe('pending');
+    });
+
+    it('does not ask about payments older than a week', async () => {
+      const { headers, orderId } = await placeOrder('zp-ancient@example.test');
+      const authority = await start(headers, orderId);
+      await backdate(orderId, 8 * 24 * 60);
+
+      await reconcile();
+
+      expect(verifyCalls(authority)).toBe(0);
+    });
+
+    it('keeps the payment pending when Zarinpal is down, and tries again', async () => {
+      const { headers, orderId } = await placeOrder(
+        'zp-recon-down@example.test',
+      );
+      const authority = await start(headers, orderId);
+      zarinpal.pay(authority);
+      await backdate(orderId, 20);
+      zarinpal.mode = 'hang-up';
+
+      await expect(reconcile()).resolves.toBeGreaterThanOrEqual(0);
+      expect((await paymentOf(orderId)).status).toBe('pending');
+
+      zarinpal.mode = 'normal';
+      await reconcile();
+      expect((await paymentOf(orderId)).status).toBe('paid');
+    });
+
+    it('flags a refund when the order expired before Zarinpal confirmed', async () => {
+      const { headers, orderId, productId } = await placeOrder(
+        'zp-expired@example.test',
+      );
+      const authority = await start(headers, orderId);
+      zarinpal.pay(authority);
+      await backdate(orderId, 20);
+      await t.db.query(
+        `UPDATE nest_schema."order" SET "createdAt" = now() - interval '25 hours' WHERE id = $1`,
+        [orderId],
+      );
+      const { OrdersService } = await import('../src/orders/orders.service');
+      await t.app.get(OrdersService).expireStalePendingOrders(24);
+
+      await reconcile();
+
+      expect((await paymentOf(orderId)).status).toBe('paid');
+      const { rows } = await t.db.query(
+        'SELECT status, "refundStatus" FROM nest_schema."order" WHERE id = $1',
+        [orderId],
+      );
+      expect(rows[0]).toEqual({
+        status: 'cancelled',
+        refundStatus: 'required',
+      });
+      const stock = await t.db.query(
+        'SELECT stock FROM payload_schema.products WHERE id = $1',
+        [productId],
+      );
+      expect(Number(stock.rows[0].stock)).toBe(10);
     });
   });
 });

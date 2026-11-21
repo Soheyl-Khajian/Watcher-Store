@@ -10,6 +10,7 @@ import { PAYMENT_GATEWAY } from './gateways/payment-gateway';
 import type { PaymentGateway } from './gateways/payment-gateway';
 import { ZarinpalGateway } from './gateways/zarinpal.gateway';
 import { PaymentController } from './payment.controller';
+import { PaymentReconciliationService } from './payment-reconciliation.service';
 import { PaymentService } from './payment.service';
 
 // The gateway named by PAYMENT_GATEWAY, or null when payments are off.
@@ -34,6 +35,7 @@ function createGateway(): PaymentGateway | null {
   controllers: [PaymentController],
   providers: [
     PaymentService,
+    PaymentReconciliationService,
     { provide: PAYMENT_GATEWAY, useFactory: createGateway },
   ],
 })

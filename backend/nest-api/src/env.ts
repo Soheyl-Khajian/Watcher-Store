@@ -134,6 +134,13 @@ const envSchema = z
     // GET /payment/callback, as the browser can reach it. Required in
     // production when a gateway is configured.
     PAYMENT_CALLBACK_URL: z.string().url().optional(),
+    // Pending payments older than this are checked with the gateway: the
+    // customer may have paid and closed the browser before coming back.
+    PAYMENT_RECONCILE_AFTER_MINUTES: z
+      .string()
+      .default('15')
+      .transform(Number)
+      .pipe(z.number().int().min(1).max(1440)),
     // How long to wait for the gateway before giving up.
     PAYMENT_TIMEOUT_MS: z
       .string()

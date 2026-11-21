@@ -40,5 +40,8 @@ describe('MockGateway', () => {
     await expect(
       gateway.verify({ ...input, callbackStatus: 'NOK' }),
     ).resolves.toMatchObject({ paid: false });
+    await expect(
+      gateway.verify({ ...input, callbackStatus: null }),
+    ).resolves.toMatchObject({ paid: false });
   });
 });

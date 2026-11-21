@@ -8,14 +8,18 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Between, DataSource, Repository } from 'typeorm';
 import { tomanToRial } from '../common/money/toman';
 import { env } from '../env';
-import { OrderStatus } from '../orders/entities/order.entity';
 import { OrdersService } from '../orders/orders.service';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { PAYMENT_GATEWAY } from './gateways/payment-gateway';
 import type { PaymentGateway } from './gateways/payment-gateway';
+
+// Older pending payments are left alone: the gateway has long forgotten
+// them, and an administrator should look instead.
+const RECONCILE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const RECONCILE_BATCH_SIZE = 50;
 
 @Injectable()
 export class PaymentService {
@@ -104,7 +108,7 @@ export class PaymentService {
     }
 
     try {
-      await this.settle(payment, callbackStatus);
+      await this.settle(payment, callbackStatus, { cancelOnFailure: true });
     } catch (error) {
       if (error instanceof HttpException) {
         this.logger.warn(
@@ -121,12 +125,56 @@ export class PaymentService {
     return payment.orderId;
   }
 
+  // Payments still pending after PAYMENT_RECONCILE_AFTER_MINUTES: the
+  // customer paid (or gave up) and never came back. Asks the gateway what
+  // happened to each. Paid ones are settled as usual; unpaid ones are marked
+  // failed, and their order is left for the customer to retry or for the
+  // expiry job. Returns how many were settled.
+  async reconcilePendingPayments(now = new Date()): Promise<number> {
+    const gateway = this.gateway;
+    if (!gateway) {
+      return 0;
+    }
+
+    const stale = await this.paymentRepository.find({
+      where: {
+        gateway: gateway.name,
+        status: PaymentStatus.PENDING,
+        createdAt: Between(
+          new Date(now.getTime() - RECONCILE_WINDOW_MS),
+          new Date(
+            now.getTime() - env.PAYMENT_RECONCILE_AFTER_MINUTES * 60_000,
+          ),
+        ),
+      },
+      order: { id: 'ASC' },
+      take: RECONCILE_BATCH_SIZE,
+    });
+
+    let settled = 0;
+    for (const payment of stale) {
+      try {
+        await this.settle(payment, null, { cancelOnFailure: false });
+        settled += 1;
+      } catch (error) {
+        // Still pending; the next run asks again.
+        this.logger.warn(
+          `Could not reconcile payment ${payment.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+    return settled;
+  }
+
   // Asks the gateway whether the money arrived, then records the result on
   // the payment and its order together. Settling the same payment twice
   // changes nothing the second time.
   private async settle(
     payment: Payment,
-    callbackStatus: 'OK' | 'NOK',
+    callbackStatus: 'OK' | 'NOK' | null,
+    options: { cancelOnFailure: boolean },
   ): Promise<PaymentStatus> {
     const gateway = this.requireGateway();
 
@@ -155,24 +203,23 @@ export class PaymentService {
         locked.status = PaymentStatus.PAID;
         locked.refId = result.refId;
         locked.cardPan = result.cardPan;
-        await this.ordersService.applyPaymentResult(
-          manager,
-          locked.orderId,
-          OrderStatus.PROCESSING,
-        );
-        this.logger.log(
-          `Payment ${locked.id} for order ${locked.orderId} paid (ref ${result.refId}).`,
-        );
       } else {
         locked.status = PaymentStatus.FAILED;
-        await this.ordersService.applyPaymentResult(
-          manager,
-          locked.orderId,
-          OrderStatus.CANCELLED,
-        );
       }
 
+      const outcome = await this.ordersService.applyPaymentResult(
+        manager,
+        locked.orderId,
+        result.paid,
+        options,
+      );
       await paymentRepository.save(locked);
+
+      if (result.paid) {
+        this.logger.log(
+          `Payment ${locked.id} for order ${locked.orderId} paid (ref ${result.refId}); order ${outcome}.`,
+        );
+      }
       return locked.status;
     });
   }

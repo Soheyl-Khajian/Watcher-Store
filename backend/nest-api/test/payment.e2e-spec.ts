@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { PaymentService } from '../src/payment/payment.service';
 import { createTestApp, TestApp } from './e2e/harness';
 
 const shipping = {
@@ -29,8 +30,13 @@ interface PaymentRow {
 describe('Payments (e2e)', () => {
   let t: TestApp;
 
+  let paymentService: PaymentService;
+
   beforeAll(async () => {
     t = await createTestApp();
+    // Loaded after the harness has configured the environment.
+    const { PaymentService } = await import('../src/payment/payment.service');
+    paymentService = t.app.get(PaymentService);
   });
 
   afterAll(async () => {
@@ -234,5 +240,127 @@ describe('Payments (e2e)', () => {
       .set(headers)
       .expect(404);
     expect(await orderStatus(orderId)).toBe('pending');
+  });
+
+  async function refundStatus(orderId: number): Promise<string> {
+    const { rows } = await t.db.query(
+      'SELECT "refundStatus" FROM nest_schema."order" WHERE id = $1',
+      [orderId],
+    );
+    return rows[0].refundStatus;
+  }
+
+  // Money that arrives for an order that can no longer take it is kept on
+  // record as paid, and the order is flagged for a refund.
+  describe('payments an order cannot take', () => {
+    it('flags a refund when the customer cancelled while paying', async () => {
+      const { headers, orderId, productId } = await placeOrder(
+        'cancelled-while-paying@example.test',
+      );
+      const authority = await initiate(headers, orderId);
+      await t.http().post(`/orders/${orderId}/cancel`).set(headers).expect(200);
+
+      await callback(authority).expect(302);
+
+      const [payment] = await paymentsOf(orderId);
+      expect(payment.status).toBe('paid');
+      expect(await orderStatus(orderId)).toBe('cancelled');
+      expect(await refundStatus(orderId)).toBe('required');
+      // Stock went back on cancellation and is not taken again.
+      expect(await stockOf(productId)).toBe(10);
+    });
+
+    it('flags a refund when a second attempt is paid too', async () => {
+      const { headers, orderId, productId } = await placeOrder(
+        'paid-twice@example.test',
+      );
+      const first = await initiate(headers, orderId);
+      const second = await initiate(headers, orderId);
+
+      await callback(first).expect(302);
+      await callback(second).expect(302);
+
+      const payments = await paymentsOf(orderId);
+      expect(payments.map((p) => p.status)).toEqual(['paid', 'paid']);
+      expect(await orderStatus(orderId)).toBe('processing');
+      expect(await refundStatus(orderId)).toBe('required');
+      expect(await stockOf(productId)).toBe(7);
+    });
+
+    it('leaves a paid order alone when another attempt fails', async () => {
+      const { headers, orderId } = await placeOrder(
+        'paid-then-nok@example.test',
+      );
+      const first = await initiate(headers, orderId);
+      const second = await initiate(headers, orderId);
+
+      await callback(first).expect(302);
+      await callback(second, 'NOK').expect(302);
+
+      const payments = await paymentsOf(orderId);
+      expect(payments.map((p) => p.status)).toEqual(['paid', 'failed']);
+      expect(await orderStatus(orderId)).toBe('processing');
+      expect(await refundStatus(orderId)).toBe('none');
+    });
+
+    // Orders placed before stock was reserved take it when paid.
+    it('flags a refund when an old order sold out before payment', async () => {
+      const { headers, orderId, productId } = await placeOrder(
+        'legacy-sold-out@example.test',
+        100_000,
+        2,
+      );
+      await t.db.query(
+        `UPDATE nest_schema."order" SET "stockReserved" = false WHERE id = $1`,
+        [orderId],
+      );
+      await t.db.query(
+        'UPDATE payload_schema.products SET stock = 1 WHERE id = $1',
+        [productId],
+      );
+      const authority = await initiate(headers, orderId);
+
+      await callback(authority).expect(302);
+
+      expect((await paymentsOf(orderId))[0].status).toBe('paid');
+      expect(await orderStatus(orderId)).toBe('pending');
+      expect(await refundStatus(orderId)).toBe('required');
+      expect(await stockOf(productId)).toBe(1);
+    });
+  });
+
+  describe('reconciliation', () => {
+    const reconcile = () => paymentService.reconcilePendingPayments();
+
+    const backdate = (orderId: number, minutes: number) =>
+      t.db.query(
+        `UPDATE nest_schema.payment SET "createdAt" = now() - make_interval(mins => $2)
+         WHERE "orderId" = $1`,
+        [orderId, minutes],
+      );
+
+    // With the simulated gateway nobody paid unless they came back with OK.
+    it('fails an abandoned payment but leaves the order to retry', async () => {
+      const { headers, orderId } = await placeOrder('abandoned@example.test');
+      await initiate(headers, orderId);
+      await backdate(orderId, 20);
+
+      expect(await reconcile()).toBeGreaterThanOrEqual(1);
+
+      expect((await paymentsOf(orderId))[0].status).toBe('failed');
+      expect(await orderStatus(orderId)).toBe('pending');
+      // The customer can still pay.
+      await t.payOrder(headers, orderId);
+      expect(await orderStatus(orderId)).toBe('processing');
+    });
+
+    it('leaves recent payments alone', async () => {
+      const { headers, orderId } = await placeOrder('recent@example.test');
+      await initiate(headers, orderId);
+
+      await reconcile();
+
+      expect((await paymentsOf(orderId))[0].status).toBe('pending');
+    });
   });
 });
