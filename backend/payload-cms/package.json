@@ -13,7 +13,7 @@
     "migrate": "payload migrate",
     "migrate:fresh": "payload migrate:fresh",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
+    "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types && prettier --write src/payload-types.ts",
     "test": "cross-env NODE_OPTIONS=--no-deprecation vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

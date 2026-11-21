@@ -18,6 +18,7 @@ import {
 } from 'typeorm';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
+import type { ProductDto } from '../products/dto/product.dto';
 import { ProductsService } from '../products/products.service';
 import { OrderItem } from './entities/order-item.entity';
 import {
@@ -27,7 +28,10 @@ import {
   OrderStatus,
 } from './entities/order.entity';
 import { assertTransition } from './order-state';
-import { PaginatedOrdersResponseDto } from './dto/order-response.dto';
+import {
+  PaginatedOrdersResponseDto,
+  toOrderResponse,
+} from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 
 type PaymentResultOrderStatus = OrderStatus.PROCESSING | OrderStatus.CANCELLED;
@@ -47,6 +51,26 @@ function isPostgresUniqueViolation(error: unknown): boolean {
   );
 }
 
+// Unpaid orders expired per transaction by expireStalePendingOrders.
+const EXPIRY_BATCH_SIZE = 100;
+
+interface CartLine {
+  productId: string;
+  quantity: number;
+}
+
+// True when the locked cart still has exactly the lines whose products were
+// looked up before the lock.
+function sameCartContents(snapshot: CartLine[], items: CartLine[]): boolean {
+  const key = (lines: CartLine[]) =>
+    lines
+      .map((line) => `${line.productId}:${line.quantity}`)
+      .sort()
+      .join(',');
+
+  return key(snapshot) === key(items);
+}
+
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -63,6 +87,22 @@ export class OrdersService {
     checkoutKey: string,
     shipping: ShippingDetailsDto,
   ): Promise<Order> {
+    const existing = await this.findOrderByCheckoutKey(
+      this.orderRepository,
+      userId,
+      checkoutKey,
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    // Look the products up in Payload before taking the cart lock, so a slow
+    // Payload never holds the customer's cart or a database connection. The
+    // cart is checked again under the lock.
+    const snapshot = await this.readCartSnapshot(userId);
+    const products = await this.fetchProducts(snapshot);
+
     try {
       return await this.dataSource.transaction(async (manager) => {
         const cartRepository = manager.getRepository(Cart);
@@ -116,18 +156,24 @@ export class OrdersService {
           throw new BadRequestException('سبد خرید شما خالی است.');
         }
 
+        if (!sameCartContents(snapshot, cartItems)) {
+          throw new ConflictException(
+            'سبد خرید شما در حین ثبت سفارش تغییر کرد. لطفاً دوباره تلاش کنید.',
+          );
+        }
+
         const orderItems: OrderItem[] = [];
         let total = 0;
 
         for (const item of cartItems) {
-          const product = await this.productsService.findOne(item.productId);
+          const product = products.get(item.productId) as ProductDto;
           const currentPrice = this.productsService.getCurrentPrice(product);
           const availableStock =
             this.productsService.getAvailableStock(product);
 
           if (availableStock < item.quantity) {
             throw new ConflictException(
-              `موجودی محصول با شناسه ${item.productId} کافی نیست.`,
+              'موجودی یکی از محصولات سبد خرید کافی نیست. لطفاً سبد خرید را بررسی کنید.',
             );
           }
 
@@ -168,9 +214,13 @@ export class OrdersService {
           },
           total,
           status: OrderStatus.PENDING,
+          stockReserved: true,
         });
 
         await orderRepository.save(order);
+        // Reserve the stock now. If a product sold out meanwhile, the whole
+        // transaction, including the order and the cart change, rolls back.
+        await this.takeStock(manager, orderItems);
         await cartItemRepository.remove(cartItems);
 
         const createdOrder = await this.findOrderByCheckoutKey(
@@ -204,6 +254,31 @@ export class OrdersService {
     }
   }
 
+  // The cart lines as they are now, read without a lock.
+  private async readCartSnapshot(userId: number): Promise<CartLine[]> {
+    const items = await this.dataSource.getRepository(CartItem).find({
+      where: { cart: { userId } },
+    });
+
+    if (items.length === 0) {
+      throw new BadRequestException('سبد خرید شما خالی است.');
+    }
+
+    return items.map(({ productId, quantity }) => ({ productId, quantity }));
+  }
+
+  // Looks up every product of the cart in Payload, in parallel.
+  private async fetchProducts(
+    lines: CartLine[],
+  ): Promise<Map<string, ProductDto>> {
+    const ids = [...new Set(lines.map((line) => line.productId))];
+    const products = await Promise.all(
+      ids.map((id) => this.productsService.findOne(id)),
+    );
+
+    return new Map(ids.map((id, index) => [id, products[index]]));
+  }
+
   private findOrderByCheckoutKey(
     orderRepository: Repository<Order>,
     userId: number,
@@ -218,14 +293,19 @@ export class OrdersService {
     });
   }
 
+  // One of the customer's own orders, with its items. Another customer's
+  // order answers 404 like a missing one.
   async findOne(id: number, userId: number): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id, userId },
+      relations: ['items'],
     });
 
     if (!order) {
-      throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+      throw new NotFoundException('سفارش مورد نظر یافت نشد.');
     }
+
+    order.items.sort((a, b) => a.id - b.id);
 
     return order;
   }
@@ -260,7 +340,7 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
       }
 
       assertTransition(
@@ -269,7 +349,8 @@ export class OrdersService {
         'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
       );
 
-      if (nextStatus === OrderStatus.PROCESSING) {
+      // Orders placed before stock was reserved at checkout take it now.
+      if (nextStatus === OrderStatus.PROCESSING && !order.stockReserved) {
         const orderItems = await orderItemRepository.find({
           where: {
             order: {
@@ -288,19 +369,8 @@ export class OrdersService {
           );
         }
 
-        for (const item of orderItems) {
-          const consumed = await this.productsService.consumeStock(
-            manager,
-            item.productId,
-            item.quantity,
-          );
-
-          if (!consumed) {
-            throw new ConflictException(
-              `موجودی محصول با شناسه ${item.productId} برای تکمیل پرداخت کافی نیست.`,
-            );
-          }
-        }
+        await this.takeStock(manager, orderItems);
+        order.stockReserved = true;
       }
 
       const now = new Date();
@@ -310,6 +380,7 @@ export class OrdersService {
       } else {
         order.cancelledAt = now;
         order.cancelReason = OrderCancelReason.PAYMENT_FAILED;
+        await this.releaseStock(manager, order);
       }
 
       order.status = nextStatus;
@@ -331,7 +402,7 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
       }
 
       if (order.status !== OrderStatus.PENDING) {
@@ -349,6 +420,7 @@ export class OrdersService {
       order.status = OrderStatus.CANCELLED;
       order.cancelledAt = new Date();
       order.cancelReason = OrderCancelReason.CUSTOMER_REQUEST;
+      await this.releaseStock(manager, order);
       await orderRepository.save(order);
 
       // Loaded separately: row locks cannot be combined with joined relations.
@@ -384,7 +456,7 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
       }
 
       await mutate(order, manager);
@@ -439,8 +511,8 @@ export class OrdersService {
     });
   }
 
-  // Cancelling a paid order puts its stock back and flags it for a manual
-  // refund. Cancelling an unpaid order changes neither.
+  // Cancelling puts the order's stock back. A paid order is also flagged for
+  // a manual refund.
   async cancelOrderAsAdmin(id: number): Promise<Order> {
     return this.mutateOrder(id, async (order, manager) => {
       assertTransition(
@@ -450,9 +522,9 @@ export class OrdersService {
       );
 
       if (order.status === OrderStatus.PROCESSING) {
-        await this.restoreOrderStock(manager, order.id);
         order.refundStatus = OrderRefundStatus.REQUIRED;
       }
+      await this.releaseStock(manager, order);
 
       order.status = OrderStatus.CANCELLED;
       order.cancelledAt = new Date();
@@ -472,6 +544,83 @@ export class OrdersService {
 
       return Promise.resolve();
     });
+  }
+
+  // Expires unpaid orders older than ttlHours and releases their stock. Each
+  // batch locks its orders and skips ones another transaction holds (for
+  // example a payment in progress), so concurrent runs never collide.
+  async expireStalePendingOrders(ttlHours: number): Promise<number> {
+    let expired = 0;
+
+    for (;;) {
+      const batch = await this.dataSource.transaction(async (manager) => {
+        const orderRepository = manager.getRepository(Order);
+        const orders = await orderRepository
+          .createQueryBuilder('o')
+          .where('o.status = :pending', { pending: OrderStatus.PENDING })
+          .andWhere('o.createdAt < now() - make_interval(hours => :ttl)', {
+            ttl: ttlHours,
+          })
+          .orderBy('o.id', 'ASC')
+          .limit(EXPIRY_BATCH_SIZE)
+          .setLock('pessimistic_write')
+          .setOnLocked('skip_locked')
+          .getMany();
+
+        for (const order of orders) {
+          order.status = OrderStatus.CANCELLED;
+          order.cancelledAt = new Date();
+          order.cancelReason = OrderCancelReason.EXPIRED;
+          await this.releaseStock(manager, order);
+          await orderRepository.save(order);
+        }
+
+        return orders.length;
+      });
+
+      expired += batch;
+      if (batch < EXPIRY_BATCH_SIZE) {
+        return expired;
+      }
+    }
+  }
+
+  // Takes the stock for these lines in product order, so concurrent
+  // checkouts lock products in the same order and cannot deadlock.
+  private async takeStock(
+    manager: EntityManager,
+    items: Array<{ productId: string; quantity: number }>,
+  ): Promise<void> {
+    const sorted = [...items].sort((a, b) =>
+      a.productId.localeCompare(b.productId, 'en', { numeric: true }),
+    );
+
+    for (const item of sorted) {
+      const taken = await this.productsService.consumeStock(
+        manager,
+        item.productId,
+        item.quantity,
+      );
+
+      if (!taken) {
+        throw new ConflictException(
+          'موجودی یکی از محصولات سبد خرید کافی نیست. لطفاً سبد خرید را بررسی کنید.',
+        );
+      }
+    }
+  }
+
+  // Gives back the stock an order holds, if any.
+  private async releaseStock(
+    manager: EntityManager,
+    order: Order,
+  ): Promise<void> {
+    if (!order.stockReserved) {
+      return;
+    }
+
+    await this.restoreOrderStock(manager, order.id);
+    order.stockReserved = false;
   }
 
   private async restoreOrderStock(
@@ -500,11 +649,29 @@ export class OrdersService {
     }
   }
 
-  async findOrdersForAdmin(
+  findOrdersForAdmin(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedOrdersResponseDto> {
+    return this.findOrdersPage({}, page, limit);
+  }
+
+  // A customer's own orders, newest first.
+  findUserOrders(
+    userId: number,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedOrdersResponseDto> {
+    return this.findOrdersPage({ userId }, page, limit);
+  }
+
+  private async findOrdersPage(
+    where: { userId?: number },
     page: number,
     limit: number,
   ): Promise<PaginatedOrdersResponseDto> {
     const [items, totalItems] = await this.orderRepository.findAndCount({
+      where,
       relations: ['items'],
       // The id tiebreaker keeps page boundaries deterministic when several
       // orders share a creation timestamp.
@@ -523,19 +690,11 @@ export class OrdersService {
     }
 
     return {
-      items,
+      items: items.map(toOrderResponse),
       page,
       limit,
       totalItems,
       totalPages: Math.ceil(totalItems / limit),
     };
-  }
-
-  async findUserOrders(userId: number): Promise<Order[]> {
-    return this.orderRepository.find({
-      where: { userId },
-      relations: ['items'],
-      order: { createdAt: 'DESC' },
-    });
   }
 }

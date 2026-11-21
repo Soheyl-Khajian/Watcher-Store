@@ -15,7 +15,17 @@ import type { Pool } from 'pg';
 import type { FixtureUser } from './payload-fixture';
 import { readProduct } from './payload-fixture';
 
+// How the stub answers, to test Nest against an unhealthy Payload:
+// - normal: like Payload
+// - error: HTTP 500 for every request
+// - slow: like Payload, but only after SLOW_RESPONSE_MS
+// - garbage: HTTP 200 with a body that is not JSON
+// - hang-up: closes the connection without answering
+export type StubMode = 'normal' | 'error' | 'slow' | 'garbage' | 'hang-up';
+export const SLOW_RESPONSE_MS = 2000;
+
 export interface PayloadStub {
+  mode: StubMode;
   url: string;
   users: Map<string, FixtureUser>;
   close(): Promise<void>;
@@ -48,7 +58,30 @@ function publicUser(user: FixtureUser) {
 export async function startPayloadStub(pool: Pool): Promise<PayloadStub> {
   const users = new Map<string, FixtureUser>();
 
+  const stub = { mode: 'normal' as StubMode };
+
   const handle = async (req: IncomingMessage, res: ServerResponse) => {
+    switch (stub.mode) {
+      case 'error':
+        return send(res, 500, {
+          errors: [{ message: 'Something went wrong.' }],
+        });
+      case 'garbage':
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        return res.end('<html>maintenance</html>');
+      case 'hang-up':
+        return req.socket.destroy();
+      case 'slow':
+        // unref: a delay still pending when the suite ends must not keep
+        // the test worker alive.
+        await new Promise((resolve) =>
+          setTimeout(resolve, SLOW_RESPONSE_MS).unref(),
+        );
+        break;
+      default:
+        break;
+    }
+
     const url = new URL(req.url ?? '/', 'http://stub');
 
     if (req.method === 'POST' && url.pathname === '/api/users/login') {
@@ -98,11 +131,19 @@ export async function startPayloadStub(pool: Pool): Promise<PayloadStub> {
   const { port } = server.address() as AddressInfo;
 
   return {
+    get mode() {
+      return stub.mode;
+    },
+    set mode(mode: StubMode) {
+      stub.mode = mode;
+    },
     url: `http://127.0.0.1:${port}/api`,
     users,
     close: () =>
-      new Promise<void>((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
-      ),
+      new Promise<void>((resolve, reject) => {
+        // Slow responses may still be pending.
+        server.closeAllConnections();
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
   };
 }

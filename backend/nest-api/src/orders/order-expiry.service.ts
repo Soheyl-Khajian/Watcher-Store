@@ -6,25 +6,21 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { env } from '../env';
-import { Order, OrderCancelReason, OrderStatus } from './entities/order.entity';
+import { OrdersService } from './orders.service';
 
 const SWEEP_INTERVAL_MS = 10 * 60 * 1000;
 
 // Cancels unpaid orders that have been waiting longer than the configured
-// time limit. Pending orders hold no stock, so nothing else needs undoing.
+// time limit and releases the stock they reserved.
 @Injectable()
 export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderExpiryService.name);
   private timer: NodeJS.Timeout | undefined;
-  private running = false;
+  // The sweep in progress, if any.
+  private current: Promise<void> | undefined;
 
-  constructor(
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   onModuleInit(): void {
     void this.sweep();
@@ -33,39 +29,33 @@ export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
     this.timer.unref();
   }
 
-  onModuleDestroy(): void {
+  // On shutdown, stop the timer and let a running sweep finish before the
+  // database pool closes.
+  async onModuleDestroy(): Promise<void> {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = undefined;
     }
+    await this.current;
   }
 
-  // One conditional UPDATE. The status check is re-evaluated after the row
-  // lock is acquired, so an order paid at the same moment is left alone.
-  async expireStalePendingOrders(): Promise<number> {
-    const result = await this.orderRepository
-      .createQueryBuilder()
-      .update(Order)
-      .set({
-        status: OrderStatus.CANCELLED,
-        cancelReason: OrderCancelReason.EXPIRED,
-        cancelledAt: () => 'now()',
-      })
-      .where(
-        '"status" = :pending AND "createdAt" < now() - make_interval(hours => :ttl)',
-        { pending: OrderStatus.PENDING, ttl: env.PENDING_ORDER_TTL_HOURS },
-      )
-      .execute();
-
-    return result.affected ?? 0;
+  expireStalePendingOrders(): Promise<number> {
+    return this.ordersService.expireStalePendingOrders(
+      env.PENDING_ORDER_TTL_HOURS,
+    );
   }
 
-  private async sweep(): Promise<void> {
+  private sweep(): Promise<void> {
     // Skip if the previous run is still going.
-    if (this.running) {
-      return;
+    if (!this.current) {
+      this.current = this.runSweep().finally(() => {
+        this.current = undefined;
+      });
     }
-    this.running = true;
+    return this.current;
+  }
+
+  private async runSweep(): Promise<void> {
     try {
       const expired = await this.expireStalePendingOrders();
       if (expired > 0) {
@@ -78,8 +68,6 @@ export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
         'Failed to expire stale pending orders',
         error instanceof Error ? error.stack : undefined,
       );
-    } finally {
-      this.running = false;
     }
   }
 }

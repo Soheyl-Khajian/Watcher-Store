@@ -74,4 +74,137 @@ describe('parseEnv', () => {
     ).toThrow();
     expect(() => parseEnv({ ...validEnv, FRONTEND_URL: undefined })).toThrow();
   });
+
+  it('defaults the token lifetime to 60 minutes and validates it', () => {
+    expect(parseEnv(validEnv).JWT_EXPIRES_IN).toBe('60m');
+    expect(
+      parseEnv({ ...validEnv, JWT_EXPIRES_IN: '12h' }).JWT_EXPIRES_IN,
+    ).toBe('12h');
+    for (const JWT_EXPIRES_IN of ['forever', '60', '-5m', '1.5h']) {
+      expect(() => parseEnv({ ...validEnv, JWT_EXPIRES_IN })).toThrow(
+        /JWT_EXPIRES_IN/,
+      );
+    }
+  });
+
+  describe('TRUST_PROXY', () => {
+    it('trusts no proxy by default', () => {
+      expect(parseEnv(validEnv).TRUST_PROXY).toBe(false);
+    });
+
+    it.each([
+      ['1', 1],
+      ['2', 2],
+      ['0', false],
+      ['false', false],
+      ['loopback, 10.0.0.0/8', 'loopback, 10.0.0.0/8'],
+    ])('reads %p', (TRUST_PROXY, expected) => {
+      expect(parseEnv({ ...validEnv, TRUST_PROXY }).TRUST_PROXY).toBe(expected);
+    });
+
+    // Trusting every proxy would let clients choose their own IP and escape
+    // the rate limits.
+    it.each(['true', 'TRUE'])('refuses %p', (TRUST_PROXY) => {
+      expect(() => parseEnv({ ...validEnv, TRUST_PROXY })).toThrow(
+        /TRUST_PROXY/,
+      );
+    });
+  });
+
+  it('defaults the rate limits and rejects invalid ones', () => {
+    expect(parseEnv(validEnv)).toMatchObject({
+      RATE_LIMIT_PER_MINUTE: 120,
+      RATE_LIMIT_LOGIN_PER_MINUTE: 5,
+      RATE_LIMIT_ORDERS_PER_MINUTE: 10,
+    });
+    for (const value of ['0', '-1', '2.5', 'lots']) {
+      expect(() =>
+        parseEnv({ ...validEnv, RATE_LIMIT_LOGIN_PER_MINUTE: value }),
+      ).toThrow(/RATE_LIMIT_LOGIN_PER_MINUTE/);
+    }
+  });
+
+  describe('MIGRATIONS_RUN_ON_BOOT', () => {
+    it.each([
+      ['development', true],
+      ['test', true],
+      ['production', false],
+    ] as const)('defaults by NODE_ENV=%s to %p', (NODE_ENV, expected) => {
+      const env = parseEnv({
+        ...validEnv,
+        NODE_ENV,
+        // Production also requires a real database password.
+        POSTGRES_PASSWORD: 'a-strong-database-password',
+      });
+      expect(env.MIGRATIONS_RUN_ON_BOOT).toBe(expected);
+    });
+
+    it('can be set explicitly either way', () => {
+      expect(
+        parseEnv({ ...validEnv, MIGRATIONS_RUN_ON_BOOT: 'false' })
+          .MIGRATIONS_RUN_ON_BOOT,
+      ).toBe(false);
+      expect(
+        parseEnv({
+          ...validEnv,
+          NODE_ENV: 'production',
+          POSTGRES_PASSWORD: 'a-strong-database-password',
+          MIGRATIONS_RUN_ON_BOOT: 'true',
+        }).MIGRATIONS_RUN_ON_BOOT,
+      ).toBe(true);
+    });
+
+    it('rejects values other than "true" and "false"', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, MIGRATIONS_RUN_ON_BOOT: 'yes' }),
+      ).toThrow(/MIGRATIONS_RUN_ON_BOOT/);
+    });
+  });
+
+  it('rejects an unknown NODE_ENV', () => {
+    expect(() => parseEnv({ ...validEnv, NODE_ENV: 'prod' })).toThrow(
+      /NODE_ENV/,
+    );
+  });
+
+  it('uses the local default database password outside production', () => {
+    expect(parseEnv(validEnv).POSTGRES_PASSWORD).toBe('postgres');
+  });
+
+  describe('in production', () => {
+    const production: NodeJS.ProcessEnv = {
+      ...validEnv,
+      NODE_ENV: 'production',
+      JWT_SECRET: 'a3f1c9e07b2d4e8f9a6c5b1d0e7f2a4c8b9d6e3f1a0c7b5d',
+      POSTGRES_PASSWORD: 'Str0ng-Db-Passw0rd',
+    };
+
+    it('accepts a complete configuration', () => {
+      expect(() => parseEnv(production)).not.toThrow();
+    });
+
+    it.each([
+      'replace-with-64-char-hex-secret-from-openssl-rand-hex-32',
+      'CHANGE_ME-CHANGE_ME-CHANGE_ME-CHANGE_ME',
+    ])('rejects the placeholder JWT secret %p', (JWT_SECRET) => {
+      expect(() => parseEnv({ ...production, JWT_SECRET })).toThrow(
+        /JWT_SECRET/,
+      );
+    });
+
+    it('requires an explicit database password', () => {
+      expect(() =>
+        parseEnv({ ...production, POSTGRES_PASSWORD: undefined }),
+      ).toThrow(/POSTGRES_PASSWORD/);
+    });
+
+    it.each(['postgres', 'password', 'changeme', ''])(
+      'rejects the weak database password %p',
+      (POSTGRES_PASSWORD) => {
+        expect(() => parseEnv({ ...production, POSTGRES_PASSWORD })).toThrow(
+          /POSTGRES_PASSWORD/,
+        );
+      },
+    );
+  });
 });

@@ -73,6 +73,10 @@ export default buildConfig({
   },
   typescript: {
     outputFile: path.resolve(__dirname, 'payload-types.ts'),
+    // Generated only by `pnpm --filter payload-cms generate:types` (which
+    // also formats it), not on every dev-server start, so starting the CMS
+    // never leaves an unformatted, modified file behind.
+    autoGenerate: false,
   },
   cors: [env.FRONTEND_URL],
   db: postgresAdapter({

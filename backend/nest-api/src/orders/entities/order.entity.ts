@@ -58,8 +58,8 @@ export class Order {
 
   @Column({
     type: 'decimal',
-    precision: 10,
-    scale: 2,
+    precision: 14,
+    scale: 0,
     transformer: tomanColumnTransformer,
   })
   total!: number;
@@ -77,6 +77,12 @@ export class Order {
     default: OrderRefundStatus.NONE,
   })
   refundStatus!: OrderRefundStatus;
+
+  // True while the order holds its products' stock: reserved when it was
+  // placed (or, for orders placed before reservation existed, taken when it
+  // was paid), released again if it is cancelled.
+  @Column({ type: 'boolean', default: false })
+  stockReserved!: boolean;
 
   @Column({
     type: 'enum',
@@ -100,6 +106,6 @@ export class Order {
   @Column({ type: 'timestamptz', nullable: true })
   cancelledAt!: Date | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 }

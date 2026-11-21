@@ -52,15 +52,13 @@ services:
       payload-migrate:
         condition: service_completed_successfully
 
-  nest-api:
-    build:
-      context: .
-      dockerfile: backend/nest-api/Dockerfile
+  # Applies Nest migrations once per deploy, before the API starts. The API
+  # itself does not migrate in production (MIGRATIONS_RUN_ON_BOOT).
+  nest-migrate:
+    image: watcher-store-nest-api
     env_file:
       - .env
-    ports:
-      - '3001:3001'
-    environment:
+    environment: &nest-environment
       DATABASE_HOST: db
       DATABASE_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
@@ -73,9 +71,26 @@ services:
       PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
       FRONTEND_URL: ${FRONTEND_URL}
       PORT: 3001
+    command: ['node', 'dist/database/migrate.js']
     depends_on:
       db:
         condition: service_healthy
+
+  nest-api:
+    image: watcher-store-nest-api
+    build:
+      context: .
+      dockerfile: backend/nest-api/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - '3001:3001'
+    environment: *nest-environment
+    depends_on:
+      db:
+        condition: service_healthy
+      nest-migrate:
+        condition: service_completed_successfully
 
   frontend:
     build:
