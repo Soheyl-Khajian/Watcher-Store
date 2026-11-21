@@ -48,6 +48,9 @@ function isPostgresUniqueViolation(error: unknown): boolean {
   );
 }
 
+// Unpaid orders expired per transaction by expireStalePendingOrders.
+const EXPIRY_BATCH_SIZE = 100;
+
 interface CartLine {
   productId: string;
   quantity: number;
@@ -208,9 +211,13 @@ export class OrdersService {
           },
           total,
           status: OrderStatus.PENDING,
+          stockReserved: true,
         });
 
         await orderRepository.save(order);
+        // Reserve the stock now. If a product sold out meanwhile, the whole
+        // transaction, including the order and the cart change, rolls back.
+        await this.takeStock(manager, orderItems);
         await cartItemRepository.remove(cartItems);
 
         const createdOrder = await this.findOrderByCheckoutKey(
@@ -334,7 +341,8 @@ export class OrdersService {
         'این سفارش قبلاً پردازش شده یا دیگر قابل پرداخت نیست.',
       );
 
-      if (nextStatus === OrderStatus.PROCESSING) {
+      // Orders placed before stock was reserved at checkout take it now.
+      if (nextStatus === OrderStatus.PROCESSING && !order.stockReserved) {
         const orderItems = await orderItemRepository.find({
           where: {
             order: {
@@ -353,19 +361,8 @@ export class OrdersService {
           );
         }
 
-        for (const item of orderItems) {
-          const consumed = await this.productsService.consumeStock(
-            manager,
-            item.productId,
-            item.quantity,
-          );
-
-          if (!consumed) {
-            throw new ConflictException(
-              `موجودی محصول با شناسه ${item.productId} برای تکمیل پرداخت کافی نیست.`,
-            );
-          }
-        }
+        await this.takeStock(manager, orderItems);
+        order.stockReserved = true;
       }
 
       const now = new Date();
@@ -375,6 +372,7 @@ export class OrdersService {
       } else {
         order.cancelledAt = now;
         order.cancelReason = OrderCancelReason.PAYMENT_FAILED;
+        await this.releaseStock(manager, order);
       }
 
       order.status = nextStatus;
@@ -414,6 +412,7 @@ export class OrdersService {
       order.status = OrderStatus.CANCELLED;
       order.cancelledAt = new Date();
       order.cancelReason = OrderCancelReason.CUSTOMER_REQUEST;
+      await this.releaseStock(manager, order);
       await orderRepository.save(order);
 
       // Loaded separately: row locks cannot be combined with joined relations.
@@ -504,8 +503,8 @@ export class OrdersService {
     });
   }
 
-  // Cancelling a paid order puts its stock back and flags it for a manual
-  // refund. Cancelling an unpaid order changes neither.
+  // Cancelling puts the order's stock back. A paid order is also flagged for
+  // a manual refund.
   async cancelOrderAsAdmin(id: number): Promise<Order> {
     return this.mutateOrder(id, async (order, manager) => {
       assertTransition(
@@ -515,9 +514,9 @@ export class OrdersService {
       );
 
       if (order.status === OrderStatus.PROCESSING) {
-        await this.restoreOrderStock(manager, order.id);
         order.refundStatus = OrderRefundStatus.REQUIRED;
       }
+      await this.releaseStock(manager, order);
 
       order.status = OrderStatus.CANCELLED;
       order.cancelledAt = new Date();
@@ -537,6 +536,83 @@ export class OrdersService {
 
       return Promise.resolve();
     });
+  }
+
+  // Expires unpaid orders older than ttlHours and releases their stock. Each
+  // batch locks its orders and skips ones another transaction holds (for
+  // example a payment in progress), so concurrent runs never collide.
+  async expireStalePendingOrders(ttlHours: number): Promise<number> {
+    let expired = 0;
+
+    for (;;) {
+      const batch = await this.dataSource.transaction(async (manager) => {
+        const orderRepository = manager.getRepository(Order);
+        const orders = await orderRepository
+          .createQueryBuilder('o')
+          .where('o.status = :pending', { pending: OrderStatus.PENDING })
+          .andWhere('o.createdAt < now() - make_interval(hours => :ttl)', {
+            ttl: ttlHours,
+          })
+          .orderBy('o.id', 'ASC')
+          .limit(EXPIRY_BATCH_SIZE)
+          .setLock('pessimistic_write')
+          .setOnLocked('skip_locked')
+          .getMany();
+
+        for (const order of orders) {
+          order.status = OrderStatus.CANCELLED;
+          order.cancelledAt = new Date();
+          order.cancelReason = OrderCancelReason.EXPIRED;
+          await this.releaseStock(manager, order);
+          await orderRepository.save(order);
+        }
+
+        return orders.length;
+      });
+
+      expired += batch;
+      if (batch < EXPIRY_BATCH_SIZE) {
+        return expired;
+      }
+    }
+  }
+
+  // Takes the stock for these lines in product order, so concurrent
+  // checkouts lock products in the same order and cannot deadlock.
+  private async takeStock(
+    manager: EntityManager,
+    items: Array<{ productId: string; quantity: number }>,
+  ): Promise<void> {
+    const sorted = [...items].sort((a, b) =>
+      a.productId.localeCompare(b.productId, 'en', { numeric: true }),
+    );
+
+    for (const item of sorted) {
+      const taken = await this.productsService.consumeStock(
+        manager,
+        item.productId,
+        item.quantity,
+      );
+
+      if (!taken) {
+        throw new ConflictException(
+          'موجودی یکی از محصولات سبد خرید کافی نیست. لطفاً سبد خرید را بررسی کنید.',
+        );
+      }
+    }
+  }
+
+  // Gives back the stock an order holds, if any.
+  private async releaseStock(
+    manager: EntityManager,
+    order: Order,
+  ): Promise<void> {
+    if (!order.stockReserved) {
+      return;
+    }
+
+    await this.restoreOrderStock(manager, order.id);
+    order.stockReserved = false;
   }
 
   private async restoreOrderStock(

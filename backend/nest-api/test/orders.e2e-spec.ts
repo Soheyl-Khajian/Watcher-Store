@@ -119,8 +119,8 @@ describe('Orders and payment (e2e)', () => {
       .expect(200)
       .expect((res) => expect(res.body.items).toEqual([]));
 
-    // Stock is only taken when the order is paid.
-    expect(await stockOf(productId)).toBe(5);
+    // Stock is reserved as soon as the order is placed.
+    expect(await stockOf(productId)).toBe(3);
   });
 
   it('returns the same order when a request is retried with the same key', async () => {
@@ -353,5 +353,162 @@ describe('Orders and payment (e2e)', () => {
       orders.body.find((order: { id: number }) => order.id === id).status;
     expect(statusOf(stale.body.id)).toBe('cancelled');
     expect(statusOf(fresh.body.id)).toBe('pending');
+  });
+
+  // Stock is reserved when the order is placed, so a customer can never pay
+  // for something that sold out meanwhile, and released when it is cancelled.
+  describe('stock reservation', () => {
+    const shippingBody = {
+      shipping: {
+        recipientName: 'Test Customer',
+        phone: '09123456789',
+        province: 'Tehran',
+        city: 'Tehran',
+        address: 'Test street 1',
+        postalCode: '1234567890',
+      },
+    };
+
+    it('reserves stock at checkout and does not take it again on payment', async () => {
+      const headers = await customer('reserve@example.test');
+      const productId = await t.createProduct({ price: 100_000, stock: 5 });
+      await addToCart(headers, productId, 2);
+
+      const order = await createOrder(headers).expect(201);
+      expect(await stockOf(productId)).toBe(3);
+
+      await t
+        .http()
+        .get('/payment/verify')
+        .query({ orderId: order.body.id, status: 'success' })
+        .set(headers)
+        .expect(200);
+      expect(await stockOf(productId)).toBe(3);
+    });
+
+    it('refuses an order when stock ran out, keeping the cart', async () => {
+      const headers = await customer('sold-out@example.test');
+      const productId = await t.createProduct({ price: 100_000, stock: 2 });
+      await addToCart(headers, productId, 2);
+      await t.db.query(
+        'UPDATE payload_schema.products SET stock = 1 WHERE id = $1',
+        [productId],
+      );
+
+      await createOrder(headers).expect(409);
+
+      expect(await stockOf(productId)).toBe(1);
+      const cart = await t.http().get('/cart').set(headers).expect(200);
+      expect(cart.body.items).toHaveLength(1);
+      const orders = await t.http().get('/orders').set(headers).expect(200);
+      expect(orders.body).toEqual([]);
+    });
+
+    it('lets only one of two customers buy the last unit', async () => {
+      const productId = await t.createProduct({ price: 100_000, stock: 1 });
+      const first = await customer('race-1@example.test');
+      const second = await customer('race-2@example.test');
+      await addToCart(first, productId, 1);
+      await addToCart(second, productId, 1);
+
+      const results = await Promise.all([
+        createOrder(first),
+        createOrder(second),
+      ]);
+
+      expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+      expect(await stockOf(productId)).toBe(0);
+    });
+
+    it('returns stock when the customer cancels', async () => {
+      const headers = await customer('cancel-stock@example.test');
+      const productId = await t.createProduct({ price: 100_000, stock: 5 });
+      await addToCart(headers, productId, 2);
+      const order = await createOrder(headers).expect(201);
+
+      await t
+        .http()
+        .post(`/orders/${order.body.id}/cancel`)
+        .set(headers)
+        .expect(200);
+
+      expect(await stockOf(productId)).toBe(5);
+    });
+
+    it('returns stock when an unpaid order expires', async () => {
+      const headers = await customer('expire-stock@example.test');
+      const productId = await t.createProduct({ price: 100_000, stock: 5 });
+      await addToCart(headers, productId, 2);
+      const order = await createOrder(headers).expect(201);
+      await t.db.query(
+        `UPDATE nest_schema."order" SET "createdAt" = now() - interval '25 hours' WHERE id = $1`,
+        [order.body.id],
+      );
+
+      const { OrderExpiryService } =
+        await import('../src/orders/order-expiry.service');
+      expect(
+        await t.app.get(OrderExpiryService).expireStalePendingOrders(),
+      ).toBe(1);
+
+      expect(await stockOf(productId)).toBe(5);
+    });
+
+    // Orders placed before stock was reserved at checkout hold no stock.
+    describe('orders placed before reservation existed', () => {
+      async function legacyOrder(email: string, stock: number) {
+        const headers = await customer(email);
+        const productId = await t.createProduct({ price: 100_000, stock });
+        await addToCart(headers, productId, 2);
+        const order = await t
+          .http()
+          .post('/orders')
+          .set(headers)
+          .set('Idempotency-Key', randomUUID())
+          .send(shippingBody)
+          .expect(201);
+        // As if placed before this change: nothing reserved.
+        await t.db.query(
+          `UPDATE nest_schema."order" SET "stockReserved" = false WHERE id = $1`,
+          [order.body.id],
+        );
+        await t.db.query(
+          'UPDATE payload_schema.products SET stock = $2 WHERE id = $1',
+          [productId, stock],
+        );
+        return { headers, productId, orderId: order.body.id as number };
+      }
+
+      it('takes the stock when such an order is paid', async () => {
+        const { headers, productId, orderId } = await legacyOrder(
+          'legacy-pay@example.test',
+          5,
+        );
+
+        await t
+          .http()
+          .get('/payment/verify')
+          .query({ orderId, status: 'success' })
+          .set(headers)
+          .expect(200);
+
+        expect(await stockOf(productId)).toBe(3);
+      });
+
+      it('does not invent stock when such an order is cancelled', async () => {
+        const { headers, productId, orderId } = await legacyOrder(
+          'legacy-cancel@example.test',
+          5,
+        );
+
+        await t
+          .http()
+          .post(`/orders/${orderId}/cancel`)
+          .set(headers)
+          .expect(200);
+
+        expect(await stockOf(productId)).toBe(5);
+      });
+    });
   });
 });

@@ -78,6 +78,12 @@ export class Order {
   })
   refundStatus!: OrderRefundStatus;
 
+  // True while the order holds its products' stock: reserved when it was
+  // placed (or, for orders placed before reservation existed, taken when it
+  // was paid), released again if it is cancelled.
+  @Column({ type: 'boolean', default: false })
+  stockReserved!: boolean;
+
   @Column({
     type: 'enum',
     enum: OrderCancelReason,
