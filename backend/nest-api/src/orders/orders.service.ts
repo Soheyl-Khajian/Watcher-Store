@@ -28,7 +28,10 @@ import {
   OrderStatus,
 } from './entities/order.entity';
 import { assertTransition } from './order-state';
-import { PaginatedOrdersResponseDto } from './dto/order-response.dto';
+import {
+  PaginatedOrdersResponseDto,
+  toOrderResponse,
+} from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 
 type PaymentResultOrderStatus = OrderStatus.PROCESSING | OrderStatus.CANCELLED;
@@ -170,7 +173,7 @@ export class OrdersService {
 
           if (availableStock < item.quantity) {
             throw new ConflictException(
-              `موجودی محصول با شناسه ${item.productId} کافی نیست.`,
+              'موجودی یکی از محصولات سبد خرید کافی نیست. لطفاً سبد خرید را بررسی کنید.',
             );
           }
 
@@ -299,7 +302,7 @@ export class OrdersService {
     });
 
     if (!order) {
-      throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+      throw new NotFoundException('سفارش مورد نظر یافت نشد.');
     }
 
     order.items.sort((a, b) => a.id - b.id);
@@ -337,7 +340,7 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
       }
 
       assertTransition(
@@ -399,7 +402,7 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
       }
 
       if (order.status !== OrderStatus.PENDING) {
@@ -453,7 +456,7 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException(`سفارش با شناسه ${id} یافت نشد.`);
+        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
       }
 
       await mutate(order, manager);
@@ -687,7 +690,7 @@ export class OrdersService {
     }
 
     return {
-      items,
+      items: items.map(toOrderResponse),
       page,
       limit,
       totalItems,

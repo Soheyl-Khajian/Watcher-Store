@@ -93,7 +93,9 @@ export class PayloadClient {
     );
 
     if (response.status === 403 || response.status === 404) {
-      throw new NotFoundException(`محصول با شناسه ${id} یافت نشد.`);
+      throw new NotFoundException(
+        'محصول مورد نظر یافت نشد یا دیگر در دسترس نیست.',
+      );
     }
 
     return this.parse(productSchema, response, 'product lookup');

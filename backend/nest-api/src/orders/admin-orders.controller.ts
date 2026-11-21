@@ -19,6 +19,7 @@ import { OrderIdParamDto } from './dto/order-id-param.dto';
 import {
   OrderResponseDto,
   PaginatedOrdersResponseDto,
+  toOrderResponse,
 } from './dto/order-response.dto';
 import { ShipOrderDto } from './dto/ship-order.dto';
 import { OrdersService } from './orders.service';
@@ -52,7 +53,7 @@ export class AdminOrdersController {
       body.trackingCode ?? null,
     );
     this.audit(req, order.id, 'shipped');
-    return order;
+    return toOrderResponse(order);
   }
 
   @Post(':id/complete')
@@ -63,7 +64,7 @@ export class AdminOrdersController {
   ): Promise<OrderResponseDto> {
     const order = await this.ordersService.completeOrder(params.id);
     this.audit(req, order.id, 'completed');
-    return order;
+    return toOrderResponse(order);
   }
 
   @Post(':id/cancel')
@@ -74,7 +75,7 @@ export class AdminOrdersController {
   ): Promise<OrderResponseDto> {
     const order = await this.ordersService.cancelOrderAsAdmin(params.id);
     this.audit(req, order.id, 'cancelled');
-    return order;
+    return toOrderResponse(order);
   }
 
   @Post(':id/mark-refunded')
@@ -85,7 +86,7 @@ export class AdminOrdersController {
   ): Promise<OrderResponseDto> {
     const order = await this.ordersService.markOrderRefunded(params.id);
     this.audit(req, order.id, 'marked as refunded');
-    return order;
+    return toOrderResponse(order);
   }
 
   // Ids only: no customer names, addresses or phone numbers are logged.

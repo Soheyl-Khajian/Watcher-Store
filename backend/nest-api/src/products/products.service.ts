@@ -30,9 +30,7 @@ export class ProductsService {
         : product.price;
 
     if (!isTomanAmount(currentPrice) || currentPrice === 0) {
-      throw new BadGatewayException(
-        `قیمت محصول با شناسه ${product.id} نامعتبر است.`,
-      );
+      throw new BadGatewayException('قیمت یکی از محصولات نامعتبر است.');
     }
 
     return currentPrice;
@@ -40,7 +38,9 @@ export class ProductsService {
 
   getAvailableStock(product: ProductDto): number {
     if (product.status !== 'published') {
-      throw new NotFoundException(`محصول با شناسه ${product.id} یافت نشد.`);
+      throw new NotFoundException(
+        'محصول مورد نظر یافت نشد یا دیگر در دسترس نیست.',
+      );
     }
 
     if (
@@ -48,9 +48,7 @@ export class ProductsService {
       !Number.isSafeInteger(product.stock) ||
       product.stock < 0
     ) {
-      throw new BadGatewayException(
-        `موجودی محصول با شناسه ${product.id} نامعتبر است.`,
-      );
+      throw new BadGatewayException('موجودی یکی از محصولات نامعتبر است.');
     }
 
     return product.stock;

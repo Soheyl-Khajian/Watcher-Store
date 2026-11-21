@@ -20,6 +20,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import {
   OrderResponseDto,
   PaginatedOrdersResponseDto,
+  toOrderResponse,
 } from './dto/order-response.dto';
 import { OrdersQueryDto } from './dto/orders-query.dto';
 import { OrderIdParamDto } from './dto/order-id-param.dto';
@@ -43,14 +44,14 @@ export class OrdersController {
     @Body() body: CreateOrderDto,
   ): Promise<OrderResponseDto> {
     if (!checkoutKey || !isUUID(checkoutKey, '4')) {
-      throw new BadRequestException('Idempotency-Key must be a valid UUID v4.');
+      throw new BadRequestException(
+        'شناسه یکتای درخواست (Idempotency-Key) ارسال نشده یا معتبر نیست.',
+      );
     }
 
-    return this.ordersService.createOrder(
-      req.user.userId,
-      checkoutKey,
-      body.shipping,
-    );
+    return this.ordersService
+      .createOrder(req.user.userId, checkoutKey, body.shipping)
+      .then(toOrderResponse);
   }
 
   // The customer's order history, newest first, a page at a time.
@@ -71,7 +72,9 @@ export class OrdersController {
     @Request() req: AuthenticatedRequest,
     @Param() params: OrderIdParamDto,
   ): Promise<OrderResponseDto> {
-    return this.ordersService.findOne(params.id, req.user.userId);
+    return this.ordersService
+      .findOne(params.id, req.user.userId)
+      .then(toOrderResponse);
   }
 
   @Post(':id/cancel')
@@ -80,6 +83,8 @@ export class OrdersController {
     @Request() req: AuthenticatedRequest,
     @Param() params: OrderIdParamDto,
   ): Promise<OrderResponseDto> {
-    return this.ordersService.cancelOwnPendingOrder(params.id, req.user.userId);
+    return this.ordersService
+      .cancelOwnPendingOrder(params.id, req.user.userId)
+      .then(toOrderResponse);
   }
 }

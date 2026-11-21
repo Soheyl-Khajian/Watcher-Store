@@ -3,6 +3,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { ErrorResponseFilter } from './common/http/error-response.filter';
 import { env } from './env';
 
 // Request bodies are small JSON documents (login, cart lines, shipping
@@ -27,6 +28,9 @@ export function configureApp(app: NestExpressApplication): void {
     origin: env.FRONTEND_URL,
     methods: 'GET,HEAD,POST,PATCH,DELETE',
   });
+
+  // One error shape for every response, with Persian messages.
+  app.useGlobalFilters(new ErrorResponseFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
