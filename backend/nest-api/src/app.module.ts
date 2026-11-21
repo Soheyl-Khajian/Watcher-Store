@@ -1,6 +1,5 @@
 // backend/nest-api/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmOptions } from './database/typeorm.options';
 import { AppController } from './app.controller';
@@ -12,7 +11,6 @@ import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       ...typeOrmOptions,
       // Apply pending migrations on boot so a fresh clone or container is

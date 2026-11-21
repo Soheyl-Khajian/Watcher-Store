@@ -74,4 +74,63 @@ describe('parseEnv', () => {
     ).toThrow();
     expect(() => parseEnv({ ...validEnv, FRONTEND_URL: undefined })).toThrow();
   });
+
+  it('defaults the token lifetime to 60 minutes and validates it', () => {
+    expect(parseEnv(validEnv).JWT_EXPIRES_IN).toBe('60m');
+    expect(
+      parseEnv({ ...validEnv, JWT_EXPIRES_IN: '12h' }).JWT_EXPIRES_IN,
+    ).toBe('12h');
+    for (const JWT_EXPIRES_IN of ['forever', '60', '-5m', '1.5h']) {
+      expect(() => parseEnv({ ...validEnv, JWT_EXPIRES_IN })).toThrow(
+        /JWT_EXPIRES_IN/,
+      );
+    }
+  });
+
+  it('rejects an unknown NODE_ENV', () => {
+    expect(() => parseEnv({ ...validEnv, NODE_ENV: 'prod' })).toThrow(
+      /NODE_ENV/,
+    );
+  });
+
+  it('uses the local default database password outside production', () => {
+    expect(parseEnv(validEnv).POSTGRES_PASSWORD).toBe('postgres');
+  });
+
+  describe('in production', () => {
+    const production: NodeJS.ProcessEnv = {
+      ...validEnv,
+      NODE_ENV: 'production',
+      JWT_SECRET: 'a3f1c9e07b2d4e8f9a6c5b1d0e7f2a4c8b9d6e3f1a0c7b5d',
+      POSTGRES_PASSWORD: 'Str0ng-Db-Passw0rd',
+    };
+
+    it('accepts a complete configuration', () => {
+      expect(() => parseEnv(production)).not.toThrow();
+    });
+
+    it.each([
+      'replace-with-64-char-hex-secret-from-openssl-rand-hex-32',
+      'CHANGE_ME-CHANGE_ME-CHANGE_ME-CHANGE_ME',
+    ])('rejects the placeholder JWT secret %p', (JWT_SECRET) => {
+      expect(() => parseEnv({ ...production, JWT_SECRET })).toThrow(
+        /JWT_SECRET/,
+      );
+    });
+
+    it('requires an explicit database password', () => {
+      expect(() =>
+        parseEnv({ ...production, POSTGRES_PASSWORD: undefined }),
+      ).toThrow(/POSTGRES_PASSWORD/);
+    });
+
+    it.each(['postgres', 'password', 'changeme', ''])(
+      'rejects the weak database password %p',
+      (POSTGRES_PASSWORD) => {
+        expect(() => parseEnv({ ...production, POSTGRES_PASSWORD })).toThrow(
+          /POSTGRES_PASSWORD/,
+        );
+      },
+    );
+  });
 });
