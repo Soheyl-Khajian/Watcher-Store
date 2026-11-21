@@ -6,6 +6,26 @@ import { z } from 'zod';
 
 config({ path: join(__dirname, '../../../.env') });
 
+// Values copied from .env.example. A deployment still using one would sign
+// tokens with a publicly known secret.
+const PLACEHOLDER_SECRET = /replace[-_ ]?with|change[-_ ]?me|build[-_ ]?only/i;
+
+// Database passwords that appear in examples and default installs.
+const WEAK_DATABASE_PASSWORDS = new Set([
+  '',
+  'postgres',
+  'password',
+  'admin',
+  'root',
+  'secret',
+  'changeme',
+  'change_me',
+  '123456',
+]);
+
+// Used outside production only, matching the dev container's database.
+const LOCAL_DATABASE_PASSWORD = 'postgres';
+
 const envSchema = z
   .object({
     DATABASE_HOST: z.string().default('db'),
@@ -15,7 +35,8 @@ const envSchema = z
       .transform(Number)
       .pipe(z.number().int().positive()),
     POSTGRES_USER: z.string().default('postgres'),
-    POSTGRES_PASSWORD: z.string().default('postgres'),
+    // No default: production must set it explicitly (see below).
+    POSTGRES_PASSWORD: z.string().optional(),
     POSTGRES_DB: z.string().default('watcher_store'),
     NEST_SCHEMA: z
       .string()
@@ -30,8 +51,24 @@ const envSchema = z
       .default('3001')
       .transform(Number)
       .pipe(z.number().int().positive()),
-    JWT_SECRET: z.string().min(32),
+    JWT_SECRET: z
+      .string()
+      .min(
+        32,
+        'JWT_SECRET must be at least 32 characters. Generate one with: openssl rand -hex 32',
+      ),
+    // How long a login token stays valid, e.g. 60m, 12h, 7d.
+    JWT_EXPIRES_IN: z
+      .string()
+      .regex(/^[1-9]\d*[smhd]$/, 'JWT_EXPIRES_IN must look like 60m, 12h or 7d')
+      .default('60m'),
     PAYLOAD_INTERNAL_URL: z.string().url(),
+    // How long to wait for Payload before answering 503.
+    PAYLOAD_TIMEOUT_MS: z
+      .string()
+      .default('5000')
+      .transform(Number)
+      .pipe(z.number().int().min(100).max(60_000)),
     FRONTEND_URL: z.string().url(),
 
     // Unpaid orders older than this are cancelled automatically.
@@ -40,7 +77,52 @@ const envSchema = z
       .default('24')
       .transform(Number)
       .pipe(z.number().int().min(1).max(720)),
-    NODE_ENV: z.string().optional(),
+    // Requests per minute per client and route (all routes but /health).
+    RATE_LIMIT_PER_MINUTE: z
+      .string()
+      .default('120')
+      .transform(Number)
+      .pipe(z.number().int().min(1)),
+    // Login attempts per minute per client.
+    RATE_LIMIT_LOGIN_PER_MINUTE: z
+      .string()
+      .default('5')
+      .transform(Number)
+      .pipe(z.number().int().min(1)),
+    // Order attempts per minute per client.
+    RATE_LIMIT_ORDERS_PER_MINUTE: z
+      .string()
+      .default('10')
+      .transform(Number)
+      .pipe(z.number().int().min(1)),
+    // Which reverse proxies may set X-Forwarded-For, so rate limits apply to
+    // the real client: "false" (default, no proxy), a number of proxy hops
+    // such as "1", or addresses/subnets such as "loopback, 10.0.0.0/8".
+    // "true" (trust anyone) is refused: clients could pick their own IP.
+    TRUST_PROXY: z
+      .string()
+      .default('false')
+      .refine((value) => value.trim().toLowerCase() !== 'true', {
+        message:
+          'TRUST_PROXY=true would let clients choose their own IP; use a hop count or proxy addresses',
+      })
+      .transform((value): boolean | number | string => {
+        const trimmed = value.trim();
+        if (trimmed === 'false' || trimmed === '' || trimmed === '0') {
+          return false;
+        }
+        return /^\d+$/.test(trimmed) ? Number(trimmed) : trimmed;
+      }),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
+    NODE_ENV: z
+      .enum(['development', 'test', 'production'])
+      .default('development'),
+    // Apply pending migrations when the API starts. Default: on in
+    // development and tests, off in production, where the migrate job
+    // (node dist/database/migrate.js) runs them once before the API starts.
+    MIGRATIONS_RUN_ON_BOOT: z.enum(['true', 'false']).optional(),
 
     // Development-only. Enables the simulated payment flow, which trusts the
     // client-supplied status. Anything other than 'true' or 'false' fails
@@ -50,14 +132,53 @@ const envSchema = z
       .default('false')
       .transform((value) => value === 'true'),
   })
-  .refine(
-    (value) => !(value.NODE_ENV === 'production' && value.ALLOW_MOCK_PAYMENT),
-    {
-      message:
-        'ALLOW_MOCK_PAYMENT must not be enabled when NODE_ENV=production.',
-      path: ['ALLOW_MOCK_PAYMENT'],
-    },
-  );
+  .superRefine((value, ctx) => {
+    if (value.NODE_ENV !== 'production') {
+      return;
+    }
+
+    if (value.ALLOW_MOCK_PAYMENT) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ALLOW_MOCK_PAYMENT'],
+        message:
+          'ALLOW_MOCK_PAYMENT must not be enabled when NODE_ENV=production.',
+      });
+    }
+
+    if (PLACEHOLDER_SECRET.test(value.JWT_SECRET)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['JWT_SECRET'],
+        message:
+          'JWT_SECRET is still a placeholder. Generate one with: openssl rand -hex 32',
+      });
+    }
+
+    const password = value.POSTGRES_PASSWORD;
+    if (password === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['POSTGRES_PASSWORD'],
+        message: 'POSTGRES_PASSWORD must be set in production.',
+      });
+    } else if (WEAK_DATABASE_PASSWORDS.has(password.toLowerCase())) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['POSTGRES_PASSWORD'],
+        message:
+          'POSTGRES_PASSWORD is empty or a default password. Use a strong one in production.',
+      });
+    }
+  })
+  .transform((value) => ({
+    ...value,
+    POSTGRES_PASSWORD: value.POSTGRES_PASSWORD ?? LOCAL_DATABASE_PASSWORD,
+    MIGRATIONS_RUN_ON_BOOT:
+      value.MIGRATIONS_RUN_ON_BOOT === undefined
+        ? value.NODE_ENV !== 'production'
+        : value.MIGRATIONS_RUN_ON_BOOT === 'true',
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 

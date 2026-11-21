@@ -1,4 +1,5 @@
 import { BadGatewayException, NotFoundException } from '@nestjs/common';
+import type { PayloadClient } from '../payload/payload-client';
 import { ProductDto } from './dto/product.dto';
 import { ProductsService } from './products.service';
 
@@ -16,7 +17,8 @@ function product(overrides: Partial<ProductDto> = {}): ProductDto {
 }
 
 describe('ProductsService pricing and stock rules', () => {
-  const service = new ProductsService();
+  // These rules do not call Payload.
+  const service = new ProductsService({} as PayloadClient);
 
   describe('getCurrentPrice', () => {
     it('uses the regular price when the product is not on sale', () => {

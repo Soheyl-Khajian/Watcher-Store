@@ -212,16 +212,19 @@ export async function verifyPayment(
   }
 }
 
+// The most recent orders (the API pages order history; the profile page
+// shows the latest 50 for now).
 export async function fetchUserOrders(token: string) {
   try {
-    const res = await fetch(`${NESTJS_API_URL}/orders`, {
+    const res = await fetch(`${NESTJS_API_URL}/orders?limit=50`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
     });
     if (!res.ok) return null;
-    return await res.json();
+    const page = await res.json();
+    return Array.isArray(page?.items) ? page.items : null;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to fetch user orders:', error);

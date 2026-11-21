@@ -2,8 +2,10 @@
 
 import type { ValueTransformer } from 'typeorm';
 
-// numeric(10,2) permits at most eight digits before the decimal point.
-export const MAX_TOMAN_AMOUNT = 99_999_999;
+// Amounts are whole toman stored as numeric(14,0): at most 14 digits, well
+// within JavaScript's safe integers. Payload's product price limit
+// (payload-cms productValidation.ts) must match.
+export const MAX_TOMAN_AMOUNT = 99_999_999_999_999;
 
 export function isTomanAmount(value: unknown): value is number {
   return (

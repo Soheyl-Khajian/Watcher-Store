@@ -105,6 +105,10 @@ await check('nest: health', async () => {
   expectStatus(await request(`${NEST}/health`), 200);
 });
 
+await check('nest: ready (database and Payload reachable)', async () => {
+  expectStatus(await request(`${NEST}/health/ready`), 200);
+});
+
 await check('frontend: home page renders', async () => {
   const result = await request(`${FRONTEND}/`);
   expectStatus(result, 200);

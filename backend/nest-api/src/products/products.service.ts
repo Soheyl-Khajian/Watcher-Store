@@ -9,28 +9,16 @@ import {
 } from '@nestjs/common';
 import { isTomanAmount } from '../common/money/toman';
 import { env } from '../env';
+import { PayloadClient } from '../payload/payload-client';
 import { ProductDto } from './dto/product.dto';
 
 @Injectable()
 export class ProductsService {
-  private readonly payloadApiUrl = env.PAYLOAD_INTERNAL_URL;
+  constructor(private readonly payload: PayloadClient) {}
 
-  async findOne(id: string | number): Promise<ProductDto> {
-    const response = await fetch(
-      `${this.payloadApiUrl}/products/${id}?depth=0`,
-    );
-
-    // Treat inaccessible drafts like nonexistent products so checkout does
-    // not disclose unpublished product records.
-    if (response.status === 403 || response.status === 404) {
-      throw new NotFoundException(`محصول با شناسه ${id} یافت نشد.`);
-    }
-
-    if (!response.ok) {
-      throw new BadGatewayException('امکان دریافت اطلاعات محصول وجود ندارد.');
-    }
-
-    return response.json();
+  // Drafts and missing products are 404; Payload outages are 503.
+  findOne(id: string | number): Promise<ProductDto> {
+    return this.payload.findProduct(id);
   }
 
   getCurrentPrice(product: ProductDto): number {
@@ -42,9 +30,7 @@ export class ProductsService {
         : product.price;
 
     if (!isTomanAmount(currentPrice) || currentPrice === 0) {
-      throw new BadGatewayException(
-        `قیمت محصول با شناسه ${product.id} نامعتبر است.`,
-      );
+      throw new BadGatewayException('قیمت یکی از محصولات نامعتبر است.');
     }
 
     return currentPrice;
@@ -52,7 +38,9 @@ export class ProductsService {
 
   getAvailableStock(product: ProductDto): number {
     if (product.status !== 'published') {
-      throw new NotFoundException(`محصول با شناسه ${product.id} یافت نشد.`);
+      throw new NotFoundException(
+        'محصول مورد نظر یافت نشد یا دیگر در دسترس نیست.',
+      );
     }
 
     if (
@@ -60,9 +48,7 @@ export class ProductsService {
       !Number.isSafeInteger(product.stock) ||
       product.stock < 0
     ) {
-      throw new BadGatewayException(
-        `موجودی محصول با شناسه ${product.id} نامعتبر است.`,
-      );
+      throw new BadGatewayException('موجودی یکی از محصولات نامعتبر است.');
     }
 
     return product.stock;

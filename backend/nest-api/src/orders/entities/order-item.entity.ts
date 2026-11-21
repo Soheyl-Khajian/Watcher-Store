@@ -17,8 +17,8 @@ export class OrderItem {
 
   @Column({
     type: 'decimal',
-    precision: 10,
-    scale: 2,
+    precision: 14,
+    scale: 0,
     transformer: tomanColumnTransformer,
   })
   price!: number;

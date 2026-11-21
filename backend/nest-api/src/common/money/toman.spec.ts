@@ -5,6 +5,11 @@ import {
 } from './toman';
 
 describe('isTomanAmount', () => {
+  it('allows large orders above the former 99,999,999 cap', () => {
+    expect(MAX_TOMAN_AMOUNT).toBe(99_999_999_999_999);
+    expect(isTomanAmount(100_000_000)).toBe(true);
+  });
+
   it.each([0, 1, 1_500_000, MAX_TOMAN_AMOUNT])('accepts %p', (value) => {
     expect(isTomanAmount(value)).toBe(true);
   });

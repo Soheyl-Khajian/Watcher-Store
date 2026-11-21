@@ -119,6 +119,56 @@ export class CartService {
     });
   }
 
+  // Sets the quantity of a line already in the cart.
+  async setQuantity(
+    userId: number,
+    productId: string,
+    quantity: number,
+  ): Promise<Cart> {
+    // As in addToCart: look the product up before taking the cart lock.
+    const product = await this.productsService.findOne(productId);
+    this.productsService.getCurrentPrice(product);
+    const availableStock = this.productsService.getAvailableStock(product);
+
+    if (quantity > availableStock) {
+      throw new ConflictException(
+        availableStock === 0
+          ? 'این محصول در حال حاضر موجود نیست.'
+          : `حداکثر ${availableStock} عدد از این محصول قابل سفارش است.`,
+      );
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const cartRepository = manager.getRepository(Cart);
+      const cartItemRepository = manager.getRepository(CartItem);
+      const cart = await this.getLockedCart(manager, userId);
+
+      const item = await cartItemRepository.findOne({
+        where: { cart: { id: cart.id }, productId },
+      });
+
+      if (!item) {
+        throw new NotFoundException('آیتم مورد نظر در سبد خرید یافت نشد.');
+      }
+
+      item.quantity = quantity;
+      await cartItemRepository.save(item);
+
+      const updatedCart = await cartRepository.findOne({
+        where: { id: cart.id },
+        relations: ['items'],
+      });
+
+      if (!updatedCart) {
+        throw new InternalServerErrorException(
+          'امکان بارگذاری سبد خرید وجود ندارد.',
+        );
+      }
+
+      return updatedCart;
+    });
+  }
+
   async getCart(userId: number): Promise<Cart> {
     await this.createCartIfMissing(this.cartRepository, userId);
 

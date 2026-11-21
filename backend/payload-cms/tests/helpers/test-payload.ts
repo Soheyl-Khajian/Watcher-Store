@@ -99,9 +99,6 @@ export async function createTestPayload(): Promise<TestPayload> {
     });
 
     config = await (await import('../../src/payload.config')).default;
-    // Payload regenerates src/payload-types.ts on every non-production start;
-    // tests must never write to the source tree.
-    config.typescript.autoGenerate = false;
     for (const collection of config.collections) {
       if (collection.upload) {
         collection.upload.staticDir = mediaDir;

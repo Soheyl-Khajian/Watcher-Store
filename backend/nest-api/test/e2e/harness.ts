@@ -12,6 +12,7 @@
 
 import { randomBytes } from 'crypto';
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
@@ -37,6 +38,10 @@ export interface TestApp {
   }): Promise<FixtureUser>;
   createProduct(input: FixtureProductInput): Promise<number>;
   login(user: FixtureUser): Promise<string>;
+  // The JWT secret this app signs with, for tests that forge tokens.
+  jwtSecret: string;
+  // The fake Payload; set .mode to simulate an outage.
+  payload: PayloadStub;
   close(): Promise<void>;
 }
 
@@ -70,7 +75,8 @@ async function boot(
   adminUrl: URL,
   databaseName: string,
   db: Pool,
-  started: { stub?: PayloadStub; app?: INestApplication },
+  started: { stub?: PayloadStub; app?: NestExpressApplication },
+  envOverrides: Record<string, string>,
 ): Promise<void> {
   await createPayloadFixtureSchema(db);
   started.stub = await startPayloadStub(db);
@@ -94,6 +100,13 @@ async function boot(
     // The simulated payment flow is the only payment flow until a real
     // gateway exists; tests exercise it explicitly.
     ALLOW_MOCK_PAYMENT: 'true',
+    // Generous limits so suites can log in and order freely; the rate
+    // limiting suite sets the production values through envOverrides.
+    LOG_LEVEL: 'silent',
+    RATE_LIMIT_PER_MINUTE: '10000',
+    RATE_LIMIT_LOGIN_PER_MINUTE: '10000',
+    RATE_LIMIT_ORDERS_PER_MINUTE: '10000',
+    ...envOverrides,
   });
 
   const { ensureSchema } = await import('../../src/database/ensure-schema');
@@ -105,12 +118,18 @@ async function boot(
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
-  started.app = moduleRef.createNestApplication({ logger: ['error'] });
+  started.app = moduleRef.createNestApplication<NestExpressApplication>({
+    logger: ['error'],
+    bodyParser: false,
+  });
   configureApp(started.app);
   await started.app.init();
 }
 
-export async function createTestApp(): Promise<TestApp> {
+// envOverrides replaces individual settings for this test file's app.
+export async function createTestApp(
+  envOverrides: Record<string, string> = {},
+): Promise<TestApp> {
   const adminUrl = new URL(process.env.TEST_DATABASE_URL ?? DEFAULT_ADMIN_URL);
   const databaseName = `nest_e2e_${process.pid}_${randomBytes(4).toString('hex')}`;
 
@@ -121,7 +140,7 @@ export async function createTestApp(): Promise<TestApp> {
   testUrl.pathname = `/${databaseName}`;
   const db = new Pool({ connectionString: testUrl.toString(), max: 4 });
 
-  const started: { stub?: PayloadStub; app?: INestApplication } = {};
+  const started: { stub?: PayloadStub; app?: NestExpressApplication } = {};
 
   const close = async () => {
     // TypeORM's pool resolves end() before Postgres has finished closing its
@@ -145,7 +164,7 @@ export async function createTestApp(): Promise<TestApp> {
   };
 
   try {
-    await boot(adminUrl, databaseName, db, started);
+    await boot(adminUrl, databaseName, db, started, envOverrides);
   } catch (error) {
     // Do not leave the database behind when the application fails to start.
     await close().catch(() => undefined);
@@ -203,5 +222,15 @@ export async function createTestApp(): Promise<TestApp> {
     return response.body.access_token as string;
   };
 
-  return { app, http, db, createUser, createProduct, login, close };
+  return {
+    app,
+    http,
+    db,
+    createUser,
+    createProduct,
+    login,
+    jwtSecret: process.env.JWT_SECRET as string,
+    payload: stub,
+    close,
+  };
 }
