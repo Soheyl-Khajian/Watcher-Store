@@ -246,4 +246,49 @@ describe('Orders and payment (e2e)', () => {
       .set(stranger)
       .expect(404);
   });
+
+  // Products are looked up in Payload before the cart is locked, so a slow
+  // Payload never holds the customer's cart (or a database connection).
+  describe('while Payload is slow', () => {
+    afterEach(() => {
+      t.payload.mode = 'normal';
+    });
+
+    it('does not block other changes to the cart', async () => {
+      const headers = await customer('slow-payload@example.test');
+      const first = await t.createProduct({ price: 100_000 });
+      const second = await t.createProduct({ price: 200_000 });
+      await addToCart(headers, first, 1);
+      await addToCart(headers, second, 1);
+
+      t.payload.mode = 'slow';
+      const ordering = createOrder(headers).then((response) => response);
+      // Let the order request reach Payload.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const started = Date.now();
+      await t.http().delete(`/cart/${second}`).set(headers).expect(200);
+      expect(Date.now() - started).toBeLessThan(1000);
+
+      // The cart changed after its products were looked up.
+      const order = await ordering;
+      expect(order.status).toBe(409);
+
+      t.payload.mode = 'normal';
+      const cart = await t.http().get('/cart').set(headers).expect(200);
+      expect(cart.body.items).toEqual([
+        expect.objectContaining({ productId: String(first) }),
+      ]);
+    });
+
+    it('still places the order when the cart did not change', async () => {
+      const headers = await customer('slow-unchanged@example.test');
+      await addToCart(headers, await t.createProduct({ price: 300_000 }), 2);
+
+      t.payload.mode = 'slow';
+      const order = await createOrder(headers).expect(201);
+
+      expect(order.body).toMatchObject({ status: 'pending', total: 600_000 });
+    });
+  });
 });

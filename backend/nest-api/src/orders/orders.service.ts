@@ -18,6 +18,7 @@ import {
 } from 'typeorm';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
+import type { ProductDto } from '../products/dto/product.dto';
 import { ProductsService } from '../products/products.service';
 import { OrderItem } from './entities/order-item.entity';
 import {
@@ -47,6 +48,23 @@ function isPostgresUniqueViolation(error: unknown): boolean {
   );
 }
 
+interface CartLine {
+  productId: string;
+  quantity: number;
+}
+
+// True when the locked cart still has exactly the lines whose products were
+// looked up before the lock.
+function sameCartContents(snapshot: CartLine[], items: CartLine[]): boolean {
+  const key = (lines: CartLine[]) =>
+    lines
+      .map((line) => `${line.productId}:${line.quantity}`)
+      .sort()
+      .join(',');
+
+  return key(snapshot) === key(items);
+}
+
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -63,6 +81,22 @@ export class OrdersService {
     checkoutKey: string,
     shipping: ShippingDetailsDto,
   ): Promise<Order> {
+    const existing = await this.findOrderByCheckoutKey(
+      this.orderRepository,
+      userId,
+      checkoutKey,
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    // Look the products up in Payload before taking the cart lock, so a slow
+    // Payload never holds the customer's cart or a database connection. The
+    // cart is checked again under the lock.
+    const snapshot = await this.readCartSnapshot(userId);
+    const products = await this.fetchProducts(snapshot);
+
     try {
       return await this.dataSource.transaction(async (manager) => {
         const cartRepository = manager.getRepository(Cart);
@@ -116,11 +150,17 @@ export class OrdersService {
           throw new BadRequestException('سبد خرید شما خالی است.');
         }
 
+        if (!sameCartContents(snapshot, cartItems)) {
+          throw new ConflictException(
+            'سبد خرید شما در حین ثبت سفارش تغییر کرد. لطفاً دوباره تلاش کنید.',
+          );
+        }
+
         const orderItems: OrderItem[] = [];
         let total = 0;
 
         for (const item of cartItems) {
-          const product = await this.productsService.findOne(item.productId);
+          const product = products.get(item.productId) as ProductDto;
           const currentPrice = this.productsService.getCurrentPrice(product);
           const availableStock =
             this.productsService.getAvailableStock(product);
@@ -202,6 +242,31 @@ export class OrdersService {
 
       throw error;
     }
+  }
+
+  // The cart lines as they are now, read without a lock.
+  private async readCartSnapshot(userId: number): Promise<CartLine[]> {
+    const items = await this.dataSource.getRepository(CartItem).find({
+      where: { cart: { userId } },
+    });
+
+    if (items.length === 0) {
+      throw new BadRequestException('سبد خرید شما خالی است.');
+    }
+
+    return items.map(({ productId, quantity }) => ({ productId, quantity }));
+  }
+
+  // Looks up every product of the cart in Payload, in parallel.
+  private async fetchProducts(
+    lines: CartLine[],
+  ): Promise<Map<string, ProductDto>> {
+    const ids = [...new Set(lines.map((line) => line.productId))];
+    const products = await Promise.all(
+      ids.map((id) => this.productsService.findOne(id)),
+    );
+
+    return new Map(ids.map((id, index) => [id, products[index]]));
   }
 
   private findOrderByCheckoutKey(
