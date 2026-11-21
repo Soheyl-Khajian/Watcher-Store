@@ -6,7 +6,7 @@
 
 // Keep in sync with MAX_TOMAN_AMOUNT in nest-api/src/common/money/toman.ts,
 // the largest amount checkout can store.
-export const MAX_PRICE = 99_999_999;
+export const MAX_PRICE = 99_999_999_999_999;
 
 type Validation = true | string;
 

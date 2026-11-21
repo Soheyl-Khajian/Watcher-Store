@@ -58,8 +58,8 @@ export class Order {
 
   @Column({
     type: 'decimal',
-    precision: 10,
-    scale: 2,
+    precision: 14,
+    scale: 0,
     transformer: tomanColumnTransformer,
   })
   total!: number;
@@ -100,6 +100,6 @@ export class Order {
   @Column({ type: 'timestamptz', nullable: true })
   cancelledAt!: Date | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 }

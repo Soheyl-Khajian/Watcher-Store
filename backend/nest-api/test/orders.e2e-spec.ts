@@ -291,4 +291,67 @@ describe('Orders and payment (e2e)', () => {
       expect(order.body).toMatchObject({ status: 'pending', total: 600_000 });
     });
   });
+
+  it('accepts large orders above the former 99,999,999 toman cap', async () => {
+    const headers = await customer('large-order@example.test');
+    const productId = await t.createProduct({ price: 150_000_000, stock: 3 });
+    await addToCart(headers, productId, 2);
+
+    const order = await createOrder(headers).expect(201);
+
+    expect(order.body.total).toBe(300_000_000);
+    expect(order.body.items[0].price).toBe(150_000_000);
+  });
+
+  it('stores amounts as whole toman and order times with a time zone', async () => {
+    const { rows } = await t.db.query(`
+      SELECT table_name, column_name, data_type, numeric_precision, numeric_scale
+      FROM information_schema.columns
+      WHERE table_schema = 'nest_schema'
+        AND (table_name, column_name) IN
+          (('order', 'total'), ('order_item', 'price'), ('order', 'createdAt'))
+      ORDER BY table_name, column_name`);
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        column_name: 'createdAt',
+        data_type: 'timestamp with time zone',
+      }),
+      expect.objectContaining({
+        column_name: 'total',
+        numeric_precision: 14,
+        numeric_scale: 0,
+      }),
+      expect.objectContaining({
+        column_name: 'price',
+        numeric_precision: 14,
+        numeric_scale: 0,
+      }),
+    ]);
+  });
+
+  it('expires unpaid orders older than the time limit, and only those', async () => {
+    const headers = await customer('expiry@example.test');
+    const productId = await t.createProduct({ price: 100_000 });
+    await addToCart(headers, productId, 1);
+    const stale = await createOrder(headers).expect(201);
+    await addToCart(headers, productId, 1);
+    const fresh = await createOrder(headers).expect(201);
+
+    // PENDING_ORDER_TTL_HOURS is 24 in the test app.
+    await t.db.query(
+      `UPDATE nest_schema."order" SET "createdAt" = now() - interval '25 hours' WHERE id = $1`,
+      [stale.body.id],
+    );
+
+    const { OrderExpiryService } =
+      await import('../src/orders/order-expiry.service');
+    await t.app.get(OrderExpiryService).expireStalePendingOrders();
+
+    const orders = await t.http().get('/orders').set(headers).expect(200);
+    const statusOf = (id: number) =>
+      orders.body.find((order: { id: number }) => order.id === id).status;
+    expect(statusOf(stale.body.id)).toBe('cancelled');
+    expect(statusOf(fresh.body.id)).toBe('pending');
+  });
 });
