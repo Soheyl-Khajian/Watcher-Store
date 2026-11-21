@@ -249,8 +249,13 @@ const envSchema = z
 export type Env = z.infer<typeof envSchema>;
 
 // Exported separately so the validation rules can be unit-tested.
+// An empty value (KEY= in a .env file, or ${KEY:-} in docker compose)
+// means "not set", so defaults and "required" checks apply to it.
 export function parseEnv(source: NodeJS.ProcessEnv): Env {
-  return envSchema.parse(source);
+  const set = Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== ''),
+  );
+  return envSchema.parse(set);
 }
 
 export const env = parseEnv(process.env);

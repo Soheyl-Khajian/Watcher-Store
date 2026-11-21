@@ -111,13 +111,19 @@ describe('parseEnv', () => {
 
   // Schema names are interpolated into SQL, so anything that is not a bare
   // identifier must be rejected.
-  it.each(['public"; DROP TABLE x; --', 'Nest', '1schema', 'a-b', ''])(
+  it.each(['public"; DROP TABLE x; --', 'Nest', '1schema', 'a-b', ' '])(
     'rejects the schema name %p',
     (schema) => {
       expect(() => parseEnv({ ...validEnv, NEST_SCHEMA: schema })).toThrow();
       expect(() => parseEnv({ ...validEnv, PAYLOAD_SCHEMA: schema })).toThrow();
     },
   );
+
+  it('uses the default schema names when they are empty', () => {
+    const env = parseEnv({ ...validEnv, NEST_SCHEMA: '', PAYLOAD_SCHEMA: '' });
+    expect(env.NEST_SCHEMA).toBe('nest_schema');
+    expect(env.PAYLOAD_SCHEMA).toBe('payload_schema');
+  });
 
   it.each(['0', '721', '1.5', 'abc'])(
     'rejects PENDING_ORDER_TTL_HOURS=%p',
@@ -219,6 +225,28 @@ describe('parseEnv', () => {
         parseEnv({ ...validEnv, MIGRATIONS_RUN_ON_BOOT: 'yes' }),
       ).toThrow(/MIGRATIONS_RUN_ON_BOOT/);
     });
+  });
+
+  // docker compose passes ${KEY:-} as an empty string.
+  it('treats empty values as unset', () => {
+    const env = parseEnv({
+      ...validEnv,
+      PAYMENT_GATEWAY: '',
+      ZARINPAL_MERCHANT_ID: '',
+      PAYMENT_CALLBACK_URL: '',
+      PAYMENT_TIMEOUT_MS: '',
+    });
+
+    expect(env.PAYMENT_GATEWAY).toBe('none');
+    expect(env.ZARINPAL_MERCHANT_ID).toBeUndefined();
+    expect(env.PAYMENT_TIMEOUT_MS).toBe(10_000);
+    expect(() =>
+      parseEnv({
+        ...validEnv,
+        PAYMENT_GATEWAY: 'zarinpal',
+        ZARINPAL_MERCHANT_ID: '',
+      }),
+    ).toThrow(/ZARINPAL_MERCHANT_ID/);
   });
 
   it('rejects an unknown NODE_ENV', () => {
