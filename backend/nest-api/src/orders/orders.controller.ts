@@ -19,12 +19,18 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
 import { OrderIdParamDto } from './dto/order-id-param.dto';
 import { OrdersService } from './orders.service';
+import { Throttle } from '@nestjs/throttler';
+import { env } from '../env';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  // Each order fetches every cart product from Payload.
+  @Throttle({
+    default: { limit: env.RATE_LIMIT_ORDERS_PER_MINUTE, ttl: 60_000 },
+  })
   @Post()
   createOrder(
     @Request() req: AuthenticatedRequest,

@@ -1,7 +1,10 @@
 // backend/nest-api/src/app.module.ts
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmOptions } from './database/typeorm.options';
+import { env } from './env';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
@@ -11,6 +14,11 @@ import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
+    // Per client IP and per route. In-memory counters: with several API
+    // instances, move them to a shared store.
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE },
+    ]),
     TypeOrmModule.forRoot({
       ...typeOrmOptions,
       // Apply pending migrations on boot so a fresh clone or container is
@@ -25,5 +33,6 @@ import { ProductsModule } from './products/products.module';
     ProductsModule,
   ],
   controllers: [AppController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

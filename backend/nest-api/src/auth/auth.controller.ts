@@ -14,6 +14,8 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
+import { Throttle } from '@nestjs/throttler';
+import { env } from '../env';
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +27,11 @@ export class AuthController {
     return req.user;
   }
 
+  // Each attempt also costs Payload a password hash; Payload additionally
+  // locks an account after 5 failed attempts.
+  @Throttle({
+    default: { limit: env.RATE_LIMIT_LOGIN_PER_MINUTE, ttl: 60_000 },
+  })
   @HttpCode(200)
   @Post('login')
   async login(@Body() loginDto: LoginUserDto) {

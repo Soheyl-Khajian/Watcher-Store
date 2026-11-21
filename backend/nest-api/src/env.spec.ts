@@ -87,6 +87,43 @@ describe('parseEnv', () => {
     }
   });
 
+  describe('TRUST_PROXY', () => {
+    it('trusts no proxy by default', () => {
+      expect(parseEnv(validEnv).TRUST_PROXY).toBe(false);
+    });
+
+    it.each([
+      ['1', 1],
+      ['2', 2],
+      ['0', false],
+      ['false', false],
+      ['loopback, 10.0.0.0/8', 'loopback, 10.0.0.0/8'],
+    ])('reads %p', (TRUST_PROXY, expected) => {
+      expect(parseEnv({ ...validEnv, TRUST_PROXY }).TRUST_PROXY).toBe(expected);
+    });
+
+    // Trusting every proxy would let clients choose their own IP and escape
+    // the rate limits.
+    it.each(['true', 'TRUE'])('refuses %p', (TRUST_PROXY) => {
+      expect(() => parseEnv({ ...validEnv, TRUST_PROXY })).toThrow(
+        /TRUST_PROXY/,
+      );
+    });
+  });
+
+  it('defaults the rate limits and rejects invalid ones', () => {
+    expect(parseEnv(validEnv)).toMatchObject({
+      RATE_LIMIT_PER_MINUTE: 120,
+      RATE_LIMIT_LOGIN_PER_MINUTE: 5,
+      RATE_LIMIT_ORDERS_PER_MINUTE: 10,
+    });
+    for (const value of ['0', '-1', '2.5', 'lots']) {
+      expect(() =>
+        parseEnv({ ...validEnv, RATE_LIMIT_LOGIN_PER_MINUTE: value }),
+      ).toThrow(/RATE_LIMIT_LOGIN_PER_MINUTE/);
+    }
+  });
+
   it('rejects an unknown NODE_ENV', () => {
     expect(() => parseEnv({ ...validEnv, NODE_ENV: 'prod' })).toThrow(
       /NODE_ENV/,

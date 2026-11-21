@@ -71,6 +71,42 @@ const envSchema = z
       .default('24')
       .transform(Number)
       .pipe(z.number().int().min(1).max(720)),
+    // Requests per minute per client and route (all routes but /health).
+    RATE_LIMIT_PER_MINUTE: z
+      .string()
+      .default('120')
+      .transform(Number)
+      .pipe(z.number().int().min(1)),
+    // Login attempts per minute per client.
+    RATE_LIMIT_LOGIN_PER_MINUTE: z
+      .string()
+      .default('5')
+      .transform(Number)
+      .pipe(z.number().int().min(1)),
+    // Order attempts per minute per client.
+    RATE_LIMIT_ORDERS_PER_MINUTE: z
+      .string()
+      .default('10')
+      .transform(Number)
+      .pipe(z.number().int().min(1)),
+    // Which reverse proxies may set X-Forwarded-For, so rate limits apply to
+    // the real client: "false" (default, no proxy), a number of proxy hops
+    // such as "1", or addresses/subnets such as "loopback, 10.0.0.0/8".
+    // "true" (trust anyone) is refused: clients could pick their own IP.
+    TRUST_PROXY: z
+      .string()
+      .default('false')
+      .refine((value) => value.trim().toLowerCase() !== 'true', {
+        message:
+          'TRUST_PROXY=true would let clients choose their own IP; use a hop count or proxy addresses',
+      })
+      .transform((value): boolean | number | string => {
+        const trimmed = value.trim();
+        if (trimmed === 'false' || trimmed === '' || trimmed === '0') {
+          return false;
+        }
+        return /^\d+$/.test(trimmed) ? Number(trimmed) : trimmed;
+      }),
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
