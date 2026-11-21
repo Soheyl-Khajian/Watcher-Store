@@ -72,7 +72,11 @@ export async function startPayloadStub(pool: Pool): Promise<PayloadStub> {
       case 'hang-up':
         return req.socket.destroy();
       case 'slow':
-        await new Promise((resolve) => setTimeout(resolve, SLOW_RESPONSE_MS));
+        // unref: a delay still pending when the suite ends must not keep
+        // the test worker alive.
+        await new Promise((resolve) =>
+          setTimeout(resolve, SLOW_RESPONSE_MS).unref(),
+        );
         break;
       default:
         break;

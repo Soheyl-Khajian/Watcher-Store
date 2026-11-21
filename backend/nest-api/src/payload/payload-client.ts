@@ -101,6 +101,19 @@ export class PayloadClient {
     return this.parse(productSchema, response, 'product lookup');
   }
 
+  // True when Payload answers at all (any status below 500). An anonymous
+  // session lookup is the cheapest request it serves.
+  async ping(): Promise<boolean> {
+    try {
+      await this.request('/users/me', {
+        headers: { Accept: 'application/json' },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private async request(
     path: string,
     init: RequestInit = {},

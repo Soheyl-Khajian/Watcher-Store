@@ -7,7 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmOptions } from './database/typeorm.options';
 import { env } from './env';
 import { buildPinoHttpOptions } from './logging/logging';
-import { AppController } from './app.controller';
+import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
@@ -31,11 +31,11 @@ import { ProductsModule } from './products/products.module';
     }),
     AuthModule,
     CartModule,
+    HealthModule,
     OrdersModule,
     PaymentModule,
     ProductsModule,
   ],
-  controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

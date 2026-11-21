@@ -17,7 +17,8 @@ const SWEEP_INTERVAL_MS = 10 * 60 * 1000;
 export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderExpiryService.name);
   private timer: NodeJS.Timeout | undefined;
-  private running = false;
+  // The sweep in progress, if any.
+  private current: Promise<void> | undefined;
 
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -28,11 +29,14 @@ export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
     this.timer.unref();
   }
 
-  onModuleDestroy(): void {
+  // On shutdown, stop the timer and let a running sweep finish before the
+  // database pool closes.
+  async onModuleDestroy(): Promise<void> {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = undefined;
     }
+    await this.current;
   }
 
   expireStalePendingOrders(): Promise<number> {
@@ -41,12 +45,17 @@ export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private async sweep(): Promise<void> {
+  private sweep(): Promise<void> {
     // Skip if the previous run is still going.
-    if (this.running) {
-      return;
+    if (!this.current) {
+      this.current = this.runSweep().finally(() => {
+        this.current = undefined;
+      });
     }
-    this.running = true;
+    return this.current;
+  }
+
+  private async runSweep(): Promise<void> {
     try {
       const expired = await this.expireStalePendingOrders();
       if (expired > 0) {
@@ -59,8 +68,6 @@ export class OrderExpiryService implements OnModuleInit, OnModuleDestroy {
         'Failed to expire stale pending orders',
         error instanceof Error ? error.stack : undefined,
       );
-    } finally {
-      this.running = false;
     }
   }
 }

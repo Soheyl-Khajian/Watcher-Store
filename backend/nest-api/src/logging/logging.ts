@@ -45,9 +45,10 @@ export function buildPinoHttpOptions(
       ],
       censor: '[Redacted]',
     },
-    // Container health checks poll this constantly.
+    // Health probes poll these constantly.
     autoLogging: {
-      ignore: (req) => req.url === '/health',
+      ignore: (req) =>
+        req.url === '/health' || (req.url ?? '').startsWith('/health/'),
     },
     // Keep request lines short: no headers or bodies.
     serializers: {
