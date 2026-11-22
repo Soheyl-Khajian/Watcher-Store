@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store/auth';
+import { useRequireSession } from '@/lib/hooks/use-require-session';
 import type { Product, CartItem } from '@/types';
 import { fetchProductsByIds } from '@/lib/api/payload';
 import {
@@ -109,7 +110,9 @@ function FormField({
 }
 
 export default function CheckoutPage() {
-  const { cart, token, setCart } = useAuthStore();
+  // The cart is null until the session check has loaded it.
+  const { cart, setCart } = useAuthStore();
+  const status = useRequireSession();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -125,19 +128,17 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (
-      !isLoading &&
-      !isProcessing &&
-      placedOrderId === null &&
-      (!token || !cart || cart.items.length === 0)
-    ) {
+    if (isProcessing || placedOrderId !== null) return;
+    // Nothing to check out: back to the shop.
+    if (status === 'signed-in' && cart !== null && cart.items.length === 0) {
       router.push('/');
     }
-  }, [token, cart, router, isLoading, isProcessing, placedOrderId]);
+  }, [status, cart, router, isProcessing, placedOrderId]);
 
   useEffect(() => {
     const getProducts = async () => {
-      if (cart && cart.items.length > 0) {
+      if (!cart) return;
+      if (cart.items.length > 0) {
         const productIds = cart.items.map((item: CartItem) => item.productId);
         const fetchedProducts = await fetchProductsByIds(productIds);
         setProducts(fetchedProducts ?? []);
@@ -156,9 +157,9 @@ export default function CheckoutPage() {
   const checkoutBlocked = productsFailed || unavailableItems.length > 0;
 
   const handleRemoveUnavailable = async (productId: string) => {
-    if (!token || isProcessing) return;
+    if (status !== 'signed-in' || isProcessing) return;
 
-    const updatedCart = await removeFromCart(String(productId), token);
+    const updatedCart = await removeFromCart(String(productId));
 
     if (updatedCart) {
       setCart(updatedCart);
@@ -191,10 +192,9 @@ export default function CheckoutPage() {
   });
 
   const startPayment = async (orderId: number) => {
-    if (!token) return;
     setIsProcessing(true);
 
-    const paymentData = await initiatePayment(orderId, token);
+    const paymentData = await initiatePayment(orderId);
 
     if (paymentData && paymentData.paymentUrl) {
       window.location.href = paymentData.paymentUrl;
@@ -207,7 +207,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!token || isProcessing || checkoutBlocked) return;
+    if (status !== 'signed-in' || isProcessing || checkoutBlocked) return;
 
     const result = validateShipping(form);
 
@@ -228,7 +228,7 @@ export default function CheckoutPage() {
     const checkoutKey = checkoutKeyRef.current ?? crypto.randomUUID();
     checkoutKeyRef.current = checkoutKey;
 
-    const created = await createOrder(token, checkoutKey, result.payload);
+    const created = await createOrder(checkoutKey, result.payload);
 
     if (!created.ok) {
       toast.error(orderErrorMessage(created));

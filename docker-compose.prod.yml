@@ -106,12 +106,14 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_PAYLOAD_URL: ${NEXT_PUBLIC_PAYLOAD_URL}
-        NEXT_PUBLIC_NESTJS_API_URL: ${NEXT_PUBLIC_NESTJS_API_URL}
         NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
     ports:
       - '3002:3002'
     environment:
       PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
+      # The storefront's server calls Nest for the logged-in customer (the
+      # /api BFF routes).
+      NEST_INTERNAL_URL: http://nest-api:3001
     depends_on:
       payload-cms:
         condition: service_healthy

@@ -1,31 +1,35 @@
-// lib/store/auth.ts
+// frontend/src/lib/store/auth.ts
+//
+// The customer's session as the page sees it. The login token itself never
+// reaches the browser: it lives in an httpOnly cookie that only the
+// storefront's server reads (see src/app/api). Nothing here is persisted.
+
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { AuthUser, Cart } from '@/types';
 
+// unknown: not checked with the server yet on this page load.
+export type SessionStatus = 'unknown' | 'signed-in' | 'signed-out';
+
 interface AuthState {
-  token: string | null;
+  status: SessionStatus;
   user: AuthUser | null;
   cart: Cart | null;
-  setToken: (token: string | null) => void; // می‌تواند null هم باشد
-  setUser: (user: AuthUser | null) => void; // می‌تواند null هم باشد
-  setCart: (cart: Cart | null) => void; // <-- تغییر اصلی اینجاست
-  logout: () => void;
+  setUser: (user: AuthUser | null) => void;
+  setCart: (cart: Cart | null) => void;
+  // Forget the customer (logged out, or the session ended).
+  clear: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      token: null,
-      user: null,
-      cart: null,
-      setToken: (token) => set({ token }),
-      setUser: (user) => set({ user }),
-      setCart: (cart) => set({ cart }),
-      logout: () => set({ token: null, user: null, cart: null }),
-    }),
-    {
-      name: 'auth-storage',
-    },
-  ),
-);
+export const useAuthStore = create<AuthState>()((set) => ({
+  status: 'unknown',
+  user: null,
+  cart: null,
+  setUser: (user) =>
+    set(
+      user
+        ? { user, status: 'signed-in' }
+        : { user: null, cart: null, status: 'signed-out' },
+    ),
+  setCart: (cart) => set({ cart }),
+  clear: () => set({ user: null, cart: null, status: 'signed-out' }),
+}));

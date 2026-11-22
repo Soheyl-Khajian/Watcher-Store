@@ -26,7 +26,7 @@ interface CartContentProps {
 }
 
 export function CartContent({ onClose }: CartContentProps) {
-  const { token, cart, setCart } = useAuthStore();
+  const { status, cart, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [productsFailed, setProductsFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +40,7 @@ export function CartContent({ onClose }: CartContentProps) {
 
   useEffect(() => {
     const syncData = async () => {
-      if (!token) {
-        setCart(null);
+      if (status !== 'signed-in') {
         setProducts([]);
         return;
       }
@@ -50,7 +49,7 @@ export function CartContent({ onClose }: CartContentProps) {
       let resolved = '';
 
       try {
-        const currentCart = await fetchCart(token);
+        const currentCart = await fetchCart();
         setCart(currentCart);
 
         const productIds: string[] = (currentCart?.items ?? []).map(
@@ -78,12 +77,12 @@ export function CartContent({ onClose }: CartContentProps) {
     };
 
     syncData();
-  }, [token, itemIds, setCart]);
+  }, [status, itemIds, setCart]);
 
   const handleRemoveItem = async (productId: string) => {
-    if (!token) return;
+    if (status !== 'signed-in') return;
 
-    const updatedCart = await removeFromCart(String(productId), token);
+    const updatedCart = await removeFromCart(String(productId));
 
     if (updatedCart) {
       setCart(updatedCart);

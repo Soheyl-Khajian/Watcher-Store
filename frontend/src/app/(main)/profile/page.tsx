@@ -2,21 +2,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/lib/store/auth';
+import { useRequireSession } from '@/lib/hooks/use-require-session';
 import { fetchUserOrders } from '@/lib/api/nestjs';
 import type { Order } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export default function ProfilePage() {
-  const { token } = useAuthStore();
+  const status = useRequireSession();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const getOrders = async () => {
-      if (token) {
-        const userOrders = await fetchUserOrders(token);
+      if (status === 'signed-in') {
+        const userOrders = await fetchUserOrders();
         if (userOrders) {
           setOrders(userOrders);
         }
@@ -24,7 +24,7 @@ export default function ProfilePage() {
       }
     };
     getOrders();
-  }, [token]);
+  }, [status]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
