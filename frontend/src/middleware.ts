@@ -26,5 +26,5 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ['/profile/:path*', '/checkout/:path*', '/payment/verify'],
+  matcher: ['/profile/:path*', '/checkout/:path*', '/payment/result'],
 };

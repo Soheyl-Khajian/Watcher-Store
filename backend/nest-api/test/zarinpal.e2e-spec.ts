@@ -5,7 +5,7 @@ import { CARD_PAN, startZarinpalStub, ZarinpalStub } from './e2e/zarinpal-stub';
 
 const MERCHANT_ID = randomUUID();
 const CALLBACK_URL = 'https://shop.example.test/api/payment/callback';
-const RESULT_PAGE = 'http://localhost:3002/payment/verify';
+const RESULT_PAGE = 'http://localhost:3002/payment/result';
 
 const shipping = {
   recipientName: 'Test Customer',

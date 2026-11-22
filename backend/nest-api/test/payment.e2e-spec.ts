@@ -11,7 +11,7 @@ const shipping = {
   postalCode: '1234567890',
 };
 
-const RESULT_PAGE = 'http://localhost:3002/payment/verify';
+const RESULT_PAGE = 'http://localhost:3002/payment/result';
 
 interface PaymentRow {
   orderId: number;

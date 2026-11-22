@@ -14,7 +14,7 @@ const visit = (path: string, cookie?: string) =>
   );
 
 describe('account page middleware', () => {
-  it.each(['/profile', '/checkout', '/payment/verify?orderId=7'])(
+  it.each(['/profile', '/checkout', '/payment/result?orderId=7'])(
     'sends a visitor without a session from %s to the login page',
     (path) => {
       const response = visit(path);
@@ -41,7 +41,7 @@ describe('account page middleware', () => {
     expect(config.matcher).toEqual([
       '/profile/:path*',
       '/checkout/:path*',
-      '/payment/verify',
+      '/payment/result',
     ]);
   });
 });

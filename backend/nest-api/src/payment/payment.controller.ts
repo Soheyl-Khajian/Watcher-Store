@@ -48,7 +48,7 @@ export class PaymentController {
       query.Status,
     );
 
-    const result = new URL(`${env.FRONTEND_URL}/payment/verify`);
+    const result = new URL(`${env.FRONTEND_URL}/payment/result`);
     if (orderId !== null) {
       result.searchParams.set('orderId', String(orderId));
     }

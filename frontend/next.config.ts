@@ -22,6 +22,18 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // The payment result page used to live at /payment/verify. Payments that
+  // were already in flight still come back there; the query (orderId) is
+  // kept.
+  async redirects() {
+    return [
+      {
+        source: '/payment/verify',
+        destination: '/payment/result',
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

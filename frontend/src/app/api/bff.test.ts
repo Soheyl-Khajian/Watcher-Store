@@ -464,7 +464,7 @@ describe('GET /api/payment/callback', () => {
         );
         return new Response(null, {
           status: 302,
-          headers: { Location: `${ORIGIN}/payment/verify?orderId=7` },
+          headers: { Location: `${ORIGIN}/payment/result?orderId=7` },
         });
       },
     });
@@ -472,20 +472,20 @@ describe('GET /api/payment/callback', () => {
     const response = await callback();
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe(
-      `${ORIGIN}/payment/verify?orderId=7`,
+      `${ORIGIN}/payment/result?orderId=7`,
     );
   });
 
   it.each([
     ['a redirect elsewhere', 'https://evil.example/phish'],
-    ['a look-alike path', `${ORIGIN}/payment/verifyX`],
+    ['a look-alike path', `${ORIGIN}/payment/resultX`],
   ])('never follows %s', async (_name, location) => {
     upstream({
       [`GET ${NEST}/payment/callback`]: () =>
         new Response(null, { status: 302, headers: { Location: location } }),
     });
     const response = await callback();
-    expect(response.headers.get('location')).toBe(`${ORIGIN}/payment/verify`);
+    expect(response.headers.get('location')).toBe(`${ORIGIN}/payment/result`);
   });
 
   it('still sends the customer to the result page when Nest is down', async () => {
@@ -497,6 +497,6 @@ describe('GET /api/payment/callback', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const response = await callback();
     expect(response.status).toBe(302);
-    expect(response.headers.get('location')).toBe(`${ORIGIN}/payment/verify`);
+    expect(response.headers.get('location')).toBe(`${ORIGIN}/payment/result`);
   });
 });
