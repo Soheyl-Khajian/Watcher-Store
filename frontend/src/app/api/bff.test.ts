@@ -2,7 +2,15 @@
 // with fetch stubbed in place of Nest and Payload.
 
 import { NextRequest } from 'next/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  onTestFinished,
+} from 'vitest';
 import { CSRF_HEADER } from '@/lib/csrf';
 import { tokenLifetimeSeconds } from '@/lib/server/bff';
 import { POST as login } from './auth/login/route';
@@ -127,6 +135,10 @@ describe('tokenLifetimeSeconds', () => {
 
 describe('POST /api/auth/login', () => {
   it('keeps the token in an httpOnly cookie and returns only the user', async () => {
+    process.env.TRUSTED_PROXY_HOPS = '1';
+    onTestFinished(() => {
+      delete process.env.TRUSTED_PROXY_HOPS;
+    });
     const token = jwt(3600);
     upstream({
       [`POST ${NEST}/auth/login`]: () => json({ access_token: token }),
@@ -140,7 +152,9 @@ describe('POST /api/auth/login', () => {
       fromStorefront('/api/auth/login', {
         method: 'POST',
         body: { email: USER.email, password: 'correct-horse' },
-        headers: { 'x-forwarded-for': '203.0.113.9' },
+        // One reverse proxy in front (TRUSTED_PROXY_HOPS=1) appended the
+        // address it saw; the first entry was written by the client.
+        headers: { 'x-forwarded-for': '198.51.100.66, 203.0.113.9' },
       }),
     );
 
@@ -157,7 +171,7 @@ describe('POST /api/auth/login', () => {
     expect(cookie.header).toMatch(/Path=\//);
     expect(cookie.header).toMatch(/Max-Age=3(5\d\d|600)/);
 
-    // Nest sees the client address and a request id.
+    // Nest sees only the address the proxy saw, and a request id.
     expect(calls[0].headers.get('x-forwarded-for')).toBe('203.0.113.9');
     expect(calls[0].headers.get('x-request-id')).toBeTruthy();
   });

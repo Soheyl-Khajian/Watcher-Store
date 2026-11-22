@@ -3,7 +3,7 @@
 import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+import { mediaSrc } from '@/lib/utils/media';
 import {
   Card,
   CardHeader,
@@ -20,7 +20,7 @@ export function PostCard({ post }: PostCardProps) {
   const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
 
   const imageUrl = post.thumbnail?.url
-    ? resolvePayloadMediaUrl(post.thumbnail.url)
+    ? mediaSrc(post.thumbnail.url)
     : '/images/placeholder.png';
 
   const publishedDate = new Date(post.publishedDate).toLocaleDateString(
@@ -41,8 +41,8 @@ export function PostCard({ post }: PostCardProps) {
               src={imageUrl}
               alt={post.title}
               fill
-              unoptimized
               className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           </div>
         </CardHeader>

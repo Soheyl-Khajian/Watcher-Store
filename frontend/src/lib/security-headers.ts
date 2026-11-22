@@ -14,8 +14,9 @@ export interface CspOptions {
   // next dev needs eval (source maps, React's dev tools) and a websocket
   // for hot reload.
   dev: boolean;
-  // Payload's public origin: product images load from it, and the cart and
-  // checkout read product details from its API in the browser.
+  // Payload's public origin: the cart and checkout read product details
+  // from its API in the browser. (Images do not come from it: media is
+  // served from the storefront's own /uploads/.)
   payloadOrigin: string;
   // Only when the shop itself is served over https; on a plain-http
   // address it would break every request.
@@ -41,7 +42,7 @@ export function contentSecurityPolicy(options: CspOptions): string {
     ],
     // React's style attributes and next/font's inline rules.
     ['style-src', ["'self'", "'unsafe-inline'"]],
-    ['img-src', ["'self'", 'data:', 'blob:', payloadOrigin]],
+    ['img-src', ["'self'", 'data:', 'blob:']],
     ['font-src', ["'self'"]],
     ['connect-src', ["'self'", payloadOrigin, ...(dev ? ['ws:'] : [])]],
     ['object-src', ["'none'"]],

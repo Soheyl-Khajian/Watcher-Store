@@ -1,129 +1,260 @@
+# Production stack: docker compose -f docker-compose.prod.yml up -d --build
+#
+# Values come from .env (see .env.example), but each service receives only
+# the settings it uses: no service sees another's secrets.
+#
+# Start order: db -> db-roles -> payload-migrate -> db-grants and
+# payload-cms -> nest-migrate -> nest-api -> frontend. Each step waits until
+# the previous one is healthy or has finished successfully, so a failed
+# migration stops the deploy instead of starting services on a stale schema.
+#
+# Reachable from outside: the storefront (3002) and Payload (3000, admin
+# panel and its API), on this host's loopback interface only, for a reverse
+# proxy on the same host to publish with TLS. Nest has no port: browsers
+# reach it through the storefront (its /api routes), Payload's admin on the
+# internal network.
+
+x-logging:
+  &logging # Docker keeps container logs on disk; cap them per container.
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '5'
+
+x-payload-build: &payload-build
+  context: .
+  dockerfile: backend/payload-cms/Dockerfile
+
+x-nest-build: &nest-build
+  context: .
+  dockerfile: backend/nest-api/Dockerfile
+
+# Payload and its migration job read the same configuration.
+x-payload-environment: &payload-environment
+  DATABASE_URI: postgres://payload_app:${PAYLOAD_DB_PASSWORD:?Set PAYLOAD_DB_PASSWORD in .env}@db:5432/${POSTGRES_DB:-watcher_store}
+  PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Set PAYLOAD_SECRET in .env}
+  PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA:-payload_schema}
+  FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
+  PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL:?Set PAYLOAD_PUBLIC_URL in .env}
+  NEST_INTERNAL_URL: http://nest-api:3001
+  # Content edits refresh the storefront's cache at once (only when
+  # REVALIDATE_SECRET is set).
+  STOREFRONT_INTERNAL_URL: http://frontend:3002
+  REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
+  # Media storage: local disk (the payload-media volume) unless S3_BUCKET
+  # is set.
+  S3_BUCKET: ${S3_BUCKET:-}
+  S3_REGION: ${S3_REGION:-}
+  S3_ENDPOINT: ${S3_ENDPOINT:-}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+  S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+
+# Nest and its migration job read the same configuration.
+x-nest-environment: &nest-environment
+  DATABASE_HOST: db
+  DATABASE_PORT: 5432
+  # Nest's own role, not the superuser (see db-roles).
+  POSTGRES_USER: nest_app
+  POSTGRES_PASSWORD: ${NEST_DB_PASSWORD:?Set NEST_DB_PASSWORD in .env}
+  POSTGRES_DB: ${POSTGRES_DB:-watcher_store}
+  NEST_SCHEMA: ${NEST_SCHEMA:-nest_schema}
+  PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA:-payload_schema}
+  PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
+  PAYLOAD_TIMEOUT_MS: ${PAYLOAD_TIMEOUT_MS:-5000}
+  FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
+  JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-60m}
+  PENDING_ORDER_TTL_HOURS: ${PENDING_ORDER_TTL_HOURS:-24}
+  RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
+  RATE_LIMIT_LOGIN_PER_MINUTE: ${RATE_LIMIT_LOGIN_PER_MINUTE:-5}
+  RATE_LIMIT_ORDERS_PER_MINUTE: ${RATE_LIMIT_ORDERS_PER_MINUTE:-10}
+  # Requests reach Nest only from the storefront (and Payload's admin), on
+  # the internal network: trust that one hop to report the client address.
+  TRUST_PROXY: 1
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  # Payments: none until a gateway is configured. Zarinpal sends the
+  # customer's browser back to the storefront, which relays to Nest
+  # (frontend/src/app/api/payment/callback).
+  PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-none}
+  PAYMENT_CALLBACK_URL: ${PAYMENT_CALLBACK_URL:-${FRONTEND_URL}/api/payment/callback}
+  PAYMENT_TIMEOUT_MS: ${PAYMENT_TIMEOUT_MS:-10000}
+  PAYMENT_RECONCILE_AFTER_MINUTES: ${PAYMENT_RECONCILE_AFTER_MINUTES:-15}
+  ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
+  ZARINPAL_BASE_URL: ${ZARINPAL_BASE_URL:-https://sandbox.zarinpal.com}
+
+# The superuser connection, for the database and its two setup jobs only.
+x-db-admin-environment: &db-admin-environment
+  PGHOST: db
+  PGUSER: ${POSTGRES_USER:-postgres}
+  PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+  PGDATABASE: ${POSTGRES_DB:-watcher_store}
+  PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA:-payload_schema}
+  NEST_SCHEMA: ${NEST_SCHEMA:-nest_schema}
+
 services:
   db:
     image: postgres:14-alpine
+    restart: unless-stopped
+    logging: *logging
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-watcher_store}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - .devcontainer/postgres-init/init-schemas.sh:/docker-entrypoint-initdb.d/01-init-schemas.sh:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-watcher_store}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+      start_interval: 2s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
 
-  payload-migrate:
-    image: watcher-store-payload-cms
-    env_file:
-      - .env
+  # One-off jobs, run on every `up`. db-roles: the services' own database
+  # roles and schemas (and their passwords), before any migration
+  # (deploy/postgres/roles.sql).
+  db-roles:
+    image: postgres:14-alpine
+    logging: *logging
     environment:
-      DATABASE_URI: ${DATABASE_URI}
-      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
-      FRONTEND_URL: ${FRONTEND_URL}
-      PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL}
-    command: ['./node_modules/.bin/payload', 'migrate']
+      <<: *db-admin-environment
+      PAYLOAD_DB_PASSWORD: ${PAYLOAD_DB_PASSWORD:?Set PAYLOAD_DB_PASSWORD in .env}
+      NEST_DB_PASSWORD: ${NEST_DB_PASSWORD:?Set NEST_DB_PASSWORD in .env}
+    volumes:
+      - ./deploy/postgres:/sql:ro
+    # $$: expanded inside the container, so the passwords never appear on
+    # the command line.
+    command:
+      - sh
+      - -c
+      - >-
+        psql -X -q -v dbname="$$PGDATABASE" -v payload_schema="$$PAYLOAD_SCHEMA"
+        -v nest_schema="$$NEST_SCHEMA" -v payload_password="$$PAYLOAD_DB_PASSWORD"
+        -v nest_password="$$NEST_DB_PASSWORD" -f /sql/roles.sql
     depends_on:
       db:
         condition: service_healthy
 
+  payload-migrate:
+    image: watcher-store-payload-cms
+    build: *payload-build
+    logging: *logging
+    environment: *payload-environment
+    command: ['./node_modules/.bin/payload', 'migrate']
+    depends_on:
+      db-roles:
+        condition: service_completed_successfully
+
+  # db-grants: Nest's access to the Payload tables it uses, once Payload's
+  # migrations have created them (deploy/postgres/nest-access.sql).
+  db-grants:
+    image: postgres:14-alpine
+    logging: *logging
+    environment: *db-admin-environment
+    volumes:
+      - ./deploy/postgres:/sql:ro
+    command:
+      - sh
+      - -c
+      - psql -X -q -v payload_schema="$$PAYLOAD_SCHEMA" -f /sql/nest-access.sql
+    depends_on:
+      payload-migrate:
+        condition: service_completed_successfully
+
   payload-cms:
     image: watcher-store-payload-cms
-    build:
-      context: .
-      dockerfile: backend/payload-cms/Dockerfile
-    env_file:
-      - .env
+    build: *payload-build
+    restart: unless-stopped
+    logging: *logging
     ports:
-      - '3000:3000'
-    environment:
-      DATABASE_URI: ${DATABASE_URI}
-      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
-      FRONTEND_URL: ${FRONTEND_URL}
-      PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL}
-      NEST_INTERNAL_URL: http://nest-api:3001
-      # Content edits refresh the storefront's cache at once (only when
-      # REVALIDATE_SECRET is set in .env).
-      STOREFRONT_INTERNAL_URL: http://frontend:3002
-      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
-      PORT: 3000
+      - '127.0.0.1:3000:3000'
+    environment: *payload-environment
+    # Uploads stored on local disk survive a rebuild or redeploy.
+    volumes:
+      - payload-media:/app/media
     depends_on:
       db:
         condition: service_healthy
       payload-migrate:
         condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          memory: 1g
 
-  # Applies Nest migrations once per deploy, before the API starts. The API
-  # itself does not migrate in production (MIGRATIONS_RUN_ON_BOOT).
+  # Nest's migrations, once per deploy before the API starts (the API does
+  # not migrate itself in production).
   nest-migrate:
     image: watcher-store-nest-api
-    env_file:
-      - .env
-    environment: &nest-environment
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      NEST_SCHEMA: ${NEST_SCHEMA}
-      PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
-      JWT_SECRET: ${JWT_SECRET}
-      # Payments: none until a gateway is configured in .env. The callback
-      # URL is where Zarinpal sends the customer's browser back, so it must
-      # be this API's public address (required with a gateway).
-      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-none}
-      PAYMENT_CALLBACK_URL: ${PAYMENT_CALLBACK_URL:-}
-      PAYMENT_TIMEOUT_MS: ${PAYMENT_TIMEOUT_MS:-10000}
-      PAYMENT_RECONCILE_AFTER_MINUTES: ${PAYMENT_RECONCILE_AFTER_MINUTES:-15}
-      ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
-      ZARINPAL_BASE_URL: ${ZARINPAL_BASE_URL:-https://sandbox.zarinpal.com}
-      PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
-      FRONTEND_URL: ${FRONTEND_URL}
-      PORT: 3001
+    build: *nest-build
+    logging: *logging
+    environment: *nest-environment
     command: ['node', 'dist/database/migrate.js']
     depends_on:
-      db:
-        condition: service_healthy
+      db-roles:
+        condition: service_completed_successfully
 
   nest-api:
     image: watcher-store-nest-api
-    build:
-      context: .
-      dockerfile: backend/nest-api/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - '3001:3001'
+    build: *nest-build
+    restart: unless-stopped
+    logging: *logging
     environment: *nest-environment
     depends_on:
-      db:
-        condition: service_healthy
       nest-migrate:
         condition: service_completed_successfully
+      db-grants:
+        condition: service_completed_successfully
+      payload-cms:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   frontend:
+    image: watcher-store-frontend
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      # Embedded in the browser bundle at build time.
       args:
-        NEXT_PUBLIC_PAYLOAD_URL: ${NEXT_PUBLIC_PAYLOAD_URL}
-        NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
+        NEXT_PUBLIC_PAYLOAD_URL: ${NEXT_PUBLIC_PAYLOAD_URL:?Set NEXT_PUBLIC_PAYLOAD_URL in .env}
+        NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:?Set NEXT_PUBLIC_FRONTEND_URL in .env}
+    restart: unless-stopped
+    logging: *logging
     ports:
-      - '3002:3002'
+      - '127.0.0.1:3002:3002'
     environment:
+      NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
       PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
       # The storefront's server calls Nest for the logged-in customer (the
       # /api BFF routes).
       NEST_INTERNAL_URL: http://nest-api:3001
       REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
+      # Reverse proxies in front of the storefront: 1 behind the usual one
+      # (it reports the customer's address to Nest's rate limits), 0 when
+      # browsers reach port 3002 directly.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-0}
     depends_on:
       payload-cms:
         condition: service_healthy
       nest-api:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768m
 
 volumes:
   postgres-data:
+  payload-media:

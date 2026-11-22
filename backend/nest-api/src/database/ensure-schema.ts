@@ -22,6 +22,12 @@ export function createDatabaseClient(): Client {
  * it executes any migration, so a CREATE SCHEMA inside a migration is
  * unreachable on a database where the schema does not exist yet.
  *
+ * In production the schema already exists: deploy/postgres/roles.sql
+ * creates it, owned by the API's own role, which may not create schemas.
+ * Postgres refuses even CREATE SCHEMA IF NOT EXISTS to such a role, so the
+ * schema is looked up first and created only when it is missing (local
+ * development, tests).
+ *
  * Uses the given connection, or opens and closes one of its own.
  */
 export async function ensureSchema(existing?: Client): Promise<void> {
@@ -31,8 +37,15 @@ export async function ensureSchema(existing?: Client): Promise<void> {
     await client.connect();
   }
   try {
-    // Identifiers cannot be parameterised; NEST_SCHEMA is validated in env.ts.
-    await client.query(`CREATE SCHEMA IF NOT EXISTS "${env.NEST_SCHEMA}"`);
+    const found = await client.query(
+      'SELECT 1 FROM pg_namespace WHERE nspname = $1',
+      [env.NEST_SCHEMA],
+    );
+    if (found.rowCount === 0) {
+      // Identifiers cannot be parameterised; NEST_SCHEMA is validated in
+      // env.ts.
+      await client.query(`CREATE SCHEMA IF NOT EXISTS "${env.NEST_SCHEMA}"`);
+    }
   } finally {
     if (!existing) {
       await client.end();

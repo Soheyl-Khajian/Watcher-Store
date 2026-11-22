@@ -1,6 +1,12 @@
 # syntax=docker/dockerfile:1
 
 # backend/payload-cms/Dockerfile
+#
+# Stages: base (pnpm) -> deps (packages) -> builder (next build, production
+# install) -> runner. The first stages match the other two Dockerfiles line
+# for line, so the package download (pnpm fetch) is built once and shared
+# by all three.
+
 FROM node:24-alpine AS base
 
 ENV PNPM_HOME=/pnpm
@@ -8,18 +14,24 @@ ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
-FROM base AS builder
-
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY frontend/package.json ./frontend/
+FROM base AS deps
+
+# Every package in the lockfile goes into pnpm's store. This layer changes
+# only when the lockfile does, not when a package.json script changes.
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch --frozen-lockfile
+
+# Then only the CMS's packages, from the store (no network).
+COPY package.json ./
 COPY backend/payload-cms/package.json ./backend/payload-cms/
-COPY backend/nest-api/package.json ./backend/nest-api/
+RUN pnpm install --frozen-lockfile --offline --filter payload-cms
 
-RUN pnpm install --frozen-lockfile
+FROM deps AS builder
 
-COPY . .
+# Only the CMS's own sources: changes to the other apps do not rebuild it.
+COPY backend/payload-cms ./backend/payload-cms
 
 # Payload evaluates its environment schema during next build.
 # These are build-only placeholders; runtime values come from Compose.
@@ -32,20 +44,21 @@ ENV PAYLOAD_SECRET=${PAYLOAD_SECRET}
 ENV DATABASE_URI=${DATABASE_URI}
 ENV PAYLOAD_SCHEMA=${PAYLOAD_SCHEMA}
 ENV FRONTEND_URL=${FRONTEND_URL}
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter payload-cms build
 
-# Create an isolated production installation without workspace symlinks.
-RUN pnpm --filter payload-cms deploy --prod /out
-
-RUN cp -a backend/payload-cms/src /out/src
-
-# Copy the actual Next.js build output into the deploy directory.
-RUN cp -a backend/payload-cms/.next /out/.next
-RUN cp -a backend/payload-cms/next.config.mjs /out/next.config.mjs
-RUN if [ -d backend/payload-cms/public ]; then \
-      cp -a backend/payload-cms/public /out/public; \
-    fi
+# A self-contained production install (no dev dependencies, no workspace
+# links), plus what next start and payload migrate read at runtime: the
+# build output, the config and the sources (collections, migrations).
+RUN pnpm --filter payload-cms deploy --prod --prefer-offline /out \
+  && cp -a backend/payload-cms/src /out/src \
+  && cp -a backend/payload-cms/.next /out/.next \
+  && rm -rf /out/.next/cache \
+  && cp -a backend/payload-cms/next.config.mjs /out/next.config.mjs \
+  && if [ -d backend/payload-cms/public ]; then \
+       cp -a backend/payload-cms/public /out/public; \
+     fi
 
 FROM node:24-alpine AS runner
 
@@ -55,14 +68,23 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV NODE_OPTIONS=--no-deprecation
 
+# The app's files belong to root and are read-only to the server. It writes
+# only uploads (media/, a volume in production) and Next's cache.
 COPY --from=builder /out ./
+# The base image's package managers are not used at runtime; removing them
+# removes their dependencies' vulnerabilities from the image.
+RUN mkdir -p media .next/cache && chown node:node media .next/cache \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
+USER node
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
-  CMD node -e "require('http').get('http://127.0.0.1:3000/admin', (r) => process.exit(r.statusCode >= 200 && r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"
-
-ENV NODE_OPTIONS=--no-deprecation
+# Liveness: the server answers its API (cheaper than rendering the admin).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --start-interval=2s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:3000/api/users/me', (r) => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"
 
 CMD ["./node_modules/.bin/next", "start"]

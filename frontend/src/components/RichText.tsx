@@ -12,7 +12,7 @@
 import Image from 'next/image';
 import { Fragment, type ReactNode } from 'react';
 import type { RichTextNode } from '@/types';
-import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+import { mediaSrc } from '@/lib/utils/media';
 import { isExternalUrl, safeUrl } from '@/lib/utils/safe-url';
 
 const HEADINGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
@@ -60,13 +60,12 @@ function renderUpload(node: RichTextNode, key: number): ReactNode {
   return (
     <figure key={key}>
       <Image
-        src={resolvePayloadMediaUrl(value.url)}
+        src={mediaSrc(value.url)}
         alt={value.alt ?? ''}
         width={width}
         height={height}
         sizes="(max-width: 768px) 100vw, 768px"
         style={{ width: '100%', height: 'auto' }}
-        unoptimized
       />
       {value.alt ? <figcaption>{value.alt}</figcaption> : null}
     </figure>

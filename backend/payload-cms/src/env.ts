@@ -23,6 +23,10 @@ const WEAK_DATABASE_PASSWORDS = new Set([
   '123456',
 ]);
 
+// Optional settings left empty in .env count as unset.
+const emptyToUndefined = (value: unknown) => (value === '' ? undefined : value);
+const optionalText = z.preprocess(emptyToUndefined, z.string().optional());
+
 const GENERATE_SECRET = 'Generate one with: openssl rand -hex 32';
 
 const envSchema = z
@@ -75,8 +79,64 @@ const envSchema = z
         )
         .optional(),
     ),
+    // Media storage. Unset S3_BUCKET: uploads go to the media/ folder (a
+    // volume in docker-compose.prod.yml). Set: to this S3-compatible bucket
+    // (AWS S3, Cloudflare R2, MinIO...), still served through Payload's
+    // /api/media/file/ URLs with its access rules (src/storage.ts).
+    S3_BUCKET: optionalText,
+    // The bucket's region; "auto" for Cloudflare R2.
+    S3_REGION: optionalText,
+    // For a provider other than AWS, its API address.
+    S3_ENDPOINT: z.preprocess(emptyToUndefined, z.string().url().optional()),
+    // Both, or neither (then the SDK's own credentials: an IAM role, ...).
+    S3_ACCESS_KEY_ID: optionalText,
+    S3_SECRET_ACCESS_KEY: optionalText,
+    // Bucket name in the path instead of the host name (MinIO needs it).
+    S3_FORCE_PATH_STYLE: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(['true', 'false'])
+        .default('false')
+        .transform((value) => value === 'true'),
+    ),
   })
   .superRefine((value, ctx) => {
+    // Checked everywhere: a half-configured bucket would otherwise only
+    // fail at the first upload.
+    if (value.S3_BUCKET && !value.S3_REGION) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['S3_REGION'],
+        message:
+          'S3_REGION is required with S3_BUCKET ("auto" for Cloudflare R2).',
+      });
+    }
+    if (!value.S3_BUCKET) {
+      const stray = (
+        [
+          'S3_REGION',
+          'S3_ENDPOINT',
+          'S3_ACCESS_KEY_ID',
+          'S3_SECRET_ACCESS_KEY',
+        ] as const
+      ).filter((key) => value[key]);
+      if (stray.length > 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['S3_BUCKET'],
+          message: `S3_BUCKET is not set, so ${stray.join(', ')} would be ignored and uploads stored on local disk. Set S3_BUCKET or remove them.`,
+        });
+      }
+    }
+    if (!value.S3_ACCESS_KEY_ID !== !value.S3_SECRET_ACCESS_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['S3_SECRET_ACCESS_KEY'],
+        message:
+          'Set both S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY, or neither.',
+      });
+    }
+
     // Only the running server (and the migration job) must have real
     // secrets; `next build` runs with NODE_ENV=production and placeholders.
     const strict =

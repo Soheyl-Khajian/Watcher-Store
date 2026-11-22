@@ -1,0 +1,58 @@
+# Weekly update pull requests for the workspace's packages, the base images
+# and the CI actions. Related packages are grouped into one pull request
+# (Payload's packages must stay on the same version), and major versions
+# that need a planned migration are left alone.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      payload:
+        patterns: ['payload', '@payloadcms/*']
+      nestjs:
+        patterns: ['@nestjs/*']
+      next-react:
+        patterns: ['next', '@next/*', 'react', 'react-dom', '@types/react*']
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Node 24 LTS (engines, .nvmrc, the Docker images): moving to the next
+      # LTS is a deliberate upgrade.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker
+    directories:
+      - /frontend
+      - /backend/nest-api
+      - /backend/payload-cms
+    schedule:
+      interval: weekly
+    groups:
+      node-image:
+        patterns: ['node']
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # A new Postgres major version needs a dump and restore (or
+      # pg_upgrade), not just a new image.
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

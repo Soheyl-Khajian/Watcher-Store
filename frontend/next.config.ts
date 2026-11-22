@@ -7,14 +7,6 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, '../.env') });
 
-const payloadUrl =
-  process.env.NEXT_PUBLIC_PAYLOAD_URL || 'http://localhost:3000/api';
-
-const payloadOrigin = new URL(payloadUrl);
-
-const payloadProtocol: 'http' | 'https' =
-  payloadOrigin.protocol === 'https:' ? 'https' : 'http';
-
 // Fixed security headers for every response, build assets included. The
 // Content-Security-Policy changes per request and is set in middleware.ts.
 const securityHeaders = [
@@ -57,14 +49,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Images come only from the storefront itself: media from Payload via
+  // /uploads/ (app/uploads, lib/utils/media.ts), and the bundled ones in
+  // public/images/. No query strings, so nobody can make the optimizer
+  // fetch variants.
   images: {
-    remotePatterns: [
-      {
-        protocol: payloadProtocol,
-        hostname: payloadOrigin.hostname,
-        port: payloadOrigin.port,
-        pathname: '/api/media/**',
-      },
+    localPatterns: [
+      { pathname: '/uploads/**', search: '' },
+      { pathname: '/images/**', search: '' },
     ],
   },
 };

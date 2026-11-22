@@ -110,18 +110,21 @@ jobs:
         run: pnpm test:e2e
 
   smoke:
-    name: Production stack smoke test
+    name: Docker images (build, smoke test, vulnerability scan)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    env:
+      # Fixes the network name (ws-ci_default) the smoke check joins.
+      COMPOSE_PROJECT_NAME: ws-ci
+      # Trivy, pinned by digest: its release images and GitHub Action were
+      # replaced with malicious ones in March 2026, so a tag alone is not
+      # trusted.
+      TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
 
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
 
       # A throwaway configuration: the documented example with fresh secrets
       # and database password, as a real deployment needs. (With
@@ -135,16 +138,43 @@ jobs:
           sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
           sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$db_password|" .env
           sed -i "s|^DATABASE_URI=postgres://postgres:postgres@|DATABASE_URI=postgres://postgres:$db_password@|" .env
+          sed -i "s|^PAYLOAD_DB_PASSWORD=.*|PAYLOAD_DB_PASSWORD=$(openssl rand -hex 24)|" .env
+          sed -i "s|^NEST_DB_PASSWORD=.*|NEST_DB_PASSWORD=$(openssl rand -hex 24)|" .env
 
+      - uses: docker/setup-buildx-action@v4
+
+      # The three images as docker-compose.prod.yml defines them, with layers
+      # cached between runs (one cache per image). The migration jobs use the
+      # same images.
       - name: Build images
-        run: docker compose -f docker-compose.prod.yml build
+        id: build
+        uses: docker/bake-action@v7
+        with:
+          source: .
+          files: docker-compose.prod.yml
+          targets: payload-cms,nest-api,frontend
+          load: true
+          set: |
+            payload-cms.cache-from=type=gha,scope=payload-cms
+            payload-cms.cache-to=type=gha,mode=max,scope=payload-cms,ignore-error=true
+            nest-api.cache-from=type=gha,scope=nest-api
+            nest-api.cache-to=type=gha,mode=max,scope=nest-api,ignore-error=true
+            frontend.cache-from=type=gha,scope=frontend
+            frontend.cache-to=type=gha,mode=max,scope=frontend,ignore-error=true
 
       - name: Start the stack
         run: docker compose -f docker-compose.prod.yml up -d
 
-      # Every service must answer, serve real pages, and work with the others.
+      # Every service must answer, serve real pages, and work with the
+      # others. Run from inside the stack's network: Nest has no host port.
       - name: Smoke check
-        run: node scripts/smoke-check.mjs
+        run: >-
+          docker run --rm --network ws-ci_default
+          -v "$PWD/scripts:/scripts:ro"
+          -e PAYLOAD_URL=http://payload-cms:3000
+          -e NEST_URL=http://nest-api:3001
+          -e FRONTEND_URL=http://frontend:3002
+          node:24-alpine node /scripts/smoke-check.mjs
 
       - name: Show service status and logs
         if: failure()
@@ -155,3 +185,24 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose -f docker-compose.prod.yml down -v
+
+      # Known vulnerabilities in the images: every HIGH and CRITICAL one is
+      # listed, and the job fails on a CRITICAL one that has a fix. Runs even
+      # when the smoke test failed, as long as the images were built.
+      - name: Scan images (Trivy)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          scan() {
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              -v trivy-cache:/root/.cache "$TRIVY_IMAGE" \
+              image --no-progress --scanners vuln "$@"
+          }
+          status=0
+          for image in watcher-store-frontend watcher-store-nest-api watcher-store-payload-cms; do
+            echo "::group::$image"
+            scan --severity HIGH,CRITICAL "$image"
+            scan --severity CRITICAL --ignore-unfixed --exit-code 1 --quiet \
+              "$image" > /dev/null || status=1
+            echo "::endgroup::"
+          done
+          exit $status

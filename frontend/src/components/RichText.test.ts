@@ -110,7 +110,8 @@ describe('RichText elements', () => {
     ]);
     expect(html).toContain('<figure>');
     expect(html).toContain('alt="Dome camera"');
-    expect(html).toContain('https://cms.example.test/api/media/file/cam.png');
+    // Optimized by next/image, from the storefront's own /uploads/.
+    expect(html).toContain('/_next/image?url=%2Fuploads%2Fcam.png');
     expect(html).toContain('<figcaption>Dome camera</figcaption>');
   });
 

@@ -24,6 +24,7 @@ import { Posts } from './collections/Posts';
 import { Pages } from './collections/Pages';
 import { Footer } from './globals/Footer';
 import { productsByCategoryEndpoint } from './endpoints/productsByCategory';
+import { mediaStoragePlugins } from './storage';
 
 import { en } from '@payloadcms/translations/languages/en';
 import { fa } from '@payloadcms/translations/languages/fa';
@@ -90,7 +91,6 @@ export default buildConfig({
     push: false,
   }),
   sharp,
-  plugins: [
-    // TODO: add S3/R2 storage adapter for production media persistence
-  ],
+  // Media on local disk, or in an S3-compatible bucket (src/storage.ts).
+  plugins: [...mediaStoragePlugins(env)],
 });
