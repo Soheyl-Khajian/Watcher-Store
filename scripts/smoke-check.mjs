@@ -8,6 +8,8 @@
 // Env:   PAYLOAD_URL (default http://localhost:3000)
 //        NEST_URL (default http://localhost:3001)
 //        FRONTEND_URL (default http://localhost:3002)
+//        FRONTEND_PUBLIC_ORIGIN (default http://localhost:3002): the
+//          storefront's public origin, sent as Origin to its /api routes
 //        SMOKE_TIMEOUT_SECONDS (default 300)
 
 import { randomBytes } from 'node:crypto';
@@ -15,6 +17,8 @@ import { randomBytes } from 'node:crypto';
 const PAYLOAD = process.env.PAYLOAD_URL ?? 'http://localhost:3000';
 const NEST = process.env.NEST_URL ?? 'http://localhost:3001';
 const FRONTEND = process.env.FRONTEND_URL ?? 'http://localhost:3002';
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_PUBLIC_ORIGIN ?? 'http://localhost:3002';
 const TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_SECONDS ?? 300) * 1000;
 
 const failures = [];
@@ -32,7 +36,7 @@ async function request(url, init = {}) {
   } catch {
     json = undefined;
   }
-  return { status: response.status, text, json };
+  return { status: response.status, headers: response.headers, text, json };
 }
 
 async function waitFor(name, url) {
@@ -157,6 +161,41 @@ await check('register in Payload, log in through Nest', async () => {
   });
   expectStatus(profile, 200);
   if (profile.json?.email !== email) throw new Error('wrong profile');
+});
+
+// The storefront's own server holds the session (an httpOnly cookie) and
+// calls Nest on the customer's behalf.
+await check('register and log in through the storefront', async () => {
+  const email = `smoke-bff-${randomBytes(4).toString('hex')}@example.test`;
+  const password = randomBytes(12).toString('base64url');
+  const headers = {
+    'Content-Type': 'application/json',
+    Origin: FRONTEND_ORIGIN,
+    'x-watcher-csrf': '1',
+  };
+
+  const registered = await request(`${FRONTEND}/api/auth/register`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email, password }),
+  });
+  expectStatus(registered, 201);
+
+  const login = await request(`${FRONTEND}/api/auth/login`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email, password }),
+  });
+  expectStatus(login, 200);
+  const cookie = login.headers.get('set-cookie') ?? '';
+  if (!/HttpOnly/i.test(cookie)) throw new Error('no httpOnly session cookie');
+  if (login.text.includes('access_token')) throw new Error('token leaked');
+
+  const session = cookie.split(';')[0];
+  const cart = await request(`${FRONTEND}/api/nest/cart`, {
+    headers: { Cookie: session },
+  });
+  expectStatus(cart, 200);
 });
 
 if (failures.length > 0) {
