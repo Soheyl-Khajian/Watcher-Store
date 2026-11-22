@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
-import { fetchUserProfile } from '@/lib/api/nestjs';
+import { loadSession, logoutUser } from '@/lib/api/nestjs';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,25 +17,17 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function UserNav() {
-  const { token, user, setUser, logout } = useAuthStore();
+  const { user, clear } = useAuthStore();
 
+  // The header is on every page, so it asks the server who is logged in.
   useEffect(() => {
-    if (token && !user) {
-      const getUserProfile = async () => {
-        const userProfile = await fetchUserProfile(token);
-        if (userProfile) {
-          setUser(userProfile);
-        } else {
-          logout();
-        }
-      };
-      getUserProfile();
-    }
-    // اگر توکن حذف شد (کاربر خارج شد)، اطلاعات کاربر را هم پاک می‌کنیم
-    if (!token && user) {
-      setUser(null);
-    }
-  }, [token, user, setUser, logout]);
+    void loadSession();
+  }, []);
+
+  const logout = async () => {
+    await logoutUser();
+    clear();
+  };
 
   if (user) {
     return (

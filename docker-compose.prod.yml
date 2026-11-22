@@ -106,7 +106,6 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_PAYLOAD_URL: ${NEXT_PUBLIC_PAYLOAD_URL}
-        NEXT_PUBLIC_NESTJS_API_URL: ${NEXT_PUBLIC_NESTJS_API_URL}
         NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
     ports:
       - '3002:3002'

@@ -17,18 +17,18 @@ export function AddToCartButtonCard({
   productId,
   productName,
 }: AddToCartButtonCardProps) {
-  const { token, setCart } = useAuthStore();
+  const { status, setCart } = useAuthStore();
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     // جلوگیری از انتقال به صفحه محصول هنگام کلیک روی دکمه
     e.preventDefault();
 
-    if (!token) {
+    if (status !== 'signed-in') {
       toast.error('برای افزودن محصول به سبد خرید، لطفاً ابتدا وارد شوید.');
       return;
     }
 
-    const updatedCart = await addToCart(String(productId), 1, token);
+    const updatedCart = await addToCart(String(productId), 1);
 
     if (updatedCart) {
       setCart(updatedCart);

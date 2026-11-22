@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { registerUser } from '@/lib/api/payload';
+import { registerUser } from '@/lib/api/nestjs';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
@@ -20,12 +20,11 @@ export default function RegisterPage() {
 
     const result = await registerUser({ email, password });
 
-    if (result && !result.errors) {
+    if (result.ok) {
       toast.success('ثبت‌نام با موفقیت انجام شد! لطفاً وارد شوید.');
-      router.push('/login'); // کاربر را به صفحه ورود هدایت می‌کند
+      router.push('/login');
     } else {
-      // در اینجا می‌توانید پیغام خطای بهتری نمایش دهید
-      toast.error('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.');
+      toast.error(result.message);
     }
   };
 

@@ -159,20 +159,6 @@ export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
 }
 
 //------------------------------------------------------------
-// USERS METHODS
-//------------------------------------------------------------
-
-export async function registerUser(credentials: {
-  email: string;
-  password: string;
-}) {
-  return fetchPayloadAPI('/users', {
-    method: 'POST',
-    body: JSON.stringify(credentials),
-  });
-}
-
-//------------------------------------------------------------
 // CONTENT METHODS (POSTS, PAGES, FOOTER)
 //------------------------------------------------------------
 export async function fetchPosts() {

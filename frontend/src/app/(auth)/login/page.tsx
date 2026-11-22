@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { loginUser } from '@/lib/api/nestjs';
-import { useAuthStore } from '@/lib/store/auth'; // انبار وضعیت را وارد می‌کنیم
+import { loginUser, syncCart } from '@/lib/api/nestjs';
+import { useAuthStore } from '@/lib/store/auth';
+import { safeNextPath } from '@/lib/utils/safe-next';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
@@ -16,22 +17,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  // دسترسی به توابع store
-  const setToken = useAuthStore((state) => state.setToken);
+  const setUser = useAuthStore((state) => state.setUser);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // The server keeps the session in an httpOnly cookie; the page only
+    // learns who is logged in.
     const result = await loginUser({ email, password });
 
-    if (result && result.access_token) {
-      // ۱. توکن را در store ذخیره می‌کنیم
-      setToken(result.access_token);
+    if (result.ok) {
+      setUser(result.user);
+      await syncCart();
       toast.success('ورود با موفقیت انجام شد!');
-      // ۲. کاربر را به صفحه اصلی هدایت می‌کنیم
-      router.push('/');
+      // Back to the page that asked for a login, if any.
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.push(safeNextPath(next));
     } else {
-      toast.error('ایمیل یا رمز عبور اشتباه است.');
+      toast.error(result.message);
     }
   };
 

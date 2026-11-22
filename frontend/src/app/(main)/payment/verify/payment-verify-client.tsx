@@ -31,7 +31,7 @@ function outcomeFor(status: OrderStatus | null): Outcome {
 
 export default function PaymentVerifyClient() {
   const searchParams = useSearchParams();
-  const { token } = useAuthStore();
+  const { status } = useAuthStore();
   const orderId = searchParams.get('orderId');
   const [outcome, setOutcome] = useState<Outcome>('loading');
 
@@ -40,16 +40,16 @@ export default function PaymentVerifyClient() {
       setOutcome('unknown');
       return;
     }
-    if (!token) return;
+    if (status !== 'signed-in') return;
 
     let cancelled = false;
-    fetchOrderStatus(orderId, token).then((status) => {
+    fetchOrderStatus(orderId).then((status) => {
       if (!cancelled) setOutcome(outcomeFor(status));
     });
     return () => {
       cancelled = true;
     };
-  }, [orderId, token]);
+  }, [orderId, status]);
 
   if (outcome === 'loading') {
     return (
