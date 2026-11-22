@@ -31,6 +31,9 @@ import { fa } from '@payloadcms/translations/languages/fa';
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Payload's own icon, not Gravatar: the admin's CSP allows no images from
+    // other sites, and admins' email hashes stay off a third-party service.
+    avatar: 'default',
     importMap: {
       baseDir: path.resolve(__dirname),
     },

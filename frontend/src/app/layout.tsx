@@ -1,6 +1,7 @@
 // مسیر فایل: src/app/layout.tsx
 
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { Vazirmatn } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils'; // ابزار کمکی از shadcn
@@ -11,12 +12,18 @@ import {
   SITE_NAME,
   siteUrl,
 } from '@/lib/seo';
+import { NONCE_HEADER } from '@/lib/security-headers';
 
 // ۱. تنظیمات بهینه فونت وزیرمتن
 const vazirFont = Vazirmatn({
   subsets: ['arabic'], // فقط حروف عربی (شامل فارسی) را بارگذاری کن
   variable: '--font-sans', // تعریف به عنوان متغیر CSS برای استفاده در Tailwind
 });
+
+// Every page is rendered per request: the Content-Security-Policy carries a
+// new nonce each time (middleware.ts), and a page built ahead of time would
+// have scripts without it, which the browser refuses to run.
+export const dynamic = 'force-dynamic';
 
 // Defaults for every page; pages add their own title, description and
 // images. URLs in metadata are made absolute against the storefront's
@@ -40,11 +47,12 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body
@@ -53,7 +61,7 @@ export default function RootLayout({
           vazirFont.variable,
         )}
       >
-        <Providers>{children}</Providers>
+        <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>
   );
