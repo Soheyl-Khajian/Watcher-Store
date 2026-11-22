@@ -61,7 +61,11 @@ COPY --from=builder /app/frontend/.next/standalone ./
 COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
 # The standalone output does not include public/; copy it from the builder.
 COPY --from=builder /app/frontend/public ./frontend/public
-RUN mkdir -p frontend/.next/cache && chown node:node frontend/.next/cache
+# The base image's package managers are not used at runtime; removing them
+# removes their dependencies' vulnerabilities from the image.
+RUN mkdir -p frontend/.next/cache && chown node:node frontend/.next/cache \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 USER node
 

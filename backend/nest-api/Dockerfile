@@ -49,6 +49,10 @@ ENV PORT=3001
 
 # Owned by root and read-only to the server, which writes nothing to disk.
 COPY --from=builder /out ./
+# The base image's package managers are not used at runtime; removing them
+# removes their dependencies' vulnerabilities from the image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 USER node
 

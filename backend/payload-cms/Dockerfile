@@ -73,7 +73,11 @@ ENV NODE_OPTIONS=--no-deprecation
 # The app's files belong to root and are read-only to the server. It writes
 # only uploads (media/, a volume in production) and Next's cache.
 COPY --from=builder /out ./
-RUN mkdir -p media .next/cache && chown node:node media .next/cache
+# The base image's package managers are not used at runtime; removing them
+# removes their dependencies' vulnerabilities from the image.
+RUN mkdir -p media .next/cache && chown node:node media .next/cache \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 USER node
 

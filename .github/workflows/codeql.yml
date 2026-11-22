@@ -1,0 +1,51 @@
+name: CodeQL
+
+# Static analysis of the TypeScript and JavaScript code for security
+# problems (injection, unsafe redirects, prototype pollution, ...). Results
+# appear under the repository's Security tab.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Weekly, so new queries also check code that has not changed.
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          # Interpreted languages need no build.
+          build-mode: none
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - '**/migrations/**'
+              - '**/payload-types.ts'
+              - '**/importMap.js'
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript
