@@ -32,6 +32,9 @@ const orderSchema = z.object({
   userId: z.number().int(),
   total: z.number().int().nonnegative(),
   status: z.string(),
+  // Money owed back to the customer: the order was cancelled after payment,
+  // or received a payment it could not take. An older Nest may omit it.
+  refundStatus: z.enum(['none', 'required', 'refunded']).catch('none'),
   createdAt: z.string(),
   items: z.array(orderItemSchema),
   // Orders created before shipping details existed have only null columns, and

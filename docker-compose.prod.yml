@@ -67,7 +67,15 @@ services:
       NEST_SCHEMA: ${NEST_SCHEMA}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       JWT_SECRET: ${JWT_SECRET}
-      ALLOW_MOCK_PAYMENT: 'false'
+      # Payments: none until a gateway is configured in .env. The callback
+      # URL is where Zarinpal sends the customer's browser back, so it must
+      # be this API's public address (required with a gateway).
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-none}
+      PAYMENT_CALLBACK_URL: ${PAYMENT_CALLBACK_URL:-}
+      PAYMENT_TIMEOUT_MS: ${PAYMENT_TIMEOUT_MS:-10000}
+      PAYMENT_RECONCILE_AFTER_MINUTES: ${PAYMENT_RECONCILE_AFTER_MINUTES:-15}
+      ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
+      ZARINPAL_BASE_URL: ${ZARINPAL_BASE_URL:-https://sandbox.zarinpal.com}
       PAYLOAD_INTERNAL_URL: http://payload-cms:3000/api
       FRONTEND_URL: ${FRONTEND_URL}
       PORT: 3001

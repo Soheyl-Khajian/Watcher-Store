@@ -144,20 +144,7 @@ describe('Orders and payment (e2e)', () => {
     await addToCart(headers, productId, 3);
     const order = await createOrder(headers).expect(201);
 
-    const initiated = await t
-      .http()
-      .post('/payment/initiate')
-      .set(headers)
-      .send({ orderId: order.body.id })
-      .expect(201);
-    expect(initiated.body.paymentUrl).toContain(`orderId=${order.body.id}`);
-
-    await t
-      .http()
-      .get('/payment/verify')
-      .query({ orderId: order.body.id, status: 'success' })
-      .set(headers)
-      .expect(200);
+    await t.payOrder(headers, order.body.id);
 
     expect(await stockOf(productId)).toBe(1);
 
@@ -179,12 +166,7 @@ describe('Orders and payment (e2e)', () => {
     await addToCart(headers, productId, 1);
     const order = await createOrder(headers).expect(201);
 
-    await t
-      .http()
-      .get('/payment/verify')
-      .query({ orderId: order.body.id, status: 'failed' })
-      .set(headers)
-      .expect(200);
+    await t.payOrder(headers, order.body.id, 'failed');
 
     const orders = await t.http().get('/orders').set(headers).expect(200);
     expect(orders.body.items[0].status).toBe('cancelled');
@@ -238,12 +220,6 @@ describe('Orders and payment (e2e)', () => {
       .post('/payment/initiate')
       .set(stranger)
       .send({ orderId: order.body.id })
-      .expect(404);
-    await t
-      .http()
-      .get('/payment/verify')
-      .query({ orderId: order.body.id, status: 'success' })
-      .set(stranger)
       .expect(404);
   });
 
@@ -377,12 +353,7 @@ describe('Orders and payment (e2e)', () => {
       const order = await createOrder(headers).expect(201);
       expect(await stockOf(productId)).toBe(3);
 
-      await t
-        .http()
-        .get('/payment/verify')
-        .query({ orderId: order.body.id, status: 'success' })
-        .set(headers)
-        .expect(200);
+      await t.payOrder(headers, order.body.id);
       expect(await stockOf(productId)).toBe(3);
     });
 
@@ -485,12 +456,7 @@ describe('Orders and payment (e2e)', () => {
           5,
         );
 
-        await t
-          .http()
-          .get('/payment/verify')
-          .query({ orderId, status: 'success' })
-          .set(headers)
-          .expect(200);
+        await t.payOrder(headers, orderId);
 
         expect(await stockOf(productId)).toBe(3);
       });

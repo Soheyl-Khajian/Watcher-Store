@@ -1,7 +1,9 @@
 import {
   MAX_TOMAN_AMOUNT,
   isTomanAmount,
+  rialColumnTransformer,
   tomanColumnTransformer,
+  tomanToRial,
 } from './toman';
 
 describe('isTomanAmount', () => {
@@ -48,5 +50,31 @@ describe('tomanColumnTransformer', () => {
     expect(() => tomanColumnTransformer.from('not a number')).toThrow(
       RangeError,
     );
+  });
+});
+
+describe('tomanToRial', () => {
+  it('converts at 10 rial per toman, up to the largest order', () => {
+    expect(tomanToRial(250_000)).toBe(2_500_000);
+    expect(Number.isSafeInteger(tomanToRial(MAX_TOMAN_AMOUNT))).toBe(true);
+  });
+
+  it.each([-1, 1.5, MAX_TOMAN_AMOUNT + 1])('rejects %p', (value) => {
+    expect(() => tomanToRial(value)).toThrow(RangeError);
+  });
+});
+
+describe('rialColumnTransformer', () => {
+  it('round-trips the largest rial amount', () => {
+    const largest = tomanToRial(MAX_TOMAN_AMOUNT);
+    expect(rialColumnTransformer.from(rialColumnTransformer.to(largest))).toBe(
+      largest,
+    );
+  });
+
+  it('refuses amounts beyond the largest order', () => {
+    expect(() =>
+      rialColumnTransformer.to(tomanToRial(MAX_TOMAN_AMOUNT) + 1),
+    ).toThrow(RangeError);
   });
 });

@@ -13,34 +13,94 @@ describe('parseEnv', () => {
     expect(env.PORT).toBe(3001);
     expect(env.NEST_SCHEMA).toBe('nest_schema');
     expect(env.PENDING_ORDER_TTL_HOURS).toBe(24);
-    expect(env.ALLOW_MOCK_PAYMENT).toBe(false);
+    expect(env.PAYMENT_GATEWAY).toBe('none');
   });
 
-  describe('simulated payment', () => {
-    it('is refused when NODE_ENV=production', () => {
+  describe('payment gateway', () => {
+    it('refuses the simulated gateway when NODE_ENV=production', () => {
       expect(() =>
         parseEnv({
           ...validEnv,
           NODE_ENV: 'production',
-          ALLOW_MOCK_PAYMENT: 'true',
+          POSTGRES_PASSWORD: 'a-strong-database-password',
+          PAYMENT_GATEWAY: 'mock',
         }),
-      ).toThrow(/ALLOW_MOCK_PAYMENT/);
+      ).toThrow(/PAYMENT_GATEWAY/);
     });
 
-    it('can be enabled outside production', () => {
+    it('allows the simulated gateway outside production', () => {
       const env = parseEnv({
         ...validEnv,
         NODE_ENV: 'development',
-        ALLOW_MOCK_PAYMENT: 'true',
+        PAYMENT_GATEWAY: 'mock',
       });
 
-      expect(env.ALLOW_MOCK_PAYMENT).toBe(true);
+      expect(env.PAYMENT_GATEWAY).toBe('mock');
     });
 
-    it('rejects values other than "true" and "false"', () => {
+    it('rejects an unknown gateway', () => {
       expect(() =>
-        parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'yes' }),
-      ).toThrow();
+        parseEnv({ ...validEnv, PAYMENT_GATEWAY: 'paypal' }),
+      ).toThrow(/PAYMENT_GATEWAY/);
+    });
+
+    // A forgotten old setting must not silently turn payments off.
+    it('points ALLOW_MOCK_PAYMENT=true to PAYMENT_GATEWAY', () => {
+      expect(() =>
+        parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'true' }),
+      ).toThrow(/PAYMENT_GATEWAY=mock/);
+    });
+
+    describe('zarinpal', () => {
+      const merchant = '1344b5d4-0048-11e8-94db-005056a205be';
+
+      it('requires a merchant id', () => {
+        expect(() =>
+          parseEnv({ ...validEnv, PAYMENT_GATEWAY: 'zarinpal' }),
+        ).toThrow(/ZARINPAL_MERCHANT_ID/);
+        expect(() =>
+          parseEnv({
+            ...validEnv,
+            PAYMENT_GATEWAY: 'zarinpal',
+            ZARINPAL_MERCHANT_ID: 'not-a-merchant-id',
+          }),
+        ).toThrow(/ZARINPAL_MERCHANT_ID/);
+      });
+
+      it('uses the sandbox unless told otherwise', () => {
+        const env = parseEnv({
+          ...validEnv,
+          PAYMENT_GATEWAY: 'zarinpal',
+          ZARINPAL_MERCHANT_ID: merchant,
+        });
+        expect(env.ZARINPAL_BASE_URL).toBe('https://sandbox.zarinpal.com');
+        expect(env.PAYMENT_CALLBACK_URL).toBe(
+          'http://localhost:3001/payment/callback',
+        );
+      });
+
+      it('requires an explicit callback URL in production', () => {
+        const production = {
+          ...validEnv,
+          NODE_ENV: 'production',
+          POSTGRES_PASSWORD: 'a-strong-database-password',
+          PAYMENT_GATEWAY: 'zarinpal',
+          ZARINPAL_MERCHANT_ID: merchant,
+        };
+        expect(() => parseEnv(production)).toThrow(/PAYMENT_CALLBACK_URL/);
+        expect(
+          parseEnv({
+            ...production,
+            PAYMENT_CALLBACK_URL: 'https://shop.example/api/payment/callback',
+          }).PAYMENT_CALLBACK_URL,
+        ).toBe('https://shop.example/api/payment/callback');
+      });
+    });
+
+    it('ignores ALLOW_MOCK_PAYMENT=false', () => {
+      expect(
+        parseEnv({ ...validEnv, ALLOW_MOCK_PAYMENT: 'false' }).PAYMENT_GATEWAY,
+      ).toBe('none');
     });
   });
 
@@ -51,13 +111,19 @@ describe('parseEnv', () => {
 
   // Schema names are interpolated into SQL, so anything that is not a bare
   // identifier must be rejected.
-  it.each(['public"; DROP TABLE x; --', 'Nest', '1schema', 'a-b', ''])(
+  it.each(['public"; DROP TABLE x; --', 'Nest', '1schema', 'a-b', ' '])(
     'rejects the schema name %p',
     (schema) => {
       expect(() => parseEnv({ ...validEnv, NEST_SCHEMA: schema })).toThrow();
       expect(() => parseEnv({ ...validEnv, PAYLOAD_SCHEMA: schema })).toThrow();
     },
   );
+
+  it('uses the default schema names when they are empty', () => {
+    const env = parseEnv({ ...validEnv, NEST_SCHEMA: '', PAYLOAD_SCHEMA: '' });
+    expect(env.NEST_SCHEMA).toBe('nest_schema');
+    expect(env.PAYLOAD_SCHEMA).toBe('payload_schema');
+  });
 
   it.each(['0', '721', '1.5', 'abc'])(
     'rejects PENDING_ORDER_TTL_HOURS=%p',
@@ -159,6 +225,28 @@ describe('parseEnv', () => {
         parseEnv({ ...validEnv, MIGRATIONS_RUN_ON_BOOT: 'yes' }),
       ).toThrow(/MIGRATIONS_RUN_ON_BOOT/);
     });
+  });
+
+  // docker compose passes ${KEY:-} as an empty string.
+  it('treats empty values as unset', () => {
+    const env = parseEnv({
+      ...validEnv,
+      PAYMENT_GATEWAY: '',
+      ZARINPAL_MERCHANT_ID: '',
+      PAYMENT_CALLBACK_URL: '',
+      PAYMENT_TIMEOUT_MS: '',
+    });
+
+    expect(env.PAYMENT_GATEWAY).toBe('none');
+    expect(env.ZARINPAL_MERCHANT_ID).toBeUndefined();
+    expect(env.PAYMENT_TIMEOUT_MS).toBe(10_000);
+    expect(() =>
+      parseEnv({
+        ...validEnv,
+        PAYMENT_GATEWAY: 'zarinpal',
+        ZARINPAL_MERCHANT_ID: '',
+      }),
+    ).toThrow(/ZARINPAL_MERCHANT_ID/);
   });
 
   it('rejects an unknown NODE_ENV', () => {

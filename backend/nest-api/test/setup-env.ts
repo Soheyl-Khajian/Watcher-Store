@@ -10,7 +10,7 @@ const testDefaults: Record<string, string> = {
   JWT_SECRET: 'unit-test-jwt-secret-0000000000000000000000000000',
   PAYLOAD_INTERNAL_URL: 'http://127.0.0.1:9/api',
   FRONTEND_URL: 'http://localhost:3002',
-  ALLOW_MOCK_PAYMENT: 'false',
+  PAYMENT_GATEWAY: 'none',
 };
 
 for (const [key, value] of Object.entries(testDefaults)) {

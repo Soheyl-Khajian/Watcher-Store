@@ -109,6 +109,15 @@ await check('nest: ready (database and Payload reachable)', async () => {
   expectStatus(await request(`${NEST}/health/ready`), 200);
 });
 
+// The gateway's return address answers with a redirect to the storefront,
+// even for a payment it does not know.
+await check('nest: payment callback redirects to the storefront', async () => {
+  const result = await request(
+    `${NEST}/payment/callback?Authority=A${'0'.repeat(35)}&Status=OK`,
+  );
+  expectStatus(result, 302);
+});
+
 await check('frontend: home page renders', async () => {
   const result = await request(`${FRONTEND}/`);
   expectStatus(result, 200);

@@ -124,25 +124,87 @@ const envSchema = z
     // (node dist/database/migrate.js) runs them once before the API starts.
     MIGRATIONS_RUN_ON_BOOT: z.enum(['true', 'false']).optional(),
 
-    // Development-only. Enables the simulated payment flow, which trusts the
-    // client-supplied status. Anything other than 'true' or 'false' fails
-    // startup so a typo cannot silently change behavior.
-    ALLOW_MOCK_PAYMENT: z
-      .enum(['true', 'false'])
-      .default('false')
-      .transform((value) => value === 'true'),
+    // Which gateway takes payments: none (payments answer 503), zarinpal, or
+    // mock (development only: no money moves and every return from the
+    // "gateway" counts as paid unless it says NOK).
+    PAYMENT_GATEWAY: z.enum(['none', 'mock', 'zarinpal']).default('none'),
+    // Replaced by PAYMENT_GATEWAY; read only to point old settings there.
+    ALLOW_MOCK_PAYMENT: z.string().optional(),
+    // Where the gateway sends the customer's browser back: this API's
+    // GET /payment/callback, as the browser can reach it. Required in
+    // production when a gateway is configured.
+    PAYMENT_CALLBACK_URL: z.string().url().optional(),
+    // Pending payments older than this are checked with the gateway: the
+    // customer may have paid and closed the browser before coming back.
+    PAYMENT_RECONCILE_AFTER_MINUTES: z
+      .string()
+      .default('15')
+      .transform(Number)
+      .pipe(z.number().int().min(1).max(1440)),
+    // How long to wait for the gateway before giving up.
+    PAYMENT_TIMEOUT_MS: z
+      .string()
+      .default('10000')
+      .transform(Number)
+      .pipe(z.number().int().min(100).max(60_000)),
+    // The merchant id from the Zarinpal panel (any UUID works on sandbox).
+    ZARINPAL_MERCHANT_ID: z
+      .string()
+      .uuid('ZARINPAL_MERCHANT_ID must be the 36-character merchant id')
+      .optional(),
+    // https://sandbox.zarinpal.com for testing, https://payment.zarinpal.com
+    // for real payments.
+    ZARINPAL_BASE_URL: z
+      .string()
+      .url()
+      .default('https://sandbox.zarinpal.com')
+      .transform((url) => url.replace(/\/+$/, '')),
   })
   .superRefine((value, ctx) => {
-    if (value.NODE_ENV !== 'production') {
-      return;
-    }
-
-    if (value.ALLOW_MOCK_PAYMENT) {
+    // An old setting that would otherwise be ignored without a word.
+    if (value.ALLOW_MOCK_PAYMENT?.trim().toLowerCase() === 'true') {
       ctx.addIssue({
         code: 'custom',
         path: ['ALLOW_MOCK_PAYMENT'],
         message:
-          'ALLOW_MOCK_PAYMENT must not be enabled when NODE_ENV=production.',
+          'ALLOW_MOCK_PAYMENT was replaced: set PAYMENT_GATEWAY=mock instead and remove ALLOW_MOCK_PAYMENT.',
+      });
+    }
+
+    if (
+      value.PAYMENT_GATEWAY === 'zarinpal' &&
+      value.ZARINPAL_MERCHANT_ID === undefined
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ZARINPAL_MERCHANT_ID'],
+        message:
+          'ZARINPAL_MERCHANT_ID is required with PAYMENT_GATEWAY=zarinpal.',
+      });
+    }
+
+    if (value.NODE_ENV !== 'production') {
+      return;
+    }
+
+    if (
+      value.PAYMENT_GATEWAY !== 'none' &&
+      value.PAYMENT_CALLBACK_URL === undefined
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_CALLBACK_URL'],
+        message:
+          'PAYMENT_CALLBACK_URL must be set in production: the public URL of GET /payment/callback.',
+      });
+    }
+
+    if (value.PAYMENT_GATEWAY === 'mock') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_GATEWAY'],
+        message:
+          'PAYMENT_GATEWAY=mock must not be used when NODE_ENV=production.',
       });
     }
 
@@ -178,13 +240,22 @@ const envSchema = z
       value.MIGRATIONS_RUN_ON_BOOT === undefined
         ? value.NODE_ENV !== 'production'
         : value.MIGRATIONS_RUN_ON_BOOT === 'true',
+    // Local default: the API on its default port.
+    PAYMENT_CALLBACK_URL:
+      value.PAYMENT_CALLBACK_URL ??
+      `http://localhost:${value.PORT}/payment/callback`,
   }));
 
 export type Env = z.infer<typeof envSchema>;
 
 // Exported separately so the validation rules can be unit-tested.
+// An empty value (KEY= in a .env file, or ${KEY:-} in docker compose)
+// means "not set", so defaults and "required" checks apply to it.
 export function parseEnv(source: NodeJS.ProcessEnv): Env {
-  return envSchema.parse(source);
+  const set = Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== ''),
+  );
+  return envSchema.parse(set);
 }
 
 export const env = parseEnv(process.env);

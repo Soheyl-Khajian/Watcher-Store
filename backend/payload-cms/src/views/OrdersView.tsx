@@ -15,6 +15,7 @@ import {
 const STATUS_LABELS: Record<string, string> = {
   pending: 'در انتظار پرداخت',
   processing: 'در حال پردازش',
+  shipped: 'ارسال‌شده',
   completed: 'تکمیل‌شده',
   cancelled: 'لغوشده',
 };
@@ -36,6 +37,25 @@ const dateFormatter = new Intl.DateTimeFormat('fa-IR', {
   timeStyle: 'short',
   timeZone: 'Asia/Tehran',
 });
+
+// A refund the shop owes, so it cannot be missed in the list.
+function RefundNote({
+  refundStatus,
+}: {
+  refundStatus: NestOrder['refundStatus'];
+}) {
+  if (refundStatus === 'required') {
+    return (
+      <div style={{ color: 'var(--theme-error-500)', fontWeight: 600 }}>
+        نیاز به بازپرداخت
+      </div>
+    );
+  }
+  if (refundStatus === 'refunded') {
+    return <div style={{ opacity: 0.7 }}>بازپرداخت شد</div>;
+  }
+  return null;
+}
 
 const formatToman = (amount: number): string =>
   `${priceFormatter.format(amount)} تومان`;
@@ -250,6 +270,7 @@ async function renderContent(
                 </td>
                 <td style={cellStyle}>
                   {STATUS_LABELS[order.status] ?? order.status}
+                  <RefundNote refundStatus={order.refundStatus} />
                 </td>
                 <td style={cellStyle}>
                   <ul style={{ margin: 0, paddingInlineStart: '1rem' }}>

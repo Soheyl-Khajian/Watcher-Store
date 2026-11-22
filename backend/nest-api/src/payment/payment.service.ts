@@ -1,67 +1,226 @@
 // backend/nest-api/src/payment/payment.service.ts
 
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { OrdersService } from '../orders/orders.service';
-import { OrderStatus } from '../orders/entities/order.entity';
-import { PaymentStatus, VerifyPaymentDto } from './dto/verify-payment.dto';
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Between, DataSource, Repository } from 'typeorm';
+import { tomanToRial } from '../common/money/toman';
 import { env } from '../env';
+import { OrdersService } from '../orders/orders.service';
+import { Payment, PaymentStatus } from './entities/payment.entity';
+import { PAYMENT_GATEWAY } from './gateways/payment-gateway';
+import type { PaymentGateway } from './gateways/payment-gateway';
+
+// Older pending payments are left alone: the gateway has long forgotten
+// them, and an administrator should look instead.
+const RECONCILE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const RECONCILE_BATCH_SIZE = 50;
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly ordersService: OrdersService) {}
+  private readonly logger = new Logger(PaymentService.name);
 
-  // The simulated flow trusts a client-supplied payment status, so it must
-  // never run unless a developer enabled it explicitly.
-  private assertMockPaymentEnabled(): void {
-    if (!env.ALLOW_MOCK_PAYMENT) {
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly dataSource: DataSource,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
+    // null when no gateway is configured (PAYMENT_GATEWAY=none).
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: PaymentGateway | null,
+  ) {}
+
+  private requireGateway(): PaymentGateway {
+    if (!this.gateway) {
       throw new ServiceUnavailableException(
         'پرداخت آنلاین در حال حاضر در دسترس نیست.',
       );
     }
+    return this.gateway;
   }
 
+  // Registers a payment for the customer's pending order and returns the
+  // gateway page to send them to.
   async initiatePayment(
     orderId: number,
     userId: number,
   ): Promise<{ paymentUrl: string }> {
-    this.assertMockPaymentEnabled();
-
-    await this.ordersService.findPendingOrderForPayment(orderId, userId);
-
-    const baseUrl = `${env.FRONTEND_URL}/payment/verify`;
-    const successUrl = `${baseUrl}?status=${PaymentStatus.SUCCESS}&orderId=${orderId}`;
-
-    return { paymentUrl: successUrl };
-  }
-
-  async verifyPayment(
-    verifyDto: VerifyPaymentDto,
-    userId: number,
-  ): Promise<{ message: string }> {
-    this.assertMockPaymentEnabled();
-
-    const { orderId, status } = verifyDto;
-
-    if (status === PaymentStatus.SUCCESS) {
-      await this.ordersService.transitionPendingOrderAfterPayment(
-        orderId,
-        userId,
-        OrderStatus.PROCESSING,
-      );
-
-      return {
-        message: 'پرداخت با موفقیت تایید شد.',
-      };
-    }
-
-    await this.ordersService.transitionPendingOrderAfterPayment(
+    const gateway = this.requireGateway();
+    const order = await this.ordersService.findPendingOrderForPayment(
       orderId,
       userId,
-      OrderStatus.CANCELLED,
+    );
+    const amountRial = tomanToRial(order.total);
+
+    const started = await gateway.start({
+      orderId: order.id,
+      amountRial,
+      description: `پرداخت سفارش شماره ${order.id}`,
+      callbackUrl: env.PAYMENT_CALLBACK_URL,
+    });
+
+    await this.paymentRepository.save(
+      this.paymentRepository.create({
+        orderId: order.id,
+        gateway: gateway.name,
+        authority: started.authority,
+        amountRial,
+        status: PaymentStatus.PENDING,
+      }),
     );
 
-    return {
-      message: 'پرداخت ناموفق بود.',
-    };
+    return { paymentUrl: started.redirectUrl };
+  }
+
+  // The customer is back from the gateway. Verifies the payment with the
+  // gateway and records the result. Returns the order to show the customer,
+  // or null when the authority matches no payment.
+  //
+  // Never throws: the customer is redirected either way. When the gateway
+  // cannot be reached the payment stays pending, and the storefront shows
+  // the order as awaiting confirmation.
+  async handleCallback(
+    authority: string,
+    callbackStatus: 'OK' | 'NOK',
+  ): Promise<number | null> {
+    const gateway = this.gateway;
+    if (!gateway) {
+      return null;
+    }
+
+    const payment = await this.paymentRepository.findOne({
+      where: { gateway: gateway.name, authority },
+    });
+
+    if (!payment) {
+      this.logger.warn(`Payment callback for an unknown authority.`);
+      return null;
+    }
+
+    // A replayed or repeated callback: already settled.
+    if (payment.status !== PaymentStatus.PENDING) {
+      return payment.orderId;
+    }
+
+    try {
+      await this.settle(payment, callbackStatus, { cancelOnFailure: true });
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.logger.warn(
+          `Payment ${payment.id} for order ${payment.orderId} stays pending: ${error.message}`,
+        );
+      } else {
+        this.logger.error(
+          `Settling payment ${payment.id} for order ${payment.orderId} failed`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+
+    return payment.orderId;
+  }
+
+  // Payments still pending after PAYMENT_RECONCILE_AFTER_MINUTES: the
+  // customer paid (or gave up) and never came back. Asks the gateway what
+  // happened to each. Paid ones are settled as usual; unpaid ones are marked
+  // failed, and their order is left for the customer to retry or for the
+  // expiry job. Returns how many were settled.
+  async reconcilePendingPayments(now = new Date()): Promise<number> {
+    const gateway = this.gateway;
+    if (!gateway) {
+      return 0;
+    }
+
+    const stale = await this.paymentRepository.find({
+      where: {
+        gateway: gateway.name,
+        status: PaymentStatus.PENDING,
+        createdAt: Between(
+          new Date(now.getTime() - RECONCILE_WINDOW_MS),
+          new Date(
+            now.getTime() - env.PAYMENT_RECONCILE_AFTER_MINUTES * 60_000,
+          ),
+        ),
+      },
+      order: { id: 'ASC' },
+      take: RECONCILE_BATCH_SIZE,
+    });
+
+    let settled = 0;
+    for (const payment of stale) {
+      try {
+        await this.settle(payment, null, { cancelOnFailure: false });
+        settled += 1;
+      } catch (error) {
+        // Still pending; the next run asks again.
+        this.logger.warn(
+          `Could not reconcile payment ${payment.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+    return settled;
+  }
+
+  // Asks the gateway whether the money arrived, then records the result on
+  // the payment and its order together. Settling the same payment twice
+  // changes nothing the second time.
+  private async settle(
+    payment: Payment,
+    callbackStatus: 'OK' | 'NOK' | null,
+    options: { cancelOnFailure: boolean },
+  ): Promise<PaymentStatus> {
+    const gateway = this.requireGateway();
+
+    // Outside the transaction: no row lock is held across a network call.
+    const result = await gateway.verify({
+      authority: payment.authority,
+      amountRial: payment.amountRial,
+      callbackStatus,
+    });
+
+    return this.dataSource.transaction(async (manager) => {
+      const paymentRepository = manager.getRepository(Payment);
+      const locked = await paymentRepository.findOne({
+        where: { id: payment.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!locked || locked.status !== PaymentStatus.PENDING) {
+        return locked?.status ?? PaymentStatus.FAILED;
+      }
+
+      locked.gatewayResponse = result.raw;
+      locked.verifiedAt = new Date();
+
+      if (result.paid) {
+        locked.status = PaymentStatus.PAID;
+        locked.refId = result.refId;
+        locked.cardPan = result.cardPan;
+      } else {
+        locked.status = PaymentStatus.FAILED;
+      }
+
+      const outcome = await this.ordersService.applyPaymentResult(
+        manager,
+        locked.orderId,
+        result.paid,
+        options,
+      );
+      await paymentRepository.save(locked);
+
+      if (result.paid) {
+        this.logger.log(
+          `Payment ${locked.id} for order ${locked.orderId} paid (ref ${result.refId}); order ${outcome}.`,
+        );
+      }
+      return locked.status;
+    });
   }
 }
