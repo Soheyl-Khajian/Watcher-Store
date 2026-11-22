@@ -122,6 +122,10 @@ await check('nest: payment callback redirects to the storefront', async () => {
   expectStatus(result, 302);
 });
 
+await check('frontend: ready (Payload and Nest reachable)', async () => {
+  expectStatus(await request(`${FRONTEND}/api/health/ready`), 200);
+});
+
 await check('frontend: home page renders', async () => {
   const result = await request(`${FRONTEND}/`);
   expectStatus(result, 200);
