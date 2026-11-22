@@ -27,8 +27,12 @@ export function CartSheet() {
               {totalQuantity}
             </span>
           )}
-          <ShoppingCart className="h-5 w-5" />
-          <span className="sr-only">باز کردن سبد خرید</span>
+          <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+          <span className="sr-only">
+            {totalQuantity > 0
+              ? `باز کردن سبد خرید، ${totalQuantity.toLocaleString('fa-IR')} کالا`
+              : 'باز کردن سبد خرید'}
+          </span>
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col p-4 sm:p-6">

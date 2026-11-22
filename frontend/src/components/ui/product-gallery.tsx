@@ -14,9 +14,11 @@ interface ProductGalleryProps {
     image: Media | number; // image can be whole object or an ID
     id?: string | null;
   }[];
+  // Describes the images for screen readers when they have no alt text.
+  productName: string;
 }
 
-export function ProductGallery({ gallery }: ProductGalleryProps) {
+export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
   // set the first image in the gallery as active image
   const [selectedImage, setSelectedImage] = useState(gallery[0]?.image);
 
@@ -27,6 +29,19 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
       </div>
     );
   }
+
+  const images = gallery.filter(
+    (item): item is { image: Media; id?: string | null } =>
+      typeof item.image === 'object',
+  );
+  const selectedIndex = images.findIndex(
+    (item) => item.image.id === (selectedImage as Media)?.id,
+  );
+  const altFor = (image: Media, index: number) =>
+    image.alt ||
+    (images.length > 1
+      ? `${productName} - تصویر ${(index + 1).toLocaleString('fa-IR')}`
+      : productName);
 
   const getImageUrl = (image: Media | number) => {
     if (typeof image === 'object' && image?.url) {
@@ -42,7 +57,11 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
         <div className="relative h-full w-full">
           <Image
             src={getImageUrl(selectedImage)}
-            alt="تصویر محصول"
+            alt={
+              typeof selectedImage === 'object'
+                ? altFor(selectedImage, Math.max(0, selectedIndex))
+                : productName
+            }
             fill
             unoptimized
             className="object-contain"
@@ -52,37 +71,40 @@ export function ProductGallery({ gallery }: ProductGalleryProps) {
       </div>
 
       {/*(Thumbnails)*/}
-      <div className="grid grid-cols-5 gap-2">
-        {gallery.map((item) => {
-          // make sure every item has a valid image
-          if (typeof item.image !== 'object') return null;
+      {images.length > 1 ? (
+        <div className="grid grid-cols-5 gap-2">
+          {images.map((item, index) => {
+            const imageUrl = getImageUrl(item.image);
+            const isSelected = index === selectedIndex;
 
-          const imageUrl = getImageUrl(item.image);
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => setSelectedImage(item.image)}
-              className={cn(
-                'aspect-square w-full overflow-hidden rounded-md border transition-all',
-                (selectedImage as Media)?.id === item.image.id
-                  ? 'border-primary ring-primary ring-2'
-                  : 'border-border',
-              )}
-            >
-              <div className="relative h-full w-full">
-                <Image
-                  src={imageUrl}
-                  alt="تصویر کوچک محصول"
-                  fill
-                  unoptimized
-                  className="object-contain"
-                />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={item.id ?? item.image.id}
+                type="button"
+                aria-label={`نمایش تصویر ${(index + 1).toLocaleString('fa-IR')} از ${images.length.toLocaleString('fa-IR')}`}
+                aria-pressed={isSelected}
+                onClick={() => setSelectedImage(item.image)}
+                className={cn(
+                  'aspect-square w-full overflow-hidden rounded-md border transition-all',
+                  isSelected
+                    ? 'border-primary ring-primary ring-2'
+                    : 'border-border',
+                )}
+              >
+                <div className="relative h-full w-full">
+                  <Image
+                    src={imageUrl}
+                    alt=""
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

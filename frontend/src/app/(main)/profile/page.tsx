@@ -31,7 +31,7 @@ export default function ProfilePage() {
   };
 
   if (isLoading) {
-    return <div>در حال بارگذاری تاریخچه سفارشات...</div>;
+    return <div role="status">در حال بارگذاری تاریخچه سفارشات...</div>;
   }
 
   return (

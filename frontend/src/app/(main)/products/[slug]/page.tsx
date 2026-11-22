@@ -26,7 +26,10 @@ export default async function ProductDetailsPage({ params }: PageProps) {
     <div className="container mx-auto max-w-6xl px-4 py-12">
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
         <div>
-          <ProductGallery gallery={product.gallery || []} />
+          <ProductGallery
+            gallery={product.gallery || []}
+            productName={product.name}
+          />
         </div>
         <div className="flex flex-col">
           <h1 className="text-3xl font-extrabold tracking-tight lg:text-4xl">

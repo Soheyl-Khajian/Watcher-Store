@@ -6,7 +6,7 @@ import PaymentVerifyClient from './payment-verify-client';
 
 export default function VerifyPaymentPage() {
   return (
-    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+    <Suspense fallback={<div role="status">در حال بارگذاری...</div>}>
       <PaymentVerifyClient />
     </Suspense>
   );

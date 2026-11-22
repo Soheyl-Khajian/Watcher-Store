@@ -132,7 +132,7 @@ export function CartContent({ onClose }: CartContentProps) {
             سبد خرید شما در حال حاضر خالی است.
           </p>
         ) : !isResolved ? (
-          <p>در حال بارگذاری...</p>
+          <p role="status">در حال بارگذاری...</p>
         ) : productsFailed ? (
           <p className="text-destructive">
             امکان دریافت اطلاعات محصولات وجود ندارد. چند لحظه بعد دوباره تلاش
@@ -172,6 +172,7 @@ export function CartContent({ onClose }: CartContentProps) {
                     className="cursor-pointer"
                     variant="ghost"
                     size="icon"
+                    aria-label={`حذف ${product.name} از سبد خرید`}
                     onClick={() => handleRemoveItem(String(item.productId))}
                   >
                     <X className="h-4 w-4" />

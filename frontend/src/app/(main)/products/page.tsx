@@ -5,19 +5,7 @@ import { ProductSearchForm } from '@/components/search/product-search-form';
 import { normalizeSearchQuery } from '@/lib/utils/search';
 import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-
-//تابع کمکی برای تبدیل اعداد به فارسی
-const toPersianDigits = (num: number) => {
-  return new Number(num).toLocaleString('fa-IR', { useGrouping: false });
-};
+import { Pager } from '@/components/ui/pager';
 
 export default async function AllProductsPage({
   searchParams,
@@ -78,25 +66,11 @@ export default async function AllProductsPage({
             ))}
           </div>
           <div className="mt-12">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href={page > 1 ? createPageUrl(page - 1) : '#'}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#" isActive>
-                    {toPersianDigits(page)}
-                  </PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    href={page < totalPages ? createPageUrl(page + 1) : '#'}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <Pager
+              page={page}
+              totalPages={totalPages}
+              hrefFor={createPageUrl}
+            />
           </div>
         </>
       ) : (

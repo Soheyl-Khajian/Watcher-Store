@@ -4,19 +4,7 @@ import { fetchProductsAndCategoryBySlug } from '@/lib/api/payload';
 import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
 import { notFound } from 'next/navigation';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-
-// تابع کمکی برای تبدیل اعداد به فارسی
-const toPersianDigits = (num: number) => {
-  return new Number(num).toLocaleString('fa-IR', { useGrouping: false });
-};
+import { Pager } from '@/components/ui/pager';
 
 export default async function CategoryPage({
   params,
@@ -44,7 +32,8 @@ export default async function CategoryPage({
   const totalPages = productsResult?.totalPages || 1;
 
   // ۲. تابع کمکی برای ساخت URL های صفحه‌بندی
-  const createPageUrl = (p: number) => `/categories/${slug}?page=${p}`;
+  const createPageUrl = (p: number) =>
+    `/categories/${encodeURIComponent(slug)}?page=${p}`;
 
   return (
     <div className="container mx-auto py-12">
@@ -62,25 +51,11 @@ export default async function CategoryPage({
 
           {/* ۳. اضافه شدن کامپوننت Pagination */}
           <div className="mt-12">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href={page > 1 ? createPageUrl(page - 1) : '#'}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#" isActive>
-                    {toPersianDigits(page)}
-                  </PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    href={page < totalPages ? createPageUrl(page + 1) : '#'}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <Pager
+              page={page}
+              totalPages={totalPages}
+              hrefFor={createPageUrl}
+            />
           </div>
         </>
       ) : (

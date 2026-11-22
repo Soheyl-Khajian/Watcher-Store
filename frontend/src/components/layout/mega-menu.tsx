@@ -103,10 +103,14 @@ export function MegaMenu({ categories }: MegaMenuProps) {
 
           {/* ستون سوم: نوه‌های والد فعال (فرزندانِ فرزند فعال) */}
           <div className="flex flex-col space-y-1 border-r pr-2">
-            <h4 className="border-primary/20 text-primary pointer-events-none mb-2 border-b pb-2 text-right text-base font-bold opacity-0">
-              Placeholder
-            </h4>{' '}
-            {/* Placeholder برای حفظ هم‌ترازی */}
+            {/* Keeps this column aligned with the headed columns; hidden
+                from screen readers, which used to read "Placeholder". */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none mb-2 border-b border-transparent pb-2 text-base font-bold"
+            >
+              &nbsp;
+            </div>
             {(activeChild?.children || []).map((grandchild) => (
               <Link
                 key={grandchild.id}
