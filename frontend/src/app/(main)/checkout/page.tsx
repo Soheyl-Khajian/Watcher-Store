@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store/auth';
+import { useRequireSession } from '@/lib/hooks/use-require-session';
 import type { Product, CartItem } from '@/types';
 import { fetchProductsByIds } from '@/lib/api/payload';
 import {
@@ -110,7 +111,8 @@ function FormField({
 
 export default function CheckoutPage() {
   // The cart is null until the session check has loaded it.
-  const { cart, status, setCart } = useAuthStore();
+  const { cart, setCart } = useAuthStore();
+  const status = useRequireSession();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -127,10 +129,8 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (isProcessing || placedOrderId !== null) return;
-    if (
-      status === 'signed-out' ||
-      (status === 'signed-in' && cart !== null && cart.items.length === 0)
-    ) {
+    // Nothing to check out: back to the shop.
+    if (status === 'signed-in' && cart !== null && cart.items.length === 0) {
       router.push('/');
     }
   }, [status, cart, router, isProcessing, placedOrderId]);

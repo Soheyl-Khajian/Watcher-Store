@@ -11,6 +11,7 @@ import { randomUUID } from 'crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from '../csrf';
+import { sessionCookieFor, type SessionCookie } from '../session-cookie';
 
 const UPSTREAM_TIMEOUT_MS = 10_000;
 
@@ -48,18 +49,8 @@ export function serverEnv(): ServerEnv {
 // Session cookie
 // ---------------------------------------------------------------------------
 
-export interface SessionCookie {
-  name: string;
-  secure: boolean;
-}
-
-// Over https the cookie is Secure and uses the __Host- prefix (browsers then
-// refuse it unless it is Secure, host-only and for the whole site). A plain
-// http storefront (local development, the local production stack) cannot
-// use either.
 export function sessionCookie(env: ServerEnv = serverEnv()): SessionCookie {
-  const secure = env.frontendOrigin.startsWith('https://');
-  return { name: secure ? '__Host-ws_session' : 'ws_session', secure };
+  return sessionCookieFor(env.frontendOrigin);
 }
 
 // Seconds until the token expires, read from its exp claim (the signature

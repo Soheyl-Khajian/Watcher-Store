@@ -2,14 +2,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/lib/store/auth';
+import { useRequireSession } from '@/lib/hooks/use-require-session';
 import { fetchUserOrders } from '@/lib/api/nestjs';
 import type { Order } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export default function ProfilePage() {
-  const { status } = useAuthStore();
+  const status = useRequireSession();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

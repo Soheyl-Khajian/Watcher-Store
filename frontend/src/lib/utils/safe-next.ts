@@ -29,3 +29,8 @@ export function safeNextPath(value: string | null | undefined): string {
   }
   return value;
 }
+
+// The login page, returning to path afterwards.
+export function loginPathFor(path: string): string {
+  return `/login?next=${encodeURIComponent(safeNextPath(path))}`;
+}

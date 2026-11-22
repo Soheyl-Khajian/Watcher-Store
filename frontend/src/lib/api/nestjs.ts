@@ -7,7 +7,7 @@
 import type { AuthUser, Cart } from '@/types';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from '../csrf';
 import { useAuthStore } from '../store/auth';
-import { safeNextPath } from '../utils/safe-next';
+import { loginPathFor } from '../utils/safe-next';
 import type { ShippingPayload } from '../validation/shipping';
 
 const UNAVAILABLE_MESSAGE =
@@ -21,11 +21,11 @@ function sessionEnded(): void {
   if (typeof window === 'undefined' || window.location.pathname === '/login') {
     return;
   }
-  const here = safeNextPath(window.location.pathname + window.location.search);
   // A full page load on purpose: this runs outside React (no router at
   // hand), and a fresh page leaves no state from the ended session behind.
-  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-  window.location.assign(`/login?next=${encodeURIComponent(here)}`);
+  window.location.assign(
+    loginPathFor(window.location.pathname + window.location.search),
+  );
 }
 
 interface ApiResult {

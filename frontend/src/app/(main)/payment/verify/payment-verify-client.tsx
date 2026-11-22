@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useAuthStore } from '@/lib/store/auth';
+import { useRequireSession } from '@/lib/hooks/use-require-session';
 import { fetchOrderStatus, type OrderStatus } from '@/lib/api/nestjs';
 
 type Outcome = 'loading' | 'paid' | 'failed' | 'pending' | 'unknown';
@@ -31,7 +31,7 @@ function outcomeFor(status: OrderStatus | null): Outcome {
 
 export default function PaymentVerifyClient() {
   const searchParams = useSearchParams();
-  const { status } = useAuthStore();
+  const status = useRequireSession();
   const orderId = searchParams.get('orderId');
   const [outcome, setOutcome] = useState<Outcome>('loading');
 

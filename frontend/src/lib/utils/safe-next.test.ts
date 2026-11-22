@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeNextPath } from './safe-next';
+import { loginPathFor, safeNextPath } from './safe-next';
 
 describe('safeNextPath', () => {
   it.each([
@@ -23,5 +23,17 @@ describe('safeNextPath', () => {
     'javascript:alert(1)',
   ])('replaces %p with the home page', (value) => {
     expect(safeNextPath(value)).toBe('/');
+  });
+});
+
+describe('loginPathFor', () => {
+  it('returns to the given page after login', () => {
+    expect(loginPathFor('/checkout?step=2')).toBe(
+      '/login?next=%2Fcheckout%3Fstep%3D2',
+    );
+  });
+
+  it('never carries another site in next', () => {
+    expect(loginPathFor('//evil.example')).toBe('/login?next=%2F');
   });
 });
