@@ -1,39 +1,46 @@
-# Dependencies and package managers
-node_modules
-.pnpm-store
-.pnpm-debug.log
+# Everything the images do not need. The Dockerfiles copy only the lockfile,
+# the package manifests and their own app's directory, so this mainly keeps
+# the build context small and secrets out of it.
 
-# Build outputs
-.next
-dist
-build
-.cache
+# Dependencies and package managers
+**/node_modules
+.pnpm-store
+**/.pnpm-debug.log
+
+# Build outputs and caches
+**/.next
+**/dist
+**/build
+**/.cache
+**/coverage
+**/*.tsbuildinfo
 
 # Local env and secrets
-.env
-.env.local
-.env.*.local
+**/.env
+**/.env.*
+!.env.example
 
-# Git and editor metadata
-.git
-.gitignore
-.vscode
-.idea
-
-# Logs and OS files
-*.log
-.DS_Store
-
-# Payload media (ephemeral local uploads)
+# Payload media (local uploads)
 backend/payload-cms/media
 
-# Frontend build cache
-frontend/.next
-frontend/node_modules
+# Tests (not part of any image)
+backend/nest-api/test
+backend/payload-cms/tests
+**/*.test.ts
+**/*.spec.ts
 
-# Backend build caches
-backend/payload-cms/.next
-backend/payload-cms/dist
-backend/payload-cms/node_modules
-backend/nest-api/dist
-backend/nest-api/node_modules
+# Repository, tooling and docs
+.git
+.github
+.claude
+.devcontainer
+.vscode
+.idea
+assets
+docs
+scripts
+**/*.md
+
+# Logs and OS files
+**/*.log
+**/.DS_Store
