@@ -135,6 +135,8 @@ jobs:
           sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
           sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$db_password|" .env
           sed -i "s|^DATABASE_URI=postgres://postgres:postgres@|DATABASE_URI=postgres://postgres:$db_password@|" .env
+          sed -i "s|^PAYLOAD_DB_PASSWORD=.*|PAYLOAD_DB_PASSWORD=$(openssl rand -hex 24)|" .env
+          sed -i "s|^NEST_DB_PASSWORD=.*|NEST_DB_PASSWORD=$(openssl rand -hex 24)|" .env
 
       - name: Build images
         run: docker compose -f docker-compose.prod.yml build

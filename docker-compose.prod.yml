@@ -7,27 +7,73 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - .devcontainer/postgres-init/init-schemas.sh:/docker-entrypoint-initdb.d/01-init-schemas.sh:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # The superuser (POSTGRES_USER) is used only by the database itself and by
+  # the two jobs below. Each service connects as its own role, which owns
+  # only its own schema (deploy/postgres/).
+  #
+  # db-roles: creates the roles and schemas (and sets the roles' passwords)
+  # on every deploy, before any migration.
+  db-roles:
+    image: postgres:14-alpine
+    environment: &db-admin-environment
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
+      NEST_SCHEMA: ${NEST_SCHEMA}
+      PAYLOAD_DB_PASSWORD: ${PAYLOAD_DB_PASSWORD:?Set PAYLOAD_DB_PASSWORD in .env}
+      NEST_DB_PASSWORD: ${NEST_DB_PASSWORD:?Set NEST_DB_PASSWORD in .env}
+    volumes:
+      - ./deploy/postgres:/sql:ro
+    # $$: expanded inside the container, so the passwords never appear on
+    # the command line.
+    command:
+      - sh
+      - -c
+      - >-
+        psql -X -q -v dbname="$$PGDATABASE" -v payload_schema="$$PAYLOAD_SCHEMA"
+        -v nest_schema="$$NEST_SCHEMA" -v payload_password="$$PAYLOAD_DB_PASSWORD"
+        -v nest_password="$$NEST_DB_PASSWORD" -f /sql/roles.sql
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # db-grants: Nest's access to the Payload tables it uses, once Payload's
+  # migrations have created them.
+  db-grants:
+    image: postgres:14-alpine
+    environment: *db-admin-environment
+    volumes:
+      - ./deploy/postgres:/sql:ro
+    command:
+      - sh
+      - -c
+      - psql -X -q -v payload_schema="$$PAYLOAD_SCHEMA" -f /sql/nest-access.sql
+    depends_on:
+      payload-migrate:
+        condition: service_completed_successfully
+
   payload-migrate:
     image: watcher-store-payload-cms
     env_file:
       - .env
     environment:
-      DATABASE_URI: ${DATABASE_URI}
+      DATABASE_URI: postgres://payload_app:${PAYLOAD_DB_PASSWORD}@db:5432/${POSTGRES_DB}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       FRONTEND_URL: ${FRONTEND_URL}
       PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL}
     command: ['./node_modules/.bin/payload', 'migrate']
     depends_on:
-      db:
-        condition: service_healthy
+      db-roles:
+        condition: service_completed_successfully
 
   payload-cms:
     image: watcher-store-payload-cms
@@ -39,7 +85,7 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URI: ${DATABASE_URI}
+      DATABASE_URI: postgres://payload_app:${PAYLOAD_DB_PASSWORD}@db:5432/${POSTGRES_DB}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
       FRONTEND_URL: ${FRONTEND_URL}
@@ -65,8 +111,9 @@ services:
     environment: &nest-environment
       DATABASE_HOST: db
       DATABASE_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Nest's own role, not the superuser (see db-roles).
+      POSTGRES_USER: nest_app
+      POSTGRES_PASSWORD: ${NEST_DB_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       NEST_SCHEMA: ${NEST_SCHEMA}
       PAYLOAD_SCHEMA: ${PAYLOAD_SCHEMA}
@@ -85,8 +132,8 @@ services:
       PORT: 3001
     command: ['node', 'dist/database/migrate.js']
     depends_on:
-      db:
-        condition: service_healthy
+      db-roles:
+        condition: service_completed_successfully
 
   nest-api:
     image: watcher-store-nest-api
@@ -102,6 +149,8 @@ services:
       db:
         condition: service_healthy
       nest-migrate:
+        condition: service_completed_successfully
+      db-grants:
         condition: service_completed_successfully
 
   frontend:
