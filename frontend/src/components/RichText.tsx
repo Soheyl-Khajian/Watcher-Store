@@ -3,6 +3,7 @@ import React, { Fragment } from 'react';
 import escapeHTML from 'escape-html';
 import { Text } from 'slate';
 import type { RichTextNode } from '@/types';
+import { isExternalUrl, safeUrl } from '@/lib/utils/safe-url';
 
 // کامپوننت اصلی برای رندر کردن
 export const RichText: React.FC<{ content: RichTextNode[] }> = ({
@@ -52,12 +53,26 @@ export const RichText: React.FC<{ content: RichTextNode[] }> = ({
           return <ol key={i}>{serialize(node.children || [])}</ol>;
         case 'li':
           return <li key={i}>{serialize(node.children || [])}</li>;
-        case 'link':
+        case 'link': {
+          // Only safe destinations become links (no javascript: URLs from
+          // the CMS); the text stays either way.
+          const href = safeUrl(node.url);
+          if (!href) {
+            return <span key={i}>{serialize(node.children || [])}</span>;
+          }
+          const newTab = node.newTab === true || isExternalUrl(href);
           return (
-            <a href={escapeHTML(node.url)} key={i}>
+            <a
+              href={href}
+              key={i}
+              {...(newTab
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
+            >
               {serialize(node.children || [])}
             </a>
           );
+        }
 
         default: // به صورت پیش‌فرض، پاراگراف در نظر می‌گیریم
           return <p key={i}>{serialize(node.children || [])}</p>;
