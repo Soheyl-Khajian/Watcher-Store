@@ -1,0 +1,77 @@
+import { describe, expect, it } from 'vitest';
+import type { Order } from '@/types';
+import {
+  canCancel,
+  canPay,
+  cancelReasonText,
+  orderStatusLabel,
+  refundText,
+} from './orders';
+
+function order(overrides: Partial<Order> = {}): Order {
+  return {
+    id: 1,
+    userId: 1,
+    total: 100_000,
+    status: 'pending',
+    refundStatus: 'none',
+    cancelReason: null,
+    trackingCode: null,
+    paidAt: null,
+    shippedAt: null,
+    completedAt: null,
+    cancelledAt: null,
+    createdAt: '2026-11-22T10:00:00.000Z',
+    items: [],
+    shipping: null,
+    ...overrides,
+  };
+}
+
+describe('order descriptions', () => {
+  it('labels every status in Persian', () => {
+    expect(orderStatusLabel('pending')).toBe('در انتظار پرداخت');
+    expect(orderStatusLabel('processing')).toBe('در حال پردازش');
+    expect(orderStatusLabel('shipped')).toBe('ارسال‌شده');
+    expect(orderStatusLabel('completed')).toBe('تکمیل‌شده');
+    expect(orderStatusLabel('cancelled')).toBe('لغوشده');
+  });
+
+  it('shows an unknown status as is', () => {
+    expect(orderStatusLabel('on_hold')).toBe('on_hold');
+  });
+
+  it('explains why an order was cancelled', () => {
+    expect(
+      cancelReasonText(order({ status: 'cancelled', cancelReason: 'expired' })),
+    ).toContain('مهلت');
+    expect(cancelReasonText(order())).toBeNull();
+  });
+
+  it('tells the customer about refunds', () => {
+    expect(refundText(order({ refundStatus: 'required' }))).toContain(
+      'بازگردانده می‌شود',
+    );
+    expect(refundText(order({ refundStatus: 'refunded' }))).toContain(
+      'بازگردانده شد',
+    );
+    expect(refundText(order())).toBeNull();
+  });
+});
+
+describe('order actions', () => {
+  it('offers payment and cancellation only for unpaid orders', () => {
+    expect(canPay(order())).toBe(true);
+    expect(canCancel(order())).toBe(true);
+
+    for (const status of [
+      'processing',
+      'shipped',
+      'completed',
+      'cancelled',
+    ] as const) {
+      expect(canPay(order({ status }))).toBe(false);
+      expect(canCancel(order({ status }))).toBe(false);
+    }
+  });
+});

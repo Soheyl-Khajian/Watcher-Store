@@ -299,7 +299,7 @@ export default function CheckoutPage() {
   }
 
   if (isLoading || !cart) {
-    return <div>در حال بارگذاری اطلاعات سفارش...</div>;
+    return <div role="status">در حال بارگذاری اطلاعات سفارش...</div>;
   }
 
   return (

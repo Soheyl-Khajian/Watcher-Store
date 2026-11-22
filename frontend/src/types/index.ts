@@ -83,10 +83,9 @@ export interface Product {
 // A node of Payload's Slate rich text, as rendered by components/RichText.
 export type RichTextNode = {
   type?: string;
-  value?: {
-    url: string;
-    alt: string;
-  };
+  // An upload's media document (url, alt, width, height), or only its id
+  // when Payload did not populate it.
+  value?: unknown;
   children?: RichTextNode[];
   url?: string;
   [key: string]: unknown;
@@ -119,13 +118,38 @@ export interface OrderItem {
   price: number;
 }
 
+export type OrderStatus =
+  'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+
+export interface OrderShipping {
+  recipientName: string | null;
+  phone: string | null;
+  province: string | null;
+  city: string | null;
+  address: string | null;
+  postalCode: string | null;
+  unit: string | null;
+  floor: string | null;
+  deliveryNotes: string | null;
+}
+
+// An order as the API returns it (Nest's toOrderResponse).
 export interface Order {
   id: number;
   userId: number;
   total: number;
-  status: string;
+  status: OrderStatus;
+  refundStatus: 'none' | 'required' | 'refunded';
+  cancelReason:
+    'customer_request' | 'admin' | 'expired' | 'payment_failed' | null;
+  trackingCode: string | null;
+  paidAt: string | null;
+  shippedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
   createdAt: string;
   items: OrderItem[];
+  shipping: OrderShipping | null;
 }
 
 export interface Post {

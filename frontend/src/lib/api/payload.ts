@@ -2,6 +2,7 @@
 
 import type { Category, Product } from '@/types';
 import { env } from '../env';
+import type { CacheTag } from '../cache-tags';
 
 const PAYLOAD_API_URL =
   typeof window === 'undefined'
@@ -10,7 +11,39 @@ const PAYLOAD_API_URL =
 
 const PUBLISHED_STATUS_FILTER = 'where[status][equals]=published';
 
-async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
+// Payload could not be asked (unreachable, or it answered with an error).
+// Different from "not found": pages show an error with a retry button
+// (app/(main)/error.tsx) instead of an empty shop.
+export class PayloadUnavailableError extends Error {
+  constructor(endpoint: string, reason: string) {
+    super(`Payload request ${endpoint.split('?')[0]} failed: ${reason}`);
+    this.name = 'PayloadUnavailableError';
+  }
+}
+
+// The parsed answer, or null when Payload says the thing does not exist
+// (404). Throws PayloadUnavailableError for anything else.
+// How long a Payload answer may be served from the cache, and under which
+// tags Payload can drop it early (POST /api/revalidate after an edit).
+// Products are short-lived: their stock changes at checkout, outside
+// Payload, so no edit hook announces it.
+interface CachePolicy {
+  tags: CacheTag[];
+  revalidate: number;
+}
+
+const PRODUCTS: CachePolicy = { tags: ['products'], revalidate: 60 };
+const HOUR = 60 * 60;
+const cacheFor = (...tags: CacheTag[]): CachePolicy => ({
+  tags,
+  revalidate: tags.includes('products') ? PRODUCTS.revalidate : HOUR,
+});
+
+async function fetchPayloadAPI(
+  endpoint: string,
+  cache: CachePolicy,
+  options: RequestInit = {},
+) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const url = `${PAYLOAD_API_URL}${endpoint}`;
 
@@ -25,22 +58,33 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
     const isGetRequest =
       !options.method || options.method.toUpperCase() === 'GET';
     if (isGetRequest) {
-      fetchOptions.next = { revalidate: 60 }; // TODO: change to one hour cache
+      fetchOptions.next = { revalidate: cache.revalidate, tags: cache.tags };
     }
   }
 
+  let res: Response;
   try {
-    const res = await fetch(url, fetchOptions);
-    if (!res.ok) {
-      return null;
-    }
-    if (res.status === 204) return true;
-    return res.json();
+    res = await fetch(url, fetchOptions);
   } catch (error) {
+    const failure = new PayloadUnavailableError(
+      endpoint,
+      error instanceof Error ? error.message : 'unknown error',
+    );
     // eslint-disable-next-line no-console
-    console.error('Failed to fetch from Payload API:', error);
+    console.error(failure.message);
+    throw failure;
+  }
+
+  if (res.status === 404) {
     return null;
   }
+  if (!res.ok) {
+    const failure = new PayloadUnavailableError(endpoint, `HTTP ${res.status}`);
+    // eslint-disable-next-line no-console
+    console.error(failure.message);
+    throw failure;
+  }
+  return res.json();
 }
 
 //------------------------------------------------------------
@@ -49,6 +93,7 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
 export async function fetchProducts() {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&limit=12&depth=1`,
+    PRODUCTS,
   );
   return data?.docs || [];
 }
@@ -56,22 +101,44 @@ export async function fetchProducts() {
 export async function fetchFeaturedProducts() {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&where[isOnSale][equals]=true&limit=12&depth=1`,
+    PRODUCTS,
   );
   return data?.docs || [];
 }
 
-export async function fetchAllProducts(page = 1, limit = 15, onSale = false) {
-  let query = `/products?${PUBLISHED_STATUS_FILTER}&page=${page}&limit=${limit}&depth=1`;
+// One page of published products, optionally only those on sale and/or
+// matching a search (name or SKU; every word must match).
+export async function fetchAllProducts({
+  page = 1,
+  limit = 15,
+  onSale = false,
+  search = '',
+}: {
+  page?: number;
+  limit?: number;
+  onSale?: boolean;
+  search?: string;
+} = {}) {
+  const params = new URLSearchParams({
+    'where[status][equals]': 'published',
+    page: String(page),
+    limit: String(limit),
+    depth: '1',
+  });
   if (onSale) {
-    query += `&where[isOnSale][equals]=true`;
+    params.set('where[isOnSale][equals]', 'true');
   }
-  const data = await fetchPayloadAPI(query);
-  return data;
+  if (search) {
+    params.set('where[or][0][name][like]', search);
+    params.set('where[or][1][sku][like]', search);
+  }
+  return fetchPayloadAPI(`/products?${params.toString()}`, PRODUCTS);
 }
 
 export async function fetchProductBySlug(slug: string) {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}&depth=2`,
+    PRODUCTS,
   );
   return data?.docs?.[0] || null;
 }
@@ -86,11 +153,15 @@ export async function fetchProductsByIds(
   }
 
   const encodedIds = encodeURIComponent(ids.join(','));
-  const data = await fetchPayloadAPI(
-    `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
-  );
-
-  return data ? (data.docs ?? []) : null;
+  try {
+    const data = await fetchPayloadAPI(
+      `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
+      PRODUCTS,
+    );
+    return data?.docs ?? [];
+  } catch {
+    return null;
+  }
 }
 
 //------------------------------------------------------------
@@ -98,19 +169,26 @@ export async function fetchProductsByIds(
 //------------------------------------------------------------
 
 export async function fetchCategories() {
-  const data = await fetchPayloadAPI('/categories?limit=100');
+  const data = await fetchPayloadAPI(
+    '/categories?limit=100',
+    cacheFor('categories'),
+  );
   return data?.docs || [];
 }
 
 export async function fetchParentCategories() {
   const data = await fetchPayloadAPI(
     '/categories?limit=100&where[parent][exists]=false',
+    cacheFor('categories'),
   );
   return data?.docs || [];
 }
 
 export async function fetchCategoryTree() {
-  const data = await fetchPayloadAPI('/categories?limit=200&depth=1');
+  const data = await fetchPayloadAPI(
+    '/categories?limit=200&depth=1',
+    cacheFor('categories'),
+  );
   const categories: Category[] = data?.docs || [];
 
   const categoryMap: Record<string, Category> = {};
@@ -138,7 +216,8 @@ export async function fetchCategoryTree() {
 
 export async function fetchCategoriesBySlugs(slugs: string[]) {
   const data = await fetchPayloadAPI(
-    `/categories?where[slug][in]=${slugs.join(',')}&limit=10&depth=1`,
+    `/categories?where[slug][in]=${slugs.map(encodeURIComponent).join(',')}&limit=10&depth=1`,
+    cacheFor('categories'),
   );
 
   const fetchedCategories = data?.docs || [];
@@ -153,7 +232,8 @@ export async function fetchCategoriesBySlugs(slugs: string[]) {
 export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
   const limit = 15;
   const data = await fetchPayloadAPI(
-    `/products-by-category/${slug}?page=${page}&limit=${limit}`,
+    `/products-by-category/${encodeURIComponent(slug)}?page=${page}&limit=${limit}`,
+    cacheFor('products', 'categories'),
   );
   return data || { category: null, productsResult: { docs: [] } };
 }
@@ -164,6 +244,7 @@ export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
 export async function fetchPosts() {
   const data = await fetchPayloadAPI(
     `/posts?${PUBLISHED_STATUS_FILTER}&limit=10&depth=2`,
+    cacheFor('posts'),
   );
   return data?.docs || [];
 }
@@ -171,17 +252,67 @@ export async function fetchPosts() {
 export async function fetchPostBySlug(slug: string) {
   const data = await fetchPayloadAPI(
     `/posts?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}&depth=2`,
+    cacheFor('posts'),
   );
   return data?.docs?.[0] || null;
 }
 
 export async function fetchFooter() {
-  return fetchPayloadAPI('/globals/footer');
+  return fetchPayloadAPI('/globals/footer', cacheFor('footer'));
 }
 
 export async function fetchPageBySlug(slug: string) {
   const data = await fetchPayloadAPI(
     `/pages?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}`,
+    cacheFor('pages'),
   );
   return data?.docs?.[0] || null;
+}
+
+//------------------------------------------------------------
+// SITEMAP
+//------------------------------------------------------------
+
+export interface SitemapEntry {
+  slug: string;
+  updatedAt?: string;
+}
+
+// Slugs of everything public, for sitemap.xml (up to 1000 of each).
+export async function fetchSitemapEntries(): Promise<{
+  products: SitemapEntry[];
+  categories: SitemapEntry[];
+  posts: SitemapEntry[];
+  pages: SitemapEntry[];
+}> {
+  const list = async (
+    collection: string,
+    publishedOnly: boolean,
+    cache: CachePolicy,
+  ): Promise<SitemapEntry[]> => {
+    const params = new URLSearchParams({
+      limit: '1000',
+      depth: '0',
+      'select[slug]': 'true',
+      'select[updatedAt]': 'true',
+    });
+    if (publishedOnly) {
+      params.set('where[status][equals]', 'published');
+    }
+    const data = await fetchPayloadAPI(
+      `/${collection}?${params.toString()}`,
+      cache,
+    );
+    return ((data?.docs ?? []) as SitemapEntry[]).filter(
+      (doc) => typeof doc.slug === 'string' && doc.slug,
+    );
+  };
+
+  const [products, categories, posts, pages] = await Promise.all([
+    list('products', true, PRODUCTS),
+    list('categories', false, cacheFor('categories')),
+    list('posts', true, cacheFor('posts')),
+    list('pages', true, cacheFor('pages')),
+  ]);
+  return { products, categories, posts, pages };
 }

@@ -17,6 +17,7 @@ import { CartSheet } from './cart-sheet';
 import { MegaMenu } from './mega-menu';
 import { MobileNav } from './mobile-nav';
 import { fetchCategoryTree } from '@/lib/api/payload';
+import { LogoMark } from '@/components/brand/logo';
 
 const otherNavLinks = [
   { href: '/blog', label: 'وبلاگ' },
@@ -25,15 +26,16 @@ const otherNavLinks = [
 ];
 
 export async function Header() {
-  const categoryTree = await fetchCategoryTree();
+  // Without Payload the page still renders, without the category menu.
+  const categoryTree = await fetchCategoryTree().catch(() => []);
 
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
       <div className="container flex h-16 items-center px-2">
         {/* بخش لوگوی سایت با لینک به صفحه اصلی */}
-        <div className="mr-4 ml-10 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            {/* <Icons.logo className="h-6 w-6" /> */}
+        <div className="ms-4 me-10 hidden md:flex">
+          <Link href="/" className="ms-6 flex items-center gap-2">
+            <LogoMark className="h-7 w-7" />
             <span className="hidden font-bold sm:inline-block">
               فروشگاه واچر
             </span>

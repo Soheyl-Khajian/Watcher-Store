@@ -4,10 +4,34 @@ import { fetchPageBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { RichText } from '@/components/RichText';
 import type { Page } from '@payload-types';
+import type { Metadata } from 'next';
+import { plainText, OPEN_GRAPH_DEFAULTS } from '@/lib/seo';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const page: Page | null = await fetchPageBySlug(slug).catch(() => null);
+  if (!page) {
+    return {};
+  }
+  const path = `/${encodeURIComponent(page.slug ?? slug)}`;
+  const description = plainText(page.content);
+  return {
+    title: page.title,
+    ...(description ? { description } : {}),
+    alternates: { canonical: path },
+    openGraph: {
+      ...OPEN_GRAPH_DEFAULTS,
+      url: path,
+      title: page.title,
+    },
+  };
+}
 
 export default async function StaticPage({ params }: PageProps) {
   const { slug } = await params;

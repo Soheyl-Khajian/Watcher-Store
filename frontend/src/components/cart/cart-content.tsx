@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/sheet';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
-import { fetchCart, removeFromCart } from '@/lib/api/nestjs';
+import { fetchCart, removeFromCart, setCartQuantity } from '@/lib/api/nestjs';
+import { QuantityControl } from '@/components/cart/quantity-control';
 import { fetchProductsByIds } from '@/lib/api/payload';
 import { getCurrentPrice } from '@/lib/utils/pricing';
 import { findUnavailableItems } from '@/lib/utils/cart';
@@ -30,65 +31,93 @@ export function CartContent({ onClose }: CartContentProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsFailed, setProductsFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // The cart line being changed; its controls are busy meanwhile.
+  const [busyProductId, setBusyProductId] = useState<string | null>(null);
   // The item ids the product list was last resolved for. Until it matches the
   // current cart, we do not yet know which items are available.
   const [resolvedIds, setResolvedIds] = useState<string | null>(null);
 
+  // The products in the cart, in a stable order: a quantity change keeps
+  // the same ids, so product details are not fetched again.
   const itemIds = useMemo(() => {
-    return cart?.items.map((item: CartItem) => item.productId).join(',') || '';
+    return (
+      cart?.items
+        .map((item: CartItem) => String(item.productId))
+        .sort()
+        .join(',') || ''
+    );
   }, [cart]);
 
+  // The cart as the server has it, once when the sheet opens.
   useEffect(() => {
-    const syncData = async () => {
-      if (status !== 'signed-in') {
-        setProducts([]);
-        return;
-      }
-
-      setIsLoading(true);
-      let resolved = '';
-
-      try {
-        const currentCart = await fetchCart();
-        setCart(currentCart);
-
-        const productIds: string[] = (currentCart?.items ?? []).map(
-          (it: CartItem) => it.productId,
-        );
-        resolved = productIds.join(',');
-
-        if (productIds.length > 0) {
-          const fetched = await fetchProductsByIds(productIds);
-          setProducts(fetched ?? []);
-          setProductsFailed(fetched === null);
-        } else {
-          setProducts([]);
-          setProductsFailed(false);
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error syncing cart and products:', error);
-        setProductsFailed(true);
-        resolved = itemIds;
-      } finally {
-        setResolvedIds(resolved);
-        setIsLoading(false);
-      }
+    if (status !== 'signed-in') return;
+    let cancelled = false;
+    setIsLoading(true);
+    fetchCart()
+      .then((currentCart) => {
+        if (!cancelled && currentCart) setCart(currentCart);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
+  }, [status, setCart]);
 
-    syncData();
-  }, [status, itemIds, setCart]);
+  // Product details whenever the set of products in the cart changes (not
+  // when only a quantity changes).
+  useEffect(() => {
+    if (status !== 'signed-in') {
+      setProducts([]);
+      return;
+    }
+    const productIds = itemIds ? itemIds.split(',') : [];
+    if (productIds.length === 0) {
+      setProducts([]);
+      setProductsFailed(false);
+      setResolvedIds('');
+      return;
+    }
+    let cancelled = false;
+    fetchProductsByIds(productIds).then((fetched) => {
+      if (cancelled) return;
+      setProducts(fetched ?? []);
+      setProductsFailed(fetched === null);
+      setResolvedIds(itemIds);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, itemIds]);
 
   const handleRemoveItem = async (productId: string) => {
-    if (status !== 'signed-in') return;
+    if (status !== 'signed-in' || busyProductId) return;
 
+    setBusyProductId(productId);
     const updatedCart = await removeFromCart(String(productId));
+    setBusyProductId(null);
 
     if (updatedCart) {
       setCart(updatedCart);
       toast.success('محصول از سبد خرید حذف شد.');
     } else {
       toast.error('خطا در حذف محصول.');
+    }
+  };
+
+  const handleQuantity = async (productId: string, quantity: number) => {
+    if (status !== 'signed-in' || busyProductId) return;
+
+    setBusyProductId(productId);
+    const result = await setCartQuantity(productId, quantity);
+    setBusyProductId(null);
+
+    if (result.ok) {
+      setCart(result.cart);
+    } else {
+      // For example: not enough in stock.
+      toast.error(result.message);
     }
   };
 
@@ -132,7 +161,7 @@ export function CartContent({ onClose }: CartContentProps) {
             سبد خرید شما در حال حاضر خالی است.
           </p>
         ) : !isResolved ? (
-          <p>در حال بارگذاری...</p>
+          <p role="status">در حال بارگذاری...</p>
         ) : productsFailed ? (
           <p className="text-destructive">
             امکان دریافت اطلاعات محصولات وجود ندارد. چند لحظه بعد دوباره تلاش
@@ -159,11 +188,20 @@ export function CartContent({ onClose }: CartContentProps) {
 
               return (
                 <li key={item.id} className="flex items-center gap-4">
-                  <div className="flex-grow">
+                  <div className="flex-grow space-y-2">
                     <p className="font-semibold">{product.name}</p>
-                    <p className="text-muted-foreground text-sm" dir="ltr">
-                      {item.quantity} x {formatPrice(pricePerItem)}
+                    <p className="text-muted-foreground text-sm">
+                      {item.quantity.toLocaleString('fa-IR')} ×{' '}
+                      {formatPrice(pricePerItem)}
                     </p>
+                    <QuantityControl
+                      quantity={item.quantity}
+                      productName={product.name}
+                      busy={busyProductId !== null}
+                      onChange={(quantity) =>
+                        handleQuantity(String(item.productId), quantity)
+                      }
+                    />
                   </div>
                   <p className="font-semibold">
                     {formatPrice(pricePerItem * item.quantity)}
@@ -172,6 +210,8 @@ export function CartContent({ onClose }: CartContentProps) {
                     className="cursor-pointer"
                     variant="ghost"
                     size="icon"
+                    aria-label={`حذف ${product.name} از سبد خرید`}
+                    disabled={busyProductId !== null}
                     onClick={() => handleRemoveItem(String(item.productId))}
                   >
                     <X className="h-4 w-4" />

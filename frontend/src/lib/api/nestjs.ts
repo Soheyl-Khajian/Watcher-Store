@@ -4,7 +4,7 @@
 // storefront's own /api routes, which hold the session cookie and talk to
 // Nest; the browser never sees a token.
 
-import type { AuthUser, Cart } from '@/types';
+import type { AuthUser, Cart, Order, OrderStatus } from '@/types';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from '../csrf';
 import { useAuthStore } from '../store/auth';
 import { loginPathFor } from '../utils/safe-next';
@@ -198,6 +198,25 @@ export async function addToCart(
   );
 }
 
+// Sets how many of a product are in the cart. The server checks stock and
+// answers with a message for the customer when there is not enough.
+export async function setCartQuantity(
+  productId: string,
+  quantity: number,
+): Promise<{ ok: true; cart: Cart } | { ok: false; message: string }> {
+  const result = await api(`nest/cart/${segment(productId)}`, {
+    method: 'PATCH',
+    body: { quantity },
+  });
+  const cart = cartOf(result);
+  return cart
+    ? { ok: true, cart }
+    : {
+        ok: false,
+        message: messageOf(result) ?? 'تغییر تعداد ممکن نشد. دوباره تلاش کنید.',
+      };
+}
+
 // The updated cart is returned.
 export async function removeFromCart(productId: string): Promise<Cart | null> {
   return cartOf(
@@ -252,8 +271,7 @@ export async function initiatePayment(
   return result.ok && typeof paymentUrl === 'string' ? { paymentUrl } : null;
 }
 
-export type OrderStatus =
-  'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+export type { OrderStatus } from '@/types';
 
 const ORDER_STATUSES: readonly string[] = [
   'pending',
@@ -278,10 +296,37 @@ export async function fetchOrderStatus(
     : null;
 }
 
-// The most recent orders (the API pages order history; the profile page
-// shows the latest 50 for now).
-export async function fetchUserOrders() {
-  const result = await api('nest/orders?limit=50');
-  const items = (result.body as { items?: unknown } | null)?.items;
-  return result.ok && Array.isArray(items) ? items : null;
+export interface OrdersPage {
+  items: Order[];
+  page: number;
+  totalPages: number;
+}
+
+// One page of the customer's orders, newest first.
+export async function fetchOrdersPage(
+  page = 1,
+  limit = 10,
+): Promise<OrdersPage | null> {
+  const result = await api(`nest/orders?page=${page}&limit=${limit}`);
+  const body = result.body as Partial<OrdersPage> | null;
+  if (!result.ok || !body || !Array.isArray(body.items)) {
+    return null;
+  }
+  return {
+    items: body.items,
+    page: typeof body.page === 'number' ? body.page : page,
+    totalPages: typeof body.totalPages === 'number' ? body.totalPages : 1,
+  };
+}
+
+// Cancels one of the customer's unpaid orders.
+export async function cancelOrder(
+  orderId: number,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const result = await api(`nest/orders/${segment(orderId)}/cancel`, {
+    method: 'POST',
+  });
+  return result.ok
+    ? { ok: true }
+    : { ok: false, message: messageOf(result) ?? UNAVAILABLE_MESSAGE };
 }

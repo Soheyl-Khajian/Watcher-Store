@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Instagram, Linkedin, Send } from 'lucide-react';
 import { fetchFooter } from '@/lib/api/payload';
 import type { Footer as FooterType } from '@payload-types';
+import { isExternalUrl, safeUrl } from '@/lib/utils/safe-url';
 
 const iconMap = {
   Instagram: <Instagram className="h-6 w-6" />,
@@ -12,7 +13,8 @@ const iconMap = {
 };
 
 export async function Footer() {
-  const footerData: FooterType | null = await fetchFooter();
+  // Without Payload the page still renders, with an empty footer.
+  const footerData: FooterType | null = await fetchFooter().catch(() => null);
   const { description, linkColumns, socialLinks } = footerData || {};
 
   return (
@@ -22,20 +24,25 @@ export async function Footer() {
           <div className="md:col-span-1">
             <h4 className="mb-4 text-lg font-bold">فروشگاه واچر</h4>
             <p className="text-muted-foreground text-sm">{description}</p>
-            <div className="mt-6 flex space-x-4 space-x-reverse">
+            <div className="mt-6 flex gap-4">
               {/* ۱. اضافه کردن ?? [] برای socialLinks */}
-              {(socialLinks ?? []).map((link) => (
-                <Link
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  {iconMap[link.platform as keyof typeof iconMap]}
-                  <span className="sr-only">{link.platform}</span>
-                </Link>
-              ))}
+              {(socialLinks ?? []).map((link) => {
+                const href = safeUrl(link.url);
+                // A social icon without a usable address is left out.
+                if (!href) return null;
+                return (
+                  <a
+                    key={link.id}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    {iconMap[link.platform as keyof typeof iconMap]}
+                    <span className="sr-only">{link.platform}</span>
+                  </a>
+                );
+              })}
             </div>
           </div>
 
@@ -45,16 +52,31 @@ export async function Footer() {
               <h4 className="mb-4 text-lg font-bold">{column.title}</h4>
               <ul className="space-y-3">
                 {/* ۳. اضافه کردن ?? [] برای ستون لینک‌های داخلی */}
-                {(column.links ?? []).map((link) => (
-                  <li key={link.id}>
-                    <Link
-                      href={link.url}
-                      className="text-muted-foreground hover:text-foreground text-sm"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
+                {(column.links ?? []).map((link) => {
+                  const href = safeUrl(link.url);
+                  const className =
+                    'text-muted-foreground hover:text-foreground text-sm';
+                  return (
+                    <li key={link.id}>
+                      {!href ? (
+                        <span className={className}>{link.label}</span>
+                      ) : isExternalUrl(href) ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={className}
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link href={href} className={className}>
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

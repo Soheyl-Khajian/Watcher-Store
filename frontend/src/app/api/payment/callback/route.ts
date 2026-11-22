@@ -11,7 +11,7 @@ import { callUpstream, forwardedHeaders, serverEnv } from '@/lib/server/bff';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { nestUrl, frontendOrigin } = serverEnv();
-  const resultPage = `${frontendOrigin}/payment/verify`;
+  const resultPage = `${frontendOrigin}/payment/result`;
 
   const upstream = await callUpstream(
     `${nestUrl}/payment/callback${request.nextUrl.search}`,

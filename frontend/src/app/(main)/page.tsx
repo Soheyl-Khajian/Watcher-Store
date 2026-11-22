@@ -21,13 +21,14 @@ const importantCategorySlugs = [
 ];
 
 export default async function HomePage() {
-  const allProducts = await fetchProducts(); // returns 12 products now
-  const featuredProducts = await fetchFeaturedProducts(); // only takes featured products
-  const posts: Post[] = (await fetchPosts()) || [];
-
-  const importantCategories = await fetchCategoriesBySlugs(
-    importantCategorySlugs,
-  );
+  // Independent requests, made at the same time.
+  const [allProducts, featuredProducts, posts, importantCategories] =
+    await Promise.all([
+      fetchProducts(),
+      fetchFeaturedProducts(),
+      fetchPosts() as Promise<Post[]>,
+      fetchCategoriesBySlugs(importantCategorySlugs),
+    ]);
 
   return (
     <>

@@ -36,7 +36,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
                 {category.name}
               </AccordionTrigger>
               <AccordionContent>
-                <div className="flex flex-col space-y-2 pr-4">
+                <div className="flex flex-col space-y-2 ps-4">
                   {/* لینک به خود دسته مادر */}
                   <SheetClose asChild>
                     <Link

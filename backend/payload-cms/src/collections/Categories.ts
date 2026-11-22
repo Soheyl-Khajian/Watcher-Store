@@ -2,9 +2,18 @@
 
 import type { CollectionConfig } from 'payload';
 import { applyPriceAdjustmentHandler } from '../endpoints/applyPriceAdjustmentHandler';
+import {
+  revalidateAfterChange,
+  revalidateAfterDelete,
+} from '../hooks/revalidateStorefront';
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
+  // Refresh the storefront's cached copy after edits.
+  hooks: {
+    afterChange: [revalidateAfterChange('categories', 'products')],
+    afterDelete: [revalidateAfterDelete('categories', 'products')],
+  },
   admin: {
     useAsTitle: 'name',
     // این ساختار صحیح بر اساس مستندات است

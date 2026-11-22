@@ -1,10 +1,15 @@
 // مسیر فایل: backend/payload-cms/src/globals/Footer.ts
 
 import type { GlobalConfig } from 'payload';
+import { revalidateGlobalAfterChange } from '../hooks/revalidateStorefront';
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
   label: 'تنظیمات فوتر',
+  // Refresh the storefront's cached footer after edits.
+  hooks: {
+    afterChange: [revalidateGlobalAfterChange('footer')],
+  },
   access: {
     read: () => true,
     // Without an explicit rule Payload lets any signed-in user update a

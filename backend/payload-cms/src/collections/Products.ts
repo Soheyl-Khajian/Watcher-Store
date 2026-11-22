@@ -9,9 +9,18 @@ import {
   validateSalePrice,
   validateStock,
 } from './productValidation';
+import {
+  revalidateAfterChange,
+  revalidateAfterDelete,
+} from '../hooks/revalidateStorefront';
 
 export const Products: CollectionConfig = {
   slug: 'products',
+  // Refresh the storefront's cached copy after edits.
+  hooks: {
+    afterChange: [revalidateAfterChange('products')],
+    afterDelete: [revalidateAfterDelete('products')],
+  },
   admin: {
     useAsTitle: 'name',
   },

@@ -23,12 +23,19 @@ export function CartSheet() {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative cursor-pointer">
           {totalQuantity > 0 && (
-            <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs">
-              {totalQuantity}
+            <span
+              aria-hidden="true"
+              className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs"
+            >
+              {totalQuantity.toLocaleString('fa-IR')}
             </span>
           )}
-          <ShoppingCart className="h-5 w-5" />
-          <span className="sr-only">باز کردن سبد خرید</span>
+          <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+          <span className="sr-only">
+            {totalQuantity > 0
+              ? `باز کردن سبد خرید، ${totalQuantity.toLocaleString('fa-IR')} کالا`
+              : 'باز کردن سبد خرید'}
+          </span>
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col p-4 sm:p-6">

@@ -2,11 +2,17 @@
 
 import type { CollectionConfig } from 'payload';
 import { preventDeletingUsedMedia } from '../hooks/deleteGuards';
+import {
+  revalidateAfterChange,
+  revalidateAfterDelete,
+} from '../hooks/revalidateStorefront';
 
 export const Media: CollectionConfig = {
   slug: 'media',
   hooks: {
     beforeDelete: [preventDeletingUsedMedia],
+    afterChange: [revalidateAfterChange('products', 'posts', 'pages')],
+    afterDelete: [revalidateAfterDelete('products', 'posts', 'pages')],
   },
   admin: {
     description: 'فایل‌های رسانه‌ای مانند تصاویر محصولات',
