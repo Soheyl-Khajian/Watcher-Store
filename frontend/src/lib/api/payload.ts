@@ -10,6 +10,18 @@ const PAYLOAD_API_URL =
 
 const PUBLISHED_STATUS_FILTER = 'where[status][equals]=published';
 
+// Payload could not be asked (unreachable, or it answered with an error).
+// Different from "not found": pages show an error with a retry button
+// (app/(main)/error.tsx) instead of an empty shop.
+export class PayloadUnavailableError extends Error {
+  constructor(endpoint: string, reason: string) {
+    super(`Payload request ${endpoint.split('?')[0]} failed: ${reason}`);
+    this.name = 'PayloadUnavailableError';
+  }
+}
+
+// The parsed answer, or null when Payload says the thing does not exist
+// (404). Throws PayloadUnavailableError for anything else.
 async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const url = `${PAYLOAD_API_URL}${endpoint}`;
@@ -29,18 +41,29 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
     }
   }
 
+  let res: Response;
   try {
-    const res = await fetch(url, fetchOptions);
-    if (!res.ok) {
-      return null;
-    }
-    if (res.status === 204) return true;
-    return res.json();
+    res = await fetch(url, fetchOptions);
   } catch (error) {
+    const failure = new PayloadUnavailableError(
+      endpoint,
+      error instanceof Error ? error.message : 'unknown error',
+    );
     // eslint-disable-next-line no-console
-    console.error('Failed to fetch from Payload API:', error);
+    console.error(failure.message);
+    throw failure;
+  }
+
+  if (res.status === 404) {
     return null;
   }
+  if (!res.ok) {
+    const failure = new PayloadUnavailableError(endpoint, `HTTP ${res.status}`);
+    // eslint-disable-next-line no-console
+    console.error(failure.message);
+    throw failure;
+  }
+  return res.json();
 }
 
 //------------------------------------------------------------
@@ -86,11 +109,14 @@ export async function fetchProductsByIds(
   }
 
   const encodedIds = encodeURIComponent(ids.join(','));
-  const data = await fetchPayloadAPI(
-    `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
-  );
-
-  return data ? (data.docs ?? []) : null;
+  try {
+    const data = await fetchPayloadAPI(
+      `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
+    );
+    return data?.docs ?? [];
+  } catch {
+    return null;
+  }
 }
 
 //------------------------------------------------------------
@@ -138,7 +164,7 @@ export async function fetchCategoryTree() {
 
 export async function fetchCategoriesBySlugs(slugs: string[]) {
   const data = await fetchPayloadAPI(
-    `/categories?where[slug][in]=${slugs.join(',')}&limit=10&depth=1`,
+    `/categories?where[slug][in]=${slugs.map(encodeURIComponent).join(',')}&limit=10&depth=1`,
   );
 
   const fetchedCategories = data?.docs || [];
@@ -153,7 +179,7 @@ export async function fetchCategoriesBySlugs(slugs: string[]) {
 export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
   const limit = 15;
   const data = await fetchPayloadAPI(
-    `/products-by-category/${slug}?page=${page}&limit=${limit}`,
+    `/products-by-category/${encodeURIComponent(slug)}?page=${page}&limit=${limit}`,
   );
   return data || { category: null, productsResult: { docs: [] } };
 }

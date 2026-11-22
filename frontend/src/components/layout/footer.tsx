@@ -13,7 +13,8 @@ const iconMap = {
 };
 
 export async function Footer() {
-  const footerData: FooterType | null = await fetchFooter();
+  // Without Payload the page still renders, with an empty footer.
+  const footerData: FooterType | null = await fetchFooter().catch(() => null);
   const { description, linkColumns, socialLinks } = footerData || {};
 
   return (
