@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  fetchAllProducts,
   fetchPageBySlug,
   fetchProducts,
   fetchProductsAndCategoryBySlug,
@@ -88,5 +89,32 @@ describe('Payload request URLs', () => {
     payloadAnswers(() => json({ docs: [] }));
     await fetchPageBySlug('about&admin=1');
     expect(requested[0]).toContain('about%26admin%3D1');
+  });
+});
+
+describe('product search', () => {
+  it('asks for published products matching the name or SKU', async () => {
+    payloadAnswers(() => json({ docs: [], totalPages: 1 }));
+    await fetchAllProducts({ search: 'دوربین بولت', page: 2 });
+
+    const params = new URL(requested[0]).searchParams;
+    expect(params.get('where[status][equals]')).toBe('published');
+    expect(params.get('where[or][0][name][like]')).toBe('دوربین بولت');
+    expect(params.get('where[or][1][sku][like]')).toBe('دوربین بولت');
+    expect(params.get('page')).toBe('2');
+  });
+
+  it('cannot add filters through the search text', async () => {
+    payloadAnswers(() => json({ docs: [] }));
+    await fetchAllProducts({ search: 'x&where[status][equals]=draft' });
+
+    const params = new URL(requested[0]).searchParams;
+    expect(params.getAll('where[status][equals]')).toEqual(['published']);
+  });
+
+  it('adds no search filter without a search', async () => {
+    payloadAnswers(() => json({ docs: [] }));
+    await fetchAllProducts();
+    expect(requested[0]).not.toContain('like');
   });
 });

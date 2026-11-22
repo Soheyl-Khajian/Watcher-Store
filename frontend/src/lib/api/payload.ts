@@ -83,13 +83,33 @@ export async function fetchFeaturedProducts() {
   return data?.docs || [];
 }
 
-export async function fetchAllProducts(page = 1, limit = 15, onSale = false) {
-  let query = `/products?${PUBLISHED_STATUS_FILTER}&page=${page}&limit=${limit}&depth=1`;
+// One page of published products, optionally only those on sale and/or
+// matching a search (name or SKU; every word must match).
+export async function fetchAllProducts({
+  page = 1,
+  limit = 15,
+  onSale = false,
+  search = '',
+}: {
+  page?: number;
+  limit?: number;
+  onSale?: boolean;
+  search?: string;
+} = {}) {
+  const params = new URLSearchParams({
+    'where[status][equals]': 'published',
+    page: String(page),
+    limit: String(limit),
+    depth: '1',
+  });
   if (onSale) {
-    query += `&where[isOnSale][equals]=true`;
+    params.set('where[isOnSale][equals]', 'true');
   }
-  const data = await fetchPayloadAPI(query);
-  return data;
+  if (search) {
+    params.set('where[or][0][name][like]', search);
+    params.set('where[or][1][sku][like]', search);
+  }
+  return fetchPayloadAPI(`/products?${params.toString()}`);
 }
 
 export async function fetchProductBySlug(slug: string) {

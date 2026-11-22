@@ -1,7 +1,6 @@
 // مسیر فایل: src/components/sections/hero-section.tsx
 
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { ProductSearchForm } from '@/components/search/product-search-form';
 
 export function HeroSection() {
   return (
@@ -18,17 +17,7 @@ export function HeroSection() {
           اصالت از واچر بخواهید.
         </p>
 
-        {/* ۲. نوار جستجو */}
-        <div className="relative mx-auto mt-8 max-w-md">
-          <Input
-            type="search"
-            placeholder="دنبال چه محصولی می‌گردی؟"
-            className="h-12 rounded-full pr-4 pl-10 text-base"
-          />
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="text-muted-foreground h-5 w-5" />
-          </div>
-        </div>
+        <ProductSearchForm className="mx-auto mt-8 max-w-md" />
       </div>
     </section>
   );

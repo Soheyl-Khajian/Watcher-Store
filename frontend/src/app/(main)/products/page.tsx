@@ -1,5 +1,8 @@
 // مسیر فایل: src/app/(main)/products/page.tsx
+import Link from 'next/link';
 import { fetchAllProducts } from '@/lib/api/payload';
+import { ProductSearchForm } from '@/components/search/product-search-form';
+import { normalizeSearchQuery } from '@/lib/utils/search';
 import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
 import {
@@ -19,17 +22,23 @@ const toPersianDigits = (num: number) => {
 export default async function AllProductsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ page?: string; onSale?: string }>;
+  searchParams?: Promise<{ page?: string; onSale?: string; q?: string }>;
 }) {
   const awaitedSearchParams = await searchParams;
   const page = Number(awaitedSearchParams?.page) || 1;
   const onSale = awaitedSearchParams?.onSale === 'true';
+  const search = normalizeSearchQuery(awaitedSearchParams?.q);
 
-  const data = await fetchAllProducts(page, 15, onSale);
+  const data = await fetchAllProducts({ page, limit: 15, onSale, search });
 
   const products = data?.docs || [];
   const totalPages = data?.totalPages || 1;
-  const pageTitle = onSale ? 'محصولات در فروش ویژه' : 'همه محصولات';
+  const totalDocs: number = data?.totalDocs ?? 0;
+  const pageTitle = search
+    ? `نتایج جستجو برای «${search}»`
+    : onSale
+      ? 'محصولات در فروش ویژه'
+      : 'همه محصولات';
 
   // تابعی برای ساخت لینک‌های صفحه‌بندی با حفظ فیلتر
   const createPageUrl = (p: number) => {
@@ -38,12 +47,29 @@ export default async function AllProductsPage({
     if (onSale) {
       params.set('onSale', 'true');
     }
+    if (search) {
+      params.set('q', search);
+    }
     return `/products?${params.toString()}`;
   };
 
   return (
-    <div className="container mx-auto py-12">
-      <h1 className="mb-8 text-4xl font-bold">{pageTitle}</h1>
+    <div className="container mx-auto px-4 py-12">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold">{pageTitle}</h1>
+          {search && products.length > 0 ? (
+            <p className="text-muted-foreground mt-2" role="status">
+              {totalDocs.toLocaleString('fa-IR')} محصول پیدا شد
+            </p>
+          ) : null}
+        </div>
+        <ProductSearchForm
+          key={search}
+          defaultValue={search}
+          className="w-full md:max-w-sm"
+        />
+      </div>
       {products.length > 0 ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -74,9 +100,21 @@ export default async function AllProductsPage({
           </div>
         </>
       ) : (
-        <p className="text-muted-foreground text-center">
-          محصولی برای نمایش یافت نشد.
-        </p>
+        <div className="text-muted-foreground text-center" role="status">
+          {search ? (
+            <>
+              <p>محصولی با عبارت «{search}» پیدا نشد.</p>
+              <Link
+                href="/products"
+                className="text-primary mt-2 inline-block underline"
+              >
+                مشاهده همه محصولات
+              </Link>
+            </>
+          ) : (
+            <p>محصولی برای نمایش یافت نشد.</p>
+          )}
+        </div>
       )}
     </div>
   );
