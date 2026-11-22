@@ -45,3 +45,92 @@ describe('RichText links', () => {
     },
   );
 });
+
+const paragraph = (...children: RichTextNode[]): RichTextNode => ({
+  type: 'p',
+  children,
+});
+
+describe('RichText elements', () => {
+  it.each(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])('renders %s', (type) => {
+    expect(render([{ type, children: [{ text: 'Title' }] }])).toBe(
+      `<${type}>Title</${type}>`,
+    );
+  });
+
+  it('renders lists and blockquotes', () => {
+    const html = render([
+      {
+        type: 'ol',
+        children: [
+          { type: 'li', children: [{ text: 'one' }] },
+          { type: 'li', children: [{ text: 'two' }] },
+        ],
+      },
+      { type: 'blockquote', children: [{ text: 'quoted' }] },
+    ]);
+    expect(html).toBe(
+      '<ol><li>one</li><li>two</li></ol><blockquote>quoted</blockquote>',
+    );
+  });
+
+  it('applies every leaf mark', () => {
+    const html = render([
+      paragraph(
+        { text: 'b', bold: true },
+        { text: 'i', italic: true },
+        { text: 'u', underline: true },
+        { text: 's', strikethrough: true },
+        { text: 'c', code: true },
+      ),
+    ]);
+    expect(html).toBe(
+      '<p><strong>b</strong><em>i</em><u>u</u><s>s</s><code>c</code></p>',
+    );
+  });
+
+  it('keeps line breaks and renders text as text, never as HTML', () => {
+    const html = render([paragraph({ text: 'line one\n<script>x</script>' })]);
+    expect(html).toBe('<p>line one<br/>&lt;script&gt;x&lt;/script&gt;</p>');
+  });
+
+  it('shows uploaded images with their alt text', () => {
+    const html = render([
+      {
+        type: 'upload',
+        relationTo: 'media',
+        value: {
+          url: '/api/media/file/cam.png',
+          alt: 'Dome camera',
+          width: 800,
+          height: 600,
+        },
+        children: [{ text: '' }],
+      },
+    ]);
+    expect(html).toContain('<figure>');
+    expect(html).toContain('alt="Dome camera"');
+    expect(html).toContain('https://cms.example.test/api/media/file/cam.png');
+    expect(html).toContain('<figcaption>Dome camera</figcaption>');
+  });
+
+  it('skips an upload that was not populated', () => {
+    expect(render([{ type: 'upload', value: 42, children: [] }])).toBe('');
+  });
+
+  // An unknown element used to become a <p>, which could put a paragraph
+  // inside a paragraph (invalid HTML that browsers repair unpredictably).
+  it('keeps the content of unknown elements without wrapping it', () => {
+    const html = render([
+      paragraph(
+        { text: 'before ' },
+        { type: 'mention', children: [{ text: 'x' }] },
+      ),
+    ]);
+    expect(html).toBe('<p>before x</p>');
+  });
+
+  it('renders nothing for empty content', () => {
+    expect(render([])).toBe('');
+  });
+});

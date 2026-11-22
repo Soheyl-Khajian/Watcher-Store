@@ -83,10 +83,9 @@ export interface Product {
 // A node of Payload's Slate rich text, as rendered by components/RichText.
 export type RichTextNode = {
   type?: string;
-  value?: {
-    url: string;
-    alt: string;
-  };
+  // An upload's media document (url, alt, width, height), or only its id
+  // when Payload did not populate it.
+  value?: unknown;
   children?: RichTextNode[];
   url?: string;
   [key: string]: unknown;
