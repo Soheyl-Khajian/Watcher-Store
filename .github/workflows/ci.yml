@@ -113,15 +113,14 @@ jobs:
     name: Production stack smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Fixes the network name (ws-ci_default) the smoke check joins.
+      COMPOSE_PROJECT_NAME: ws-ci
 
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
 
       # A throwaway configuration: the documented example with fresh secrets
       # and database password, as a real deployment needs. (With
@@ -144,9 +143,16 @@ jobs:
       - name: Start the stack
         run: docker compose -f docker-compose.prod.yml up -d
 
-      # Every service must answer, serve real pages, and work with the others.
+      # Every service must answer, serve real pages, and work with the
+      # others. Run from inside the stack's network: Nest has no host port.
       - name: Smoke check
-        run: node scripts/smoke-check.mjs
+        run: >-
+          docker run --rm --network ws-ci_default
+          -v "$PWD/scripts:/scripts:ro"
+          -e PAYLOAD_URL=http://payload-cms:3000
+          -e NEST_URL=http://nest-api:3001
+          -e FRONTEND_URL=http://frontend:3002
+          node:24-alpine node /scripts/smoke-check.mjs
 
       - name: Show service status and logs
         if: failure()
