@@ -6,6 +6,7 @@ import { RichText } from '@/components/RichText';
 import Image from 'next/image';
 import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
+import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -20,7 +21,7 @@ export default async function PostPage({ params }: PageProps) {
     return notFound();
   }
 
-  const authorName = post.authorName?.trim() || 'Watcher Store Team';
+  const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
 
   const imageUrl = post.thumbnail?.url
     ? resolvePayloadMediaUrl(post.thumbnail.url)
@@ -42,8 +43,8 @@ export default async function PostPage({ params }: PageProps) {
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
           {post.title}
         </h1>
-        <div className="text-muted-foreground mt-4 flex items-center space-x-4 space-x-reverse">
-          <span className="ml-2">توسط {authorName}</span>
+        <div className="text-muted-foreground mt-4 flex items-center gap-4">
+          <span>توسط {authorName}</span>
           <time dateTime={post.publishedDate}>{publishedDate}</time>
         </div>
       </header>

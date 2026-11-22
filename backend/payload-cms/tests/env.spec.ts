@@ -98,4 +98,43 @@ describe('Payload environment', () => {
       }),
     ).not.toThrow();
   });
+
+  describe('storefront revalidation', () => {
+    const secret = 'z'.repeat(40);
+
+    it('is off unless configured; empty values count as unset', () => {
+      const env = parseEnv({
+        ...base,
+        STOREFRONT_INTERNAL_URL: '',
+        REVALIDATE_SECRET: '',
+      });
+      expect(env.STOREFRONT_INTERNAL_URL).toBeUndefined();
+      expect(env.REVALIDATE_SECRET).toBeUndefined();
+    });
+
+    it('accepts a storefront address and a strong secret', () => {
+      const env = parseEnv({
+        ...production,
+        STOREFRONT_INTERNAL_URL: 'http://frontend:3002/',
+        REVALIDATE_SECRET: secret,
+      });
+      expect(env.STOREFRONT_INTERNAL_URL).toBe('http://frontend:3002');
+      expect(env.REVALIDATE_SECRET).toBe(secret);
+    });
+
+    it('refuses a short secret', () => {
+      expect(() =>
+        parseEnv({ ...base, REVALIDATE_SECRET: 'too-short' }),
+      ).toThrow(/REVALIDATE_SECRET/);
+    });
+
+    it('refuses a placeholder secret in production', () => {
+      expect(() =>
+        parseEnv({
+          ...production,
+          REVALIDATE_SECRET: 'CHANGE_ME-' + 'x'.repeat(32),
+        }),
+      ).toThrow(/REVALIDATE_SECRET/);
+    });
+  });
 });

@@ -54,6 +54,27 @@ const envSchema = z
       .transform((value) => new URL(value).origin),
     PAYLOAD_INTERNAL_URL: z.string().url().optional(),
     NEST_INTERNAL_URL: z.string().url().optional(), // Server-side URL of the Nest API, used by the admin Orders view.
+    // Where this server reaches the storefront, to tell it about content
+    // changes (hooks/revalidateStorefront.ts). Optional, like the secret.
+    STOREFRONT_INTERNAL_URL: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z
+        .string()
+        .url()
+        .transform((value) => value.replace(/\/+$/, ''))
+        .optional(),
+    ),
+    // Shared with the storefront's /api/revalidate.
+    REVALIDATE_SECRET: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z
+        .string()
+        .min(
+          32,
+          `REVALIDATE_SECRET must be at least 32 characters. ${GENERATE_SECRET}`,
+        )
+        .optional(),
+    ),
   })
   .superRefine((value, ctx) => {
     // Only the running server (and the migration job) must have real
@@ -64,6 +85,17 @@ const envSchema = z
 
     if (!strict) {
       return;
+    }
+
+    if (
+      value.REVALIDATE_SECRET &&
+      PLACEHOLDER_SECRET.test(value.REVALIDATE_SECRET)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['REVALIDATE_SECRET'],
+        message: `REVALIDATE_SECRET is still a placeholder. ${GENERATE_SECRET}`,
+      });
     }
 
     if (PLACEHOLDER_SECRET.test(value.PAYLOAD_SECRET)) {

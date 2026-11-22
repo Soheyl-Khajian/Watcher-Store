@@ -32,8 +32,8 @@ export async function Header() {
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
       <div className="container flex h-16 items-center px-2">
         {/* بخش لوگوی سایت با لینک به صفحه اصلی */}
-        <div className="mr-4 ml-10 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
+        <div className="ms-4 me-10 hidden md:flex">
+          <Link href="/" className="ms-6 flex items-center gap-2">
             {/* <Icons.logo className="h-6 w-6" /> */}
             <span className="hidden font-bold sm:inline-block">
               فروشگاه واچر

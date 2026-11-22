@@ -10,13 +10,14 @@ import {
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
+import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
 
 interface PostCardProps {
   post: Post;
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const authorName = post.authorName?.trim() || 'Watcher Store Team';
+  const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
 
   const imageUrl = post.thumbnail?.url
     ? resolvePayloadMediaUrl(post.thumbnail.url)
@@ -51,7 +52,7 @@ export function PostCard({ post }: PostCardProps) {
         </CardContent>
 
         <CardFooter className="text-muted-foreground p-4 pt-0 text-sm">
-          <span className="ml-1">توسط {authorName}</span>
+          <span className="me-1">توسط {authorName}</span>
           <span>{publishedDate}</span>
         </CardFooter>
       </Card>

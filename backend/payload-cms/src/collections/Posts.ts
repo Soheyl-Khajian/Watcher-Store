@@ -4,6 +4,10 @@ import type { CollectionConfig } from 'payload';
 import type { CollectionBeforeChangeHook } from 'payload';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
+import {
+  revalidateAfterChange,
+  revalidateAfterDelete,
+} from '../hooks/revalidateStorefront';
 
 const PUBLIC_AUTHOR_FALLBACK = 'Watcher Store Team';
 
@@ -86,6 +90,8 @@ export const Posts: CollectionConfig = {
   },
   hooks: {
     beforeChange: [populateAuthorName],
+    afterChange: [revalidateAfterChange('posts')],
+    afterDelete: [revalidateAfterDelete('posts')],
   },
   access: {
     read: readPublishedOrAdmin,

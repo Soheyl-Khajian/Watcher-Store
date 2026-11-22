@@ -4,9 +4,18 @@ import type { CollectionConfig } from 'payload';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
 import { slugify } from '../utils/slugify';
+import {
+  revalidateAfterChange,
+  revalidateAfterDelete,
+} from '../hooks/revalidateStorefront';
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
+  // Refresh the storefront's cached copy after edits.
+  hooks: {
+    afterChange: [revalidateAfterChange('pages')],
+    afterDelete: [revalidateAfterDelete('pages')],
+  },
   admin: {
     useAsTitle: 'title',
   },

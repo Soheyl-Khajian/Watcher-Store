@@ -24,7 +24,7 @@ export async function Footer() {
           <div className="md:col-span-1">
             <h4 className="mb-4 text-lg font-bold">فروشگاه واچر</h4>
             <p className="text-muted-foreground text-sm">{description}</p>
-            <div className="mt-6 flex space-x-4 space-x-reverse">
+            <div className="mt-6 flex gap-4">
               {/* ۱. اضافه کردن ?? [] برای socialLinks */}
               {(socialLinks ?? []).map((link) => {
                 const href = safeUrl(link.url);

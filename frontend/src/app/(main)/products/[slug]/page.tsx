@@ -84,7 +84,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
               مشخصات فنی
             </h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-right">
+              <table className="w-full text-start">
                 <tbody>
                   {(product.specifications || []).map((spec) => (
                     <tr key={spec.id} className="border-b">

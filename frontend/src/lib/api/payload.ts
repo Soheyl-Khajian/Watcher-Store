@@ -2,6 +2,7 @@
 
 import type { Category, Product } from '@/types';
 import { env } from '../env';
+import type { CacheTag } from '../cache-tags';
 
 const PAYLOAD_API_URL =
   typeof window === 'undefined'
@@ -22,7 +23,27 @@ export class PayloadUnavailableError extends Error {
 
 // The parsed answer, or null when Payload says the thing does not exist
 // (404). Throws PayloadUnavailableError for anything else.
-async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
+// How long a Payload answer may be served from the cache, and under which
+// tags Payload can drop it early (POST /api/revalidate after an edit).
+// Products are short-lived: their stock changes at checkout, outside
+// Payload, so no edit hook announces it.
+interface CachePolicy {
+  tags: CacheTag[];
+  revalidate: number;
+}
+
+const PRODUCTS: CachePolicy = { tags: ['products'], revalidate: 60 };
+const HOUR = 60 * 60;
+const cacheFor = (...tags: CacheTag[]): CachePolicy => ({
+  tags,
+  revalidate: tags.includes('products') ? PRODUCTS.revalidate : HOUR,
+});
+
+async function fetchPayloadAPI(
+  endpoint: string,
+  cache: CachePolicy,
+  options: RequestInit = {},
+) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const url = `${PAYLOAD_API_URL}${endpoint}`;
 
@@ -37,7 +58,7 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
     const isGetRequest =
       !options.method || options.method.toUpperCase() === 'GET';
     if (isGetRequest) {
-      fetchOptions.next = { revalidate: 60 }; // TODO: change to one hour cache
+      fetchOptions.next = { revalidate: cache.revalidate, tags: cache.tags };
     }
   }
 
@@ -72,6 +93,7 @@ async function fetchPayloadAPI(endpoint: string, options: RequestInit = {}) {
 export async function fetchProducts() {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&limit=12&depth=1`,
+    PRODUCTS,
   );
   return data?.docs || [];
 }
@@ -79,6 +101,7 @@ export async function fetchProducts() {
 export async function fetchFeaturedProducts() {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&where[isOnSale][equals]=true&limit=12&depth=1`,
+    PRODUCTS,
   );
   return data?.docs || [];
 }
@@ -109,12 +132,13 @@ export async function fetchAllProducts({
     params.set('where[or][0][name][like]', search);
     params.set('where[or][1][sku][like]', search);
   }
-  return fetchPayloadAPI(`/products?${params.toString()}`);
+  return fetchPayloadAPI(`/products?${params.toString()}`, PRODUCTS);
 }
 
 export async function fetchProductBySlug(slug: string) {
   const data = await fetchPayloadAPI(
     `/products?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}&depth=2`,
+    PRODUCTS,
   );
   return data?.docs?.[0] || null;
 }
@@ -132,6 +156,7 @@ export async function fetchProductsByIds(
   try {
     const data = await fetchPayloadAPI(
       `/products?${PUBLISHED_STATUS_FILTER}&where[id][in]=${encodedIds}&depth=1&limit=100`,
+      PRODUCTS,
     );
     return data?.docs ?? [];
   } catch {
@@ -144,19 +169,26 @@ export async function fetchProductsByIds(
 //------------------------------------------------------------
 
 export async function fetchCategories() {
-  const data = await fetchPayloadAPI('/categories?limit=100');
+  const data = await fetchPayloadAPI(
+    '/categories?limit=100',
+    cacheFor('categories'),
+  );
   return data?.docs || [];
 }
 
 export async function fetchParentCategories() {
   const data = await fetchPayloadAPI(
     '/categories?limit=100&where[parent][exists]=false',
+    cacheFor('categories'),
   );
   return data?.docs || [];
 }
 
 export async function fetchCategoryTree() {
-  const data = await fetchPayloadAPI('/categories?limit=200&depth=1');
+  const data = await fetchPayloadAPI(
+    '/categories?limit=200&depth=1',
+    cacheFor('categories'),
+  );
   const categories: Category[] = data?.docs || [];
 
   const categoryMap: Record<string, Category> = {};
@@ -185,6 +217,7 @@ export async function fetchCategoryTree() {
 export async function fetchCategoriesBySlugs(slugs: string[]) {
   const data = await fetchPayloadAPI(
     `/categories?where[slug][in]=${slugs.map(encodeURIComponent).join(',')}&limit=10&depth=1`,
+    cacheFor('categories'),
   );
 
   const fetchedCategories = data?.docs || [];
@@ -200,6 +233,7 @@ export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
   const limit = 15;
   const data = await fetchPayloadAPI(
     `/products-by-category/${encodeURIComponent(slug)}?page=${page}&limit=${limit}`,
+    cacheFor('products', 'categories'),
   );
   return data || { category: null, productsResult: { docs: [] } };
 }
@@ -210,6 +244,7 @@ export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
 export async function fetchPosts() {
   const data = await fetchPayloadAPI(
     `/posts?${PUBLISHED_STATUS_FILTER}&limit=10&depth=2`,
+    cacheFor('posts'),
   );
   return data?.docs || [];
 }
@@ -217,17 +252,19 @@ export async function fetchPosts() {
 export async function fetchPostBySlug(slug: string) {
   const data = await fetchPayloadAPI(
     `/posts?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}&depth=2`,
+    cacheFor('posts'),
   );
   return data?.docs?.[0] || null;
 }
 
 export async function fetchFooter() {
-  return fetchPayloadAPI('/globals/footer');
+  return fetchPayloadAPI('/globals/footer', cacheFor('footer'));
 }
 
 export async function fetchPageBySlug(slug: string) {
   const data = await fetchPayloadAPI(
     `/pages?${PUBLISHED_STATUS_FILTER}&where[slug][equals]=${encodeURIComponent(slug)}`,
+    cacheFor('pages'),
   );
   return data?.docs?.[0] || null;
 }

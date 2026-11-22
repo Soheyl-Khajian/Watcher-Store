@@ -78,8 +78,8 @@ export function MegaMenu({ categories }: MegaMenuProps) {
           </div>
 
           {/* ستون دوم: فرزندانِ والد فعال */}
-          <div className="flex flex-col space-y-1 border-r pr-2">
-            <h4 className="border-primary/20 text-primary mb-2 border-b pb-2 text-right text-base font-bold">
+          <div className="flex flex-col space-y-1 border-s ps-2">
+            <h4 className="border-primary/20 text-primary mb-2 border-b pb-2 text-start text-base font-bold">
               {activeParent?.name}
             </h4>
             {(activeParent?.children || []).map((child) => (
@@ -102,7 +102,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
           </div>
 
           {/* ستون سوم: نوه‌های والد فعال (فرزندانِ فرزند فعال) */}
-          <div className="flex flex-col space-y-1 border-r pr-2">
+          <div className="flex flex-col space-y-1 border-s ps-2">
             {/* Keeps this column aligned with the headed columns; hidden
                 from screen readers, which used to read "Placeholder". */}
             <div
