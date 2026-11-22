@@ -6,7 +6,7 @@ import type { Media } from '@payload-types';
 import { useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+import { mediaSrc } from '@/lib/utils/media';
 
 interface ProductGalleryProps {
   // determined by payload types
@@ -45,7 +45,7 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
 
   const getImageUrl = (image: Media | number) => {
     if (typeof image === 'object' && image?.url) {
-      return resolvePayloadMediaUrl(image.url);
+      return mediaSrc(image.url);
     }
     return '/images/placeholder.png';
   };
@@ -63,7 +63,6 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
                 : productName
             }
             fill
-            unoptimized
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 50vw"
           />
@@ -96,8 +95,8 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
                     src={imageUrl}
                     alt=""
                     fill
-                    unoptimized
                     className="object-contain"
+                    sizes="(max-width: 768px) 20vw, 10vw"
                   />
                 </div>
               </button>

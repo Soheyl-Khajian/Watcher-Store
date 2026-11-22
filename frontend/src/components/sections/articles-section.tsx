@@ -3,7 +3,7 @@
 import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+import { mediaSrc } from '@/lib/utils/media';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ArticlesSectionProps {
@@ -17,7 +17,7 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {posts.map((post) => {
             const imageUrl = post.thumbnail?.url
-              ? resolvePayloadMediaUrl(post.thumbnail.url)
+              ? mediaSrc(post.thumbnail.url)
               : '/images/blog-1.png';
 
             return (
@@ -33,7 +33,6 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
                         src={imageUrl}
                         alt={post.title}
                         fill
-                        unoptimized
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, 50vw"
                       />

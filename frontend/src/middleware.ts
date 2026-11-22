@@ -60,7 +60,8 @@ export function middleware(request: NextRequest): NextResponse {
 
 export const config = {
   matcher: [
-    // Everything except build assets, optimized images and the icons.
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon).*)',
+    // Everything except build assets, images (optimized ones and media
+    // files) and the icons.
+    '/((?!_next/static|_next/image|uploads/|favicon.ico|icon.svg|apple-icon).*)',
   ],
 };

@@ -48,7 +48,7 @@ describe('productJsonLd', () => {
       name: 'دوربین دام',
       url: 'https://shop.example.test/products/dome-camera',
       sku: 'CAM-1',
-      image: ['https://cms.example.test/api/media/file/cam.png'],
+      image: ['https://shop.example.test/uploads/cam.png'],
       description: 'دوربین با دید در شب',
       offers: {
         '@type': 'Offer',

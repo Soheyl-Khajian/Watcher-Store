@@ -3,7 +3,7 @@
 import type { Product } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+import { mediaSrc } from '@/lib/utils/media';
 import {
   Card,
   CardContent,
@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
       ? product.gallery[0].image
       : null;
   const imageUrl = mainImage?.url
-    ? resolvePayloadMediaUrl(mainImage.url)
+    ? mediaSrc(mainImage.url)
     : '/images/placeholder.png';
 
   return (
@@ -43,7 +43,6 @@ export function ProductCard({ product }: ProductCardProps) {
               // The title link names the card; the image adds nothing.
               alt=""
               fill
-              unoptimized
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             />

@@ -137,4 +137,60 @@ describe('Payload environment', () => {
       ).toThrow(/REVALIDATE_SECRET/);
     });
   });
+
+  describe('media storage (S3)', () => {
+    const bucket = {
+      S3_BUCKET: 'watcher-media',
+      S3_REGION: 'auto',
+      S3_ENDPOINT: 'https://account.r2.cloudflarestorage.com',
+      S3_ACCESS_KEY_ID: 'key-id',
+      S3_SECRET_ACCESS_KEY: 'secret-key',
+    };
+
+    it('stores media on local disk when no bucket is set', () => {
+      const env = parseEnv({ ...production, S3_BUCKET: '', S3_REGION: '' });
+      expect(env.S3_BUCKET).toBeUndefined();
+      expect(env.S3_FORCE_PATH_STYLE).toBe(false);
+    });
+
+    it('accepts a complete bucket configuration', () => {
+      const env = parseEnv({
+        ...production,
+        ...bucket,
+        S3_FORCE_PATH_STYLE: 'true',
+      });
+      expect(env.S3_BUCKET).toBe('watcher-media');
+      expect(env.S3_FORCE_PATH_STYLE).toBe(true);
+    });
+
+    it('accepts a bucket without keys (the SDK finds its own)', () => {
+      expect(() =>
+        parseEnv({ ...production, S3_BUCKET: 'b', S3_REGION: 'eu-west-1' }),
+      ).not.toThrow();
+    });
+
+    it('requires a region with a bucket', () => {
+      expect(() => parseEnv({ ...base, ...bucket, S3_REGION: '' })).toThrow(
+        /S3_REGION/,
+      );
+    });
+
+    it('refuses one key without the other', () => {
+      expect(() =>
+        parseEnv({ ...base, ...bucket, S3_SECRET_ACCESS_KEY: '' }),
+      ).toThrow(/S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY/);
+    });
+
+    it('refuses bucket settings without a bucket (uploads would go to disk)', () => {
+      expect(() => parseEnv({ ...base, ...bucket, S3_BUCKET: '' })).toThrow(
+        /S3_BUCKET is not set/,
+      );
+    });
+
+    it('refuses a malformed endpoint', () => {
+      expect(() =>
+        parseEnv({ ...base, ...bucket, S3_ENDPOINT: 'not a url' }),
+      ).toThrow(/S3_ENDPOINT/);
+    });
+  });
 });

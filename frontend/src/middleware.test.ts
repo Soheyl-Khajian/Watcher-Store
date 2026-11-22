@@ -85,6 +85,7 @@ describe('content security policy middleware', () => {
     expect(matches('/api/auth/me')).toBe(true);
     expect(matches('/_next/static/chunks/app.js')).toBe(false);
     expect(matches('/_next/image')).toBe(false);
+    expect(matches('/uploads/camera.png')).toBe(false);
     expect(matches('/icon.svg')).toBe(false);
   });
 });

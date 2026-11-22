@@ -4,7 +4,7 @@ import type { Post } from '@/types';
 import { fetchPostBySlug } from '@/lib/api/payload';
 import { RichText } from '@/components/RichText';
 import Image from 'next/image';
-import { resolvePayloadMediaUrl } from '@/lib/utils/media';
+import { mediaSrc } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
 import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
 import type { Metadata } from 'next';
@@ -54,7 +54,7 @@ export default async function PostPage({ params }: PageProps) {
   const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
 
   const imageUrl = post.thumbnail?.url
-    ? resolvePayloadMediaUrl(post.thumbnail.url)
+    ? mediaSrc(post.thumbnail.url)
     : '/images/placeholder.png';
 
   const publishedDate = new Date(post.publishedDate).toLocaleDateString(
@@ -85,8 +85,8 @@ export default async function PostPage({ params }: PageProps) {
           src={imageUrl}
           alt={post.title}
           fill
-          unoptimized
           className="object-cover"
+          sizes="(max-width: 768px) 100vw, 768px"
           priority
         />
       </div>

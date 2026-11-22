@@ -3,7 +3,7 @@
 // What search engines and link previews learn about the shop's pages.
 
 import { env } from './env';
-import { resolvePayloadMediaUrl } from './utils/media';
+import { mediaSrc } from './utils/media';
 
 export const SITE_NAME = 'فروشگاه امنیتی واچر';
 export const SITE_DESCRIPTION =
@@ -58,7 +58,8 @@ export function plainText(content: unknown, maxLength = 160): string {
   return `${(lastSpace > maxLength / 2 ? cut.slice(0, lastSpace) : cut).trim()}…`;
 }
 
-// An absolute image URL from a Payload media document (or nothing).
+// An absolute image URL from a Payload media document (or nothing),
+// served from the storefront (lib/utils/media.ts).
 export function mediaImage(
   media: unknown,
 ): { url: string; alt?: string; width?: number; height?: number } | null {
@@ -69,9 +70,11 @@ export function mediaImage(
     width?: unknown;
     height?: unknown;
   };
-  if (typeof url !== 'string' || !url) return null;
+  const src = typeof url === 'string' ? mediaSrc(url) : '';
+  if (!src) return null;
   return {
-    url: resolvePayloadMediaUrl(url),
+    // The storefront's /uploads/ address, made absolute for crawlers.
+    url: src.startsWith('/') ? absoluteUrl(src) : src,
     ...(typeof alt === 'string' && alt ? { alt } : {}),
     ...(typeof width === 'number' ? { width } : {}),
     ...(typeof height === 'number' ? { height } : {}),

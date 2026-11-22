@@ -38,9 +38,9 @@ describe('contentSecurityPolicy', () => {
     expect(d.get('frame-ancestors')).toEqual(["'none'"]);
   });
 
-  it('allows images and API calls from Payload', () => {
+  it('allows API calls to Payload, and images only from the shop', () => {
     const d = directives(contentSecurityPolicy(base));
-    expect(d.get('img-src')).toContain('https://cms.example.com');
+    expect(d.get('img-src')).toEqual(["'self'", 'data:', 'blob:']);
     expect(d.get('connect-src')).toEqual(["'self'", 'https://cms.example.com']);
   });
 
