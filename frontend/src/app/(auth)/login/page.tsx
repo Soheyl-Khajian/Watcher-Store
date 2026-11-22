@@ -1,76 +1,109 @@
 // src/app/(auth)/login/page.tsx
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, type FormEvent } from 'react';
+import { toast } from 'sonner';
+import {
+  AuthAlert,
+  AuthField,
+  AuthSwitchLink,
+} from '@/components/auth/auth-form-parts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { loginUser, syncCart } from '@/lib/api/nestjs';
-import { useAuthStore } from '@/lib/store/auth';
-import { safeNextPath } from '@/lib/utils/safe-next';
-import { toast } from 'sonner';
+import { loginUser } from '@/lib/api/nestjs';
+import { useFinishLogin } from '@/lib/hooks/use-finish-login';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const finishLogin = useFinishLogin();
 
-  const setUser = useAuthStore((state) => state.setUser);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSubmitting) return;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
     // The server keeps the session in an httpOnly cookie; the page only
     // learns who is logged in.
-    const result = await loginUser({ email, password });
+    const result = await loginUser({ email: email.trim(), password });
 
     if (result.ok) {
-      setUser(result.user);
-      await syncCart();
       toast.success('ورود با موفقیت انجام شد!');
-      // Back to the page that asked for a login, if any.
-      const next = new URLSearchParams(window.location.search).get('next');
-      router.push(safeNextPath(next));
-    } else {
-      toast.error(result.message);
+      await finishLogin(result.user);
+      return;
     }
+
+    setError(result.message);
+    setIsSubmitting(false);
   };
 
   return (
-    <div className="bg-muted/40 flex min-h-screen items-center justify-center">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <AuthAlert message={error} />
+
+      <AuthField id="email" label="ایمیل">
+        <Input
+          id="email"
+          type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          dir="ltr"
+          placeholder="email@example.com"
+          required
+          disabled={isSubmitting}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </AuthField>
+
+      <AuthField id="password" label="رمز عبور">
+        <Input
+          id="password"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          dir="ltr"
+          required
+          disabled={isSubmitting}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </AuthField>
+
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={isSubmitting || !email || !password}
+        aria-busy={isSubmitting}
+      >
+        {isSubmitting ? 'در حال ورود...' : 'ورود'}
+      </Button>
+
+      <p className="text-muted-foreground text-center text-sm">
+        حساب کاربری ندارید؟{' '}
+        <AuthSwitchLink href="/register">ثبت‌نام کنید</AuthSwitchLink>
+      </p>
+    </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="bg-muted/40 flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>ورود به حساب کاربری</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">ایمیل</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="email@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">رمز عبور</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              ورود
-            </Button>
-          </form>
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
         </CardContent>
       </Card>
     </div>
