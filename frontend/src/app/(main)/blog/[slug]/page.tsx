@@ -7,10 +7,40 @@ import Image from 'next/image';
 import { resolvePayloadMediaUrl } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
 import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
+import type { Metadata } from 'next';
+import { mediaImage, plainText, OPEN_GRAPH_DEFAULTS } from '@/lib/seo';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post: Post | null = await fetchPostBySlug(slug).catch(() => null);
+  if (!post) {
+    return {};
+  }
+  const path = `/blog/${encodeURIComponent(post.slug)}`;
+  const description = post.excerpt?.trim() || plainText(post.content);
+  const image = mediaImage(post.thumbnail);
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      ...OPEN_GRAPH_DEFAULTS,
+      type: 'article',
+      url: path,
+      title: post.title,
+      description,
+      publishedTime: post.publishedDate,
+      authors: [post.authorName?.trim() || DEFAULT_AUTHOR_NAME],
+      ...(image ? { images: [image] } : {}),
+    },
+  };
+}
 
 // this component is responsible to show a particular article
 export default async function PostPage({ params }: PageProps) {

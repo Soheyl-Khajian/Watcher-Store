@@ -17,6 +17,7 @@ import { CartSheet } from './cart-sheet';
 import { MegaMenu } from './mega-menu';
 import { MobileNav } from './mobile-nav';
 import { fetchCategoryTree } from '@/lib/api/payload';
+import { LogoMark } from '@/components/brand/logo';
 
 const otherNavLinks = [
   { href: '/blog', label: 'وبلاگ' },
@@ -34,7 +35,7 @@ export async function Header() {
         {/* بخش لوگوی سایت با لینک به صفحه اصلی */}
         <div className="ms-4 me-10 hidden md:flex">
           <Link href="/" className="ms-6 flex items-center gap-2">
-            {/* <Icons.logo className="h-6 w-6" /> */}
+            <LogoMark className="h-7 w-7" />
             <span className="hidden font-bold sm:inline-block">
               فروشگاه واچر
             </span>

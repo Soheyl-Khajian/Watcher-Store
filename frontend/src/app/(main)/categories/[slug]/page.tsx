@@ -5,6 +5,38 @@ import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
 import { notFound } from 'next/navigation';
 import { Pager } from '@/components/ui/pager';
+import type { Metadata } from 'next';
+import { SITE_NAME, OPEN_GRAPH_DEFAULTS } from '@/lib/seo';
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ page?: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const page = Number((await searchParams)?.page) || 1;
+  const { category } = await fetchProductsAndCategoryBySlug(slug, page).catch(
+    () => ({ category: null }),
+  );
+  if (!category) {
+    return {};
+  }
+  const path = `/categories/${encodeURIComponent(slug)}${page > 1 ? `?page=${page}` : ''}`;
+  const description = `خرید محصولات ${category.name} از ${SITE_NAME}`;
+  return {
+    title: category.name,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      ...OPEN_GRAPH_DEFAULTS,
+      url: path,
+      title: category.name,
+      description,
+    },
+  };
+}
 
 export default async function CategoryPage({
   params,

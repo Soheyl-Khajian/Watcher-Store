@@ -6,6 +6,21 @@ import { normalizeSearchQuery } from '@/lib/utils/search';
 import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
 import { Pager } from '@/components/ui/pager';
+import type { Metadata } from 'next';
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string; onSale?: string }>;
+}): Promise<Metadata> {
+  const awaited = await searchParams;
+  if (normalizeSearchQuery(awaited?.q)) {
+    return { title: 'جستجوی محصولات', robots: { index: false } };
+  }
+  return awaited?.onSale === 'true'
+    ? { title: 'فروش ویژه', alternates: { canonical: '/products?onSale=true' } }
+    : { title: 'همه محصولات', alternates: { canonical: '/products' } };
+}
 
 export default async function AllProductsPage({
   searchParams,

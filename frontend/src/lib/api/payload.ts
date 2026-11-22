@@ -268,3 +268,51 @@ export async function fetchPageBySlug(slug: string) {
   );
   return data?.docs?.[0] || null;
 }
+
+//------------------------------------------------------------
+// SITEMAP
+//------------------------------------------------------------
+
+export interface SitemapEntry {
+  slug: string;
+  updatedAt?: string;
+}
+
+// Slugs of everything public, for sitemap.xml (up to 1000 of each).
+export async function fetchSitemapEntries(): Promise<{
+  products: SitemapEntry[];
+  categories: SitemapEntry[];
+  posts: SitemapEntry[];
+  pages: SitemapEntry[];
+}> {
+  const list = async (
+    collection: string,
+    publishedOnly: boolean,
+    cache: CachePolicy,
+  ): Promise<SitemapEntry[]> => {
+    const params = new URLSearchParams({
+      limit: '1000',
+      depth: '0',
+      'select[slug]': 'true',
+      'select[updatedAt]': 'true',
+    });
+    if (publishedOnly) {
+      params.set('where[status][equals]', 'published');
+    }
+    const data = await fetchPayloadAPI(
+      `/${collection}?${params.toString()}`,
+      cache,
+    );
+    return ((data?.docs ?? []) as SitemapEntry[]).filter(
+      (doc) => typeof doc.slug === 'string' && doc.slug,
+    );
+  };
+
+  const [products, categories, posts, pages] = await Promise.all([
+    list('products', true, PRODUCTS),
+    list('categories', false, cacheFor('categories')),
+    list('posts', true, cacheFor('posts')),
+    list('pages', true, cacheFor('pages')),
+  ]);
+  return { products, categories, posts, pages };
+}

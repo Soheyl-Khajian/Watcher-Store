@@ -5,6 +5,15 @@ import { RichText } from '@/components/RichText';
 import { Check } from 'lucide-react';
 import type { Product } from '@payload-types';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
+import type { Metadata } from 'next';
+import {
+  jsonLdString,
+  mediaImage,
+  plainText,
+  productJsonLd,
+  SITE_NAME,
+  OPEN_GRAPH_DEFAULTS,
+} from '@/lib/seo';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('fa-IR').format(price);
@@ -13,6 +22,35 @@ const formatPrice = (price: number) => {
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  // The page itself reports a missing product or an outage.
+  const product: Product | null = await fetchProductBySlug(slug).catch(
+    () => null,
+  );
+  if (!product) {
+    return {};
+  }
+  const path = `/products/${encodeURIComponent(product.slug ?? slug)}`;
+  const description =
+    plainText(product.description) || `خرید ${product.name} از ${SITE_NAME}`;
+  const image = mediaImage(product.gallery?.[0]?.image);
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      ...OPEN_GRAPH_DEFAULTS,
+      url: path,
+      title: product.name,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
+  };
+}
 
 export default async function ProductDetailsPage({ params }: PageProps) {
   const { slug } = await params;
@@ -24,6 +62,13 @@ export default async function ProductDetailsPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-12">
+      {/* Price and availability for search results. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdString(productJsonLd(product)),
+        }}
+      />
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
         <div>
           <ProductGallery

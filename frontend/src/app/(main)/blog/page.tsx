@@ -3,6 +3,13 @@
 import { fetchPosts } from '@/lib/api/payload';
 import type { Post } from '@/types';
 import { PostCard } from '@/components/ui/post-card';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'وبلاگ',
+  description: 'مقاله‌ها و راهنماهای تجهیزات امنیتی و هوشمند از فروشگاه واچر.',
+  alternates: { canonical: '/blog' },
+};
 
 export default async function BlogPage() {
   const posts = await fetchPosts();
