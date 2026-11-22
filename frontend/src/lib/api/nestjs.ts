@@ -198,6 +198,25 @@ export async function addToCart(
   );
 }
 
+// Sets how many of a product are in the cart. The server checks stock and
+// answers with a message for the customer when there is not enough.
+export async function setCartQuantity(
+  productId: string,
+  quantity: number,
+): Promise<{ ok: true; cart: Cart } | { ok: false; message: string }> {
+  const result = await api(`nest/cart/${segment(productId)}`, {
+    method: 'PATCH',
+    body: { quantity },
+  });
+  const cart = cartOf(result);
+  return cart
+    ? { ok: true, cart }
+    : {
+        ok: false,
+        message: messageOf(result) ?? 'تغییر تعداد ممکن نشد. دوباره تلاش کنید.',
+      };
+}
+
 // The updated cart is returned.
 export async function removeFromCart(productId: string): Promise<Cart | null> {
   return cartOf(

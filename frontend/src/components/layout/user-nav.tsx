@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
 import { loadSession, logoutUser } from '@/lib/api/nestjs';
+import { useCartRefresh } from '@/lib/hooks/use-cart-refresh';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ export function UserNav() {
   useEffect(() => {
     void loadSession();
   }, []);
+  useCartRefresh();
 
   const logout = async () => {
     await logoutUser();

@@ -1,10 +1,10 @@
+// frontend/src/components/cart/add-to-cart-button.tsx
+
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { addToCart } from '@/lib/api/nestjs';
-import { useAuthStore } from '@/lib/store/auth';
 import { ShoppingCart } from 'lucide-react';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { useAddToCart } from '@/lib/hooks/use-add-to-cart';
 
 interface AddToCartButtonProps {
   productId: string | number;
@@ -15,32 +15,18 @@ export function AddToCartButton({
   productId,
   productName,
 }: AddToCartButtonProps) {
-  const { status, setCart } = useAuthStore();
-
-  const handleAddToCart = async () => {
-    if (status !== 'signed-in') {
-      toast.error('برای افزودن محصول به سبد خرید، لطفاً ابتدا وارد شوید.');
-      return;
-    }
-
-    const updatedCart = await addToCart(String(productId), 1);
-
-    if (updatedCart) {
-      setCart(updatedCart);
-      toast.success(`${productName} به سبد خرید اضافه شد.`);
-    } else {
-      toast.error('خطا در افزودن محصول به سبد خرید.');
-    }
-  };
+  const { add, isAdding } = useAddToCart(productId, productName);
 
   return (
     <Button
       size="lg"
       className="w-full cursor-pointer"
-      onClick={handleAddToCart}
+      onClick={add}
+      disabled={isAdding}
+      aria-busy={isAdding}
     >
-      <ShoppingCart className="ml-2 h-5 w-5" />
-      افزودن به سبد خرید
+      <ShoppingCart className="me-2 h-5 w-5" aria-hidden="true" />
+      {isAdding ? 'در حال افزودن...' : 'افزودن به سبد خرید'}
     </Button>
   );
 }
