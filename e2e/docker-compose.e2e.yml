@@ -1,0 +1,43 @@
+# End-to-end test stack: the production compose file plus a mock Zarinpal
+# gateway, so a real purchase can be paid without any outside service.
+#
+#   docker compose -f docker-compose.prod.yml -f e2e/docker-compose.e2e.yml up -d --build
+#
+# Paths are relative to the project directory (the first file's).
+
+services:
+  zarinpal-mock:
+    image: node:24-alpine
+    command: ['node', '/mock/server.mjs']
+    volumes:
+      - ./e2e/zarinpal-mock:/mock:ro
+    # The tests' browser reaches the mock's "payment page" here.
+    ports:
+      - '127.0.0.1:4010:4010'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:4010/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nest-api:
+    environment:
+      PAYMENT_GATEWAY: zarinpal
+      ZARINPAL_BASE_URL: http://zarinpal-mock:4010
+      # Any UUID: the mock does not check it.
+      ZARINPAL_MERCHANT_ID: 00000000-0000-4000-8000-000000000000
+    depends_on:
+      zarinpal-mock:
+        condition: service_healthy
+
+  nest-migrate:
+    environment:
+      PAYMENT_GATEWAY: zarinpal
+      ZARINPAL_BASE_URL: http://zarinpal-mock:4010
+      ZARINPAL_MERCHANT_ID: 00000000-0000-4000-8000-000000000000

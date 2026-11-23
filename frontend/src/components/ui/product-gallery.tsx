@@ -65,6 +65,8 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
             fill
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 50vw"
+            // The page's main image: load it at once, not lazily.
+            priority
           />
         </div>
       </div>

@@ -151,7 +151,7 @@ export function CartContent({ onClose }: CartContentProps) {
         <SheetTitle>سبد خرید شما</SheetTitle>
         <SheetDescription>
           {itemCount > 0
-            ? `${itemCount} آیتم در سبد شماست.`
+            ? `${itemCount.toLocaleString('fa-IR')} قلم کالا در سبد شماست.`
             : 'سبد خرید شما خالی است.'}
         </SheetDescription>
       </SheetHeader>

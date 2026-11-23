@@ -24,10 +24,10 @@ SOFTWARE.
 
 Excluded from this license
 
-The image files in frontend/public/images/ are sample content whose origin
-has not been confirmed. They are not covered by the MIT License above, and no
-rights to them are granted. They remain subject to the terms of their
-respective owners.
+The photos in backend/payload-cms/src/seed/demo-images/ are openly licensed
+works from Wikimedia Commons (public domain, CC0, CC BY or CC BY-SA). They
+are not covered by the MIT License above: each remains under its own
+license, with its author and license listed in credits.json in that folder.
 
 This license does not grant any rights to the "Watcher Store" name or to any
 logos or other branding.

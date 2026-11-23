@@ -18,7 +18,7 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
           {posts.map((post) => {
             const imageUrl = post.thumbnail?.url
               ? mediaSrc(post.thumbnail.url)
-              : '/images/blog-1.png';
+              : '/images/placeholder.png';
 
             return (
               <Link

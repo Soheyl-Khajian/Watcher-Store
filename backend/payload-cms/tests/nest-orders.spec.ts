@@ -1,5 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { fetchNestOrders as FetchNestOrders } from '../src/utils/nestOrders';
+import type {
+  fetchNestOrders as FetchNestOrders,
+  performOrderAction as PerformOrderAction,
+} from '../src/utils/nestOrders';
 
 const order = {
   id: 7,
@@ -67,5 +70,98 @@ describe('fetchNestOrders', () => {
       'none',
       'none',
     ]);
+  });
+});
+
+// The admin Orders view's buttons (via the order-actions endpoint).
+describe('performOrderAction', () => {
+  let performOrderAction: typeof PerformOrderAction;
+  const logger = { error: vi.fn() };
+
+  beforeAll(async () => {
+    ({ performOrderAction } = await import('../src/utils/nestOrders'));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const nestAnswers = (status: number) => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status }));
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  };
+
+  it('posts the action to Nest as the administrator', async () => {
+    const fetchMock = nestAnswers(200);
+
+    const outcome = await performOrderAction({
+      token: 'admin-token',
+      orderId: 7,
+      action: 'ship',
+      trackingCode: 'TRK-1',
+      logger,
+    });
+
+    expect(outcome).toBe('done');
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      URL,
+      RequestInit,
+    ];
+    expect(String(url)).toBe('http://nest.test/admin/orders/7/ship');
+    expect(init.method).toBe('POST');
+    expect(new Headers(init.headers).get('authorization')).toBe(
+      'JWT admin-token',
+    );
+    expect(JSON.parse(String(init.body))).toEqual({ trackingCode: 'TRK-1' });
+  });
+
+  it('sends no tracking code with other actions', async () => {
+    const fetchMock = nestAnswers(200);
+    await performOrderAction({
+      token: 't',
+      orderId: 7,
+      action: 'complete',
+      trackingCode: 'ignored',
+      logger,
+    });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(JSON.parse(String(init.body))).toEqual({});
+  });
+
+  it.each([
+    [400, 'invalid'],
+    [401, 'forbidden'],
+    [403, 'forbidden'],
+    [404, 'not_found'],
+    [409, 'conflict'],
+    [500, 'unavailable'],
+  ] as const)('maps HTTP %i to %s', async (status, expected) => {
+    nestAnswers(status);
+    expect(
+      await performOrderAction({
+        token: 't',
+        orderId: 1,
+        action: 'cancel',
+        logger,
+      }),
+    ).toBe(expected);
+  });
+
+  it('reports Nest being unreachable', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed');
+      }),
+    );
+    expect(
+      await performOrderAction({
+        token: 't',
+        orderId: 1,
+        action: 'cancel',
+        logger,
+      }),
+    ).toBe('unavailable');
   });
 });
