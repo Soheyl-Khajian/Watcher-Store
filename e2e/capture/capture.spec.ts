@@ -7,6 +7,7 @@
 // then build the images with capture/build-assets.mjs.
 
 import { test, type Page } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import {
   adminAccount,
@@ -50,7 +51,7 @@ test('capture the demo store', async ({ page, browser }) => {
 
   // Customer: register, search, cart, checkout, pay.
   const email = `capture-${Date.now()}@example.test`;
-  const password = `capture-${Math.random().toString(36).slice(2)}-Pw`;
+  const password = `capture-${randomBytes(12).toString('hex')}-Pw`;
   await page.goto('/register');
   await page.getByLabel('ایمیل').fill(email);
   await page.getByLabel('رمز عبور', { exact: true }).fill(password);

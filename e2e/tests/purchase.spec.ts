@@ -6,6 +6,7 @@
 // customer sees it shipped with its tracking code.
 
 import { expect, test, type Page } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 import {
   adminAccount,
   CMS_URL,
@@ -36,7 +37,8 @@ const trackingCode = `E2E-${Date.now()}`;
 test('a new customer buys a product and pays', async ({ page }) => {
   await reachGateway(page);
   const email = `e2e-${Date.now()}@example.test`;
-  const password = `e2e-${Math.random().toString(36).slice(2)}-Pw`;
+  // A new account each run, with a password from a secure random source.
+  const password = `e2e-${randomBytes(12).toString('hex')}-Pw`;
 
   // Register (and be logged in straight away).
   await page.goto('/register');
