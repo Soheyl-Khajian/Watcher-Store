@@ -98,6 +98,7 @@ export default tseslint.config(
       'backend/nest-api/src/database/*.cli.ts',
       'scripts/**/*.{js,mjs}',
       'e2e/zarinpal-mock/*.mjs',
+      'e2e/capture/*.mjs',
     ],
     rules: { 'no-console': 'off' },
   },

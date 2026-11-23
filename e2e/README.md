@@ -55,3 +55,10 @@ gateway, runs the smoke check, seeds the demo data with a one-off
 administrator password, installs Playwright's Chromium and runs these
 tests. When a test fails, the HTML report, traces and videos are uploaded
 as the `e2e-report` artifact.
+
+## README images
+
+`capture/` walks through the seeded demo store and saves the screenshots
+used in the README; `capture/build-assets.mjs` turns them into
+`assets/demo.gif` and `assets/screenshots/`. Run it like the tests, with
+`--config capture/capture.config.ts` and `CAPTURE_DIR` set to a folder.
