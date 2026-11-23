@@ -24,6 +24,7 @@ import { Posts } from './collections/Posts';
 import { Pages } from './collections/Pages';
 import { Footer } from './globals/Footer';
 import { productsByCategoryEndpoint } from './endpoints/productsByCategory';
+import { orderActionsEndpoint } from './endpoints/orderActions';
 import { mediaStoragePlugins } from './storage';
 
 import { en } from '@payloadcms/translations/languages/en';
@@ -54,7 +55,7 @@ export default buildConfig({
   },
   collections: [Users, Categories, Products, Posts, Pages, Media],
   globals: [Footer],
-  endpoints: [productsByCategoryEndpoint],
+  endpoints: [productsByCategoryEndpoint, orderActionsEndpoint],
   editor: slateEditor({}),
   secret: env.PAYLOAD_SECRET,
   serverURL: env.PAYLOAD_PUBLIC_URL,

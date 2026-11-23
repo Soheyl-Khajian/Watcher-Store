@@ -35,6 +35,8 @@ const orderSchema = z.object({
   // Money owed back to the customer: the order was cancelled after payment,
   // or received a payment it could not take. An older Nest may omit it.
   refundStatus: z.enum(['none', 'required', 'refunded']).catch('none'),
+  // Set when the order was shipped with a tracking code.
+  trackingCode: z.string().nullish(),
   createdAt: z.string(),
   items: z.array(orderItemSchema),
   // Orders created before shipping details existed have only null columns, and
@@ -176,4 +178,98 @@ export async function fetchNestOrders(options: {
   }
 
   return { ok: true, data: parsed.data };
+}
+
+// ---------------------------------------------------------------------------
+// Order actions (the admin Orders view's buttons)
+// ---------------------------------------------------------------------------
+
+export const ORDER_ACTIONS = [
+  'ship',
+  'complete',
+  'cancel',
+  'mark-refunded',
+] as const;
+export type OrderAction = (typeof ORDER_ACTIONS)[number];
+
+export const ORDER_ACTION_OUTCOMES = [
+  'done',
+  // Not possible in the order's current status (Nest's state machine).
+  'conflict',
+  'invalid',
+  'not_found',
+  'forbidden',
+  'unavailable',
+  'not_configured',
+] as const;
+export type OrderActionOutcome = (typeof ORDER_ACTION_OUTCOMES)[number];
+
+export function isOrderAction(value: unknown): value is OrderAction {
+  return (ORDER_ACTIONS as readonly unknown[]).includes(value);
+}
+
+// Asks Nest to change an order's status as the logged-in administrator.
+// Nest checks the administrator again and allows only valid transitions.
+export async function performOrderAction(options: {
+  token: string;
+  orderId: number;
+  action: OrderAction;
+  trackingCode?: string;
+  logger: { error(message: string): void };
+}): Promise<OrderActionOutcome> {
+  const { token, orderId, action, trackingCode, logger } = options;
+
+  if (!env.NEST_INTERNAL_URL) {
+    return 'not_configured';
+  }
+
+  const url = new URL(
+    `/admin/orders/${orderId}/${action}`,
+    env.NEST_INTERNAL_URL,
+  );
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `JWT ${token}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(
+        action === 'ship' && trackingCode ? { trackingCode } : {},
+      ),
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    logger.error(
+      `Nest order action ${action} failed: ${
+        error instanceof Error ? error.message : 'unknown error'
+      }`,
+    );
+    return 'unavailable';
+  }
+
+  await response.body?.cancel();
+  switch (response.status) {
+    case 200:
+      return 'done';
+    case 400:
+      return 'invalid';
+    case 401:
+    case 403:
+      return 'forbidden';
+    case 404:
+      return 'not_found';
+    case 409:
+      return 'conflict';
+    default:
+      logger.error(
+        `Nest order action ${action} returned HTTP ${response.status}.`,
+      );
+      return 'unavailable';
+  }
 }

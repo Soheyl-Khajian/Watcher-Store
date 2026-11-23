@@ -7,9 +7,13 @@ import React from 'react';
 import {
   fetchNestOrders,
   getSessionToken,
+  isOrderAction,
+  ORDER_ACTION_OUTCOMES,
   parsePageParam,
   type NestOrder,
   type NestOrdersFailureReason,
+  type OrderAction,
+  type OrderActionOutcome,
 } from '../utils/nestOrders';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -29,6 +33,24 @@ const FAILURE_MESSAGES: Record<NestOrdersFailureReason, string> = {
     'سرویس سفارش‌ها در حال حاضر در دسترس نیست. چند لحظه بعد دوباره تلاش کنید.',
   invalid_response:
     'پاسخ سرویس سفارش‌ها نامعتبر بود. با مدیر سیستم تماس بگیرید.',
+};
+
+const ACTION_DONE: Record<OrderAction, string> = {
+  ship: 'به «ارسال‌شده» تغییر کرد.',
+  complete: 'به «تکمیل‌شده» تغییر کرد.',
+  cancel: 'لغو شد و موجودی کالاها برگشت.',
+  'mark-refunded': 'به‌عنوان «بازپرداخت شد» علامت خورد.',
+};
+
+const ACTION_FAILED: Record<Exclude<OrderActionOutcome, 'done'>, string> = {
+  conflict: 'این کار در وضعیت فعلی سفارش ممکن نیست؛ صفحه را تازه کنید.',
+  invalid:
+    'کد رهگیری نامعتبر است: فقط حروف انگلیسی، رقم، نقطه، خط تیره و زیرخط.',
+  not_found: 'سفارش پیدا نشد.',
+  forbidden: 'نشست شما معتبر نیست یا اجازه این کار را ندارید.',
+  unavailable: 'سرویس سفارش‌ها در دسترس نیست. کمی بعد دوباره تلاش کنید.',
+  not_configured:
+    'آدرس سرویس سفارش‌ها (NEST_INTERNAL_URL) تنظیم نشده است. با مدیر سیستم تماس بگیرید.',
 };
 
 const priceFormatter = new Intl.NumberFormat('fa-IR');
@@ -55,6 +77,143 @@ function RefundNote({
     return <div style={{ opacity: 0.7 }}>بازپرداخت شد</div>;
   }
   return null;
+}
+
+// The outcome of the last action (?order=&action=&result=, set by the
+// order-actions endpoint). Only known values are shown.
+function ActionNotice({
+  searchParams,
+}: {
+  searchParams: AdminViewServerProps['searchParams'];
+}) {
+  const order = Number(searchParams?.order);
+  const action = searchParams?.action;
+  const result = searchParams?.result as OrderActionOutcome | undefined;
+  if (
+    !Number.isSafeInteger(order) ||
+    !isOrderAction(action) ||
+    !result ||
+    !(ORDER_ACTION_OUTCOMES as readonly string[]).includes(result)
+  ) {
+    return null;
+  }
+  const done = result === 'done';
+  return (
+    <div
+      role="status"
+      style={{
+        padding: '0.75rem 1rem',
+        marginBottom: '1rem',
+        borderRadius: 4,
+        border: `1px solid ${done ? 'var(--theme-success-500)' : 'var(--theme-error-500)'}`,
+      }}
+    >
+      سفارش {priceFormatter.format(order)}{' '}
+      {done
+        ? ACTION_DONE[action]
+        : ACTION_FAILED[result as Exclude<OrderActionOutcome, 'done'>]}
+    </div>
+  );
+}
+
+const buttonStyle: React.CSSProperties = {
+  cursor: 'pointer',
+  padding: '0.25rem 0.75rem',
+  borderRadius: 4,
+  border: '1px solid var(--theme-elevation-300)',
+  background: 'var(--theme-elevation-50)',
+  color: 'inherit',
+  font: 'inherit',
+};
+
+// What can be done with an order in its current status (Nest's state
+// machine decides; these are just the buttons that make sense). Plain forms:
+// they post to /api/order-actions/:id/:action and come back here.
+function OrderActions({
+  order,
+  apiRoute,
+  page,
+}: {
+  order: NestOrder;
+  apiRoute: string;
+  page: number;
+}) {
+  const formFor = (action: OrderAction, children: React.ReactNode) => (
+    <form
+      method="post"
+      action={`${apiRoute}/order-actions/${order.id}/${action}`}
+      style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+    >
+      <input type="hidden" name="page" value={page} />
+      {children}
+    </form>
+  );
+
+  // Cancelling cannot be undone: it sits behind a second click.
+  const cancel = formFor(
+    'cancel',
+    <details>
+      <summary style={{ cursor: 'pointer' }}>لغو سفارش</summary>
+      <button type="submit" style={buttonStyle}>
+        تأیید لغو سفارش {priceFormatter.format(order.id)}
+      </button>
+    </details>,
+  );
+
+  const actions: React.ReactNode[] = [];
+  if (order.status === 'processing') {
+    actions.push(
+      formFor(
+        'ship',
+        <>
+          <input
+            name="trackingCode"
+            placeholder="کد رهگیری (اختیاری)"
+            aria-label={`کد رهگیری سفارش ${order.id}`}
+            maxLength={64}
+            dir="ltr"
+            style={{ ...buttonStyle, cursor: 'text', width: '11rem' }}
+          />
+          <button type="submit" style={buttonStyle}>
+            ثبت ارسال
+          </button>
+        </>,
+      ),
+      cancel,
+    );
+  } else if (order.status === 'pending') {
+    actions.push(cancel);
+  } else if (order.status === 'shipped') {
+    actions.push(
+      formFor(
+        'complete',
+        <button type="submit" style={buttonStyle}>
+          ثبت تحویل
+        </button>,
+      ),
+    );
+  }
+  if (order.refundStatus === 'required') {
+    actions.push(
+      formFor(
+        'mark-refunded',
+        <button type="submit" style={buttonStyle}>
+          بازپرداخت انجام شد
+        </button>,
+      ),
+    );
+  }
+
+  if (actions.length === 0) {
+    return <span style={{ opacity: 0.6 }}>—</span>;
+  }
+  return (
+    <div style={{ display: 'grid', gap: '0.5rem' }}>
+      {actions.map((action, i) => (
+        <React.Fragment key={i}>{action}</React.Fragment>
+      ))}
+    </div>
+  );
 }
 
 const formatToman = (amount: number): string =>
@@ -240,9 +399,9 @@ async function renderContent(
   return (
     <>
       <h1>سفارش‌ها</h1>
+      <ActionNotice searchParams={searchParams} />
       <p style={{ marginBottom: '1rem' }}>
-        این فهرست فقط‌خواندنی است. مجموع سفارش‌ها:{' '}
-        {priceFormatter.format(totalItems)}
+        مجموع سفارش‌ها: {priceFormatter.format(totalItems)}
       </p>
 
       <div style={{ overflowX: 'auto' }}>
@@ -256,6 +415,7 @@ async function renderContent(
               <th style={cellStyle}>اطلاعات ارسال</th>
               <th style={cellStyle}>جمع کل</th>
               <th style={cellStyle}>تاریخ ثبت</th>
+              <th style={cellStyle}>عملیات</th>
             </tr>
           </thead>
           <tbody>
@@ -270,6 +430,11 @@ async function renderContent(
                 </td>
                 <td style={cellStyle}>
                   {STATUS_LABELS[order.status] ?? order.status}
+                  {order.trackingCode && (
+                    <div>
+                      کد رهگیری: <bdi dir="ltr">{order.trackingCode}</bdi>
+                    </div>
+                  )}
                   <RefundNote refundStatus={order.refundStatus} />
                 </td>
                 <td style={cellStyle}>
@@ -289,6 +454,13 @@ async function renderContent(
                 </td>
                 <td style={cellStyle}>{formatToman(order.total)}</td>
                 <td style={cellStyle}>{formatDate(order.createdAt)}</td>
+                <td style={cellStyle}>
+                  <OrderActions
+                    order={order}
+                    apiRoute={payload.config.routes.api}
+                    page={page}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
