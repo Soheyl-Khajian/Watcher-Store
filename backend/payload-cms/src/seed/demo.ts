@@ -57,7 +57,7 @@ export interface SeedDemoResult {
   products: Tally;
   posts: Tally;
   pages: Tally;
-  admin: 'created' | 'exists' | 'skipped';
+  admin: 'created' | 'exists' | 'promoted' | 'skipped';
   customer: 'created' | 'exists' | 'skipped';
 }
 

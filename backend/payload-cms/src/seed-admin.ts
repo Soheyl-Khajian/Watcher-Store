@@ -8,16 +8,22 @@
 //
 // Safe to run on every deployment: an existing administrator is left
 // untouched, and an existing customer with the same email is not promoted.
+//
+// Locked out (no administrator left)? Make an existing account an
+// administrator again, keeping its password:
+//
+//   ADMIN_EMAIL=you@example.com ADMIN_PROMOTE_EXISTING=true pnpm --filter payload-cms seed:admin
 import { getPayload } from 'payload';
 import configPromise from './payload.config';
 import { ensureAdmin } from './utils/ensureAdmin';
 
 const email = process.env.ADMIN_EMAIL;
-const password = process.env.ADMIN_PASSWORD;
+const password = process.env.ADMIN_PASSWORD || undefined;
+const promoteExisting = process.env.ADMIN_PROMOTE_EXISTING === 'true';
 
-if (!email || !password) {
+if (!email || (!password && !promoteExisting)) {
   console.error(
-    'Set ADMIN_EMAIL and ADMIN_PASSWORD to create the administrator.',
+    'Set ADMIN_EMAIL and ADMIN_PASSWORD to create the administrator (or ADMIN_PROMOTE_EXISTING=true to promote an existing account).',
   );
   process.exit(1);
 }
@@ -30,12 +36,15 @@ try {
     email,
     password,
     displayName: process.env.ADMIN_DISPLAY_NAME,
+    promoteExisting,
   });
 
   console.log(
-    result === 'created'
-      ? `Created administrator ${email}.`
-      : `Administrator ${email} already exists; nothing changed.`,
+    {
+      created: `Created administrator ${email}.`,
+      exists: `Administrator ${email} already exists; nothing changed.`,
+      promoted: `${email} is now an administrator (password unchanged).`,
+    }[result],
   );
 } catch (error) {
   console.error(

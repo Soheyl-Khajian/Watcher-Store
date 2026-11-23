@@ -222,6 +222,22 @@ Useful commands (repository root, inside the container):
 | `pnpm --filter payload-cms seed:demo`                  | Demo data                                    |
 | `pnpm --filter payload-cms seed:admin`                 | Create the administrator from `ADMIN_*`      |
 
+**Locked out of the admin panel?** The panel never lets the last
+administrator be demoted or deleted, or anyone change their own role, but
+if no administrator is left (for example after editing the database by
+hand), make an existing account an administrator again, keeping its
+password:
+
+```bash
+# Dev Container
+ADMIN_EMAIL=you@example.com ADMIN_PROMOTE_EXISTING=true pnpm --filter payload-cms seed:admin
+
+# Production stack
+docker compose -f docker-compose.prod.yml exec \
+  -e ADMIN_EMAIL=you@example.com -e ADMIN_PROMOTE_EXISTING=true \
+  payload-cms ./node_modules/.bin/payload run src/seed-admin.ts
+```
+
 ---
 
 ## Production stack

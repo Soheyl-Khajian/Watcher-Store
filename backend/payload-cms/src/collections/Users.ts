@@ -8,7 +8,10 @@ import type {
 } from 'payload';
 import { ValidationError } from 'payload';
 import { env } from '../env';
-import { preventDeletingLastAdmin } from '../hooks/deleteGuards';
+import {
+  preventDeletingLastAdmin,
+  preventDemotingLastAdmin,
+} from '../hooks/deleteGuards';
 
 // Matches the storefront login, which rejects shorter passwords.
 export const MIN_PASSWORD_LENGTH = 8;
@@ -87,7 +90,7 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [enforcePasswordLength],
-    beforeChange: [makeFirstRegisteredUserAdmin],
+    beforeChange: [makeFirstRegisteredUserAdmin, preventDemotingLastAdmin],
     beforeDelete: [preventDeletingLastAdmin],
   },
   access: {
@@ -128,10 +131,19 @@ export const Users: CollectionConfig = {
         { label: 'مشتری', value: 'customer' },
       ],
       defaultValue: 'customer',
+      admin: {
+        description:
+          'نقش حساب خودتان را فقط مدیر دیگری می‌تواند تغییر دهد، و فروشگاه همیشه دست‌کم یک مدیر دارد.',
+      },
       access: {
         read: ({ req: { user } }) => user?.role === 'admin',
         create: ({ req: { user } }) => user?.role === 'admin',
-        update: ({ req: { user } }) => user?.role === 'admin',
+        // Administrators change other people's roles, never their own: one
+        // click could otherwise lock them out of this panel. (A change
+        // that would leave no administrator at all is refused as well:
+        // preventDemotingLastAdmin.)
+        update: ({ req: { user }, id }) =>
+          user?.role === 'admin' && String(id) !== String(user.id),
       },
     },
   ],

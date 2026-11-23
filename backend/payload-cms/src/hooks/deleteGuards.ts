@@ -6,12 +6,14 @@
 //   gallery image): those links are NOT NULL with ON DELETE SET NULL, so the
 //   database would reject the delete with an unhelpful error
 // - the last administrator, without whom nobody could manage the store
+//   (preventDemotingLastAdmin refuses the same outcome by a role change)
 //
 // Writers are deliberately not guarded: deleting one clears the post's
 // author link and the post keeps its byline (see Posts).
 
 import { APIError } from 'payload';
 import type {
+  CollectionBeforeChangeHook,
   CollectionBeforeDeleteHook,
   PayloadRequest,
   Where,
@@ -131,4 +133,46 @@ export const preventDeletingLastAdmin: CollectionBeforeDeleteHook = async ({
       true,
     );
   }
+};
+
+// Changing the last administrator's role would lock everyone out of the
+// admin panel just as surely as deleting them: Payload lets only
+// administrators in, and the first-user screen closes once any account
+// exists.
+export const preventDemotingLastAdmin: CollectionBeforeChangeHook = async ({
+  data,
+  operation,
+  originalDoc,
+  req,
+}) => {
+  if (
+    operation !== 'update' ||
+    originalDoc?.role !== 'admin' ||
+    data.role === undefined ||
+    data.role === 'admin'
+  ) {
+    return data;
+  }
+
+  const { totalDocs: otherAdmins } = await req.payload.count({
+    collection: 'users',
+    where: {
+      and: [
+        { role: { equals: 'admin' } },
+        { id: { not_equals: originalDoc.id } },
+      ],
+    },
+    req,
+  });
+
+  if (otherAdmins === 0) {
+    throw new APIError(
+      'این آخرین مدیر فروشگاه است و نقش او تغییر نمی‌کند. ابتدا مدیر دیگری بسازید.',
+      409,
+      null,
+      true,
+    );
+  }
+
+  return data;
 };
