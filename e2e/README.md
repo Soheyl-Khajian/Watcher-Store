@@ -46,3 +46,12 @@ can run again on the same stack.
 
 Failures keep a trace (`playwright show-trace test-results/.../trace.zip`)
 and a screenshot.
+
+## In CI
+
+The Docker job in `.github/workflows/ci.yml` does the same on every push
+and pull request: builds the images, starts the stack with the mock
+gateway, runs the smoke check, seeds the demo data with a one-off
+administrator password, installs Playwright's Chromium and runs these
+tests. When a test fails, the HTML report, traces and videos are uploaded
+as the `e2e-report` artifact.

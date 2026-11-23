@@ -110,12 +110,15 @@ jobs:
         run: pnpm test:e2e
 
   smoke:
-    name: Docker images (build, smoke test, vulnerability scan)
+    name: Docker images (build, smoke and end-to-end tests, vulnerability scan)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       # Fixes the network name (ws-ci_default) the smoke check joins.
       COMPOSE_PROJECT_NAME: ws-ci
+      # Every docker compose command: the production stack plus the mock
+      # payment gateway the end-to-end tests pay through.
+      COMPOSE_FILE: docker-compose.prod.yml:e2e/docker-compose.e2e.yml
       # Trivy, pinned by digest: its release images and GitHub Action were
       # replaced with malicious ones in March 2026, so a tag alone is not
       # trusted.
@@ -163,7 +166,7 @@ jobs:
             frontend.cache-to=type=gha,mode=max,scope=frontend,ignore-error=true
 
       - name: Start the stack
-        run: docker compose -f docker-compose.prod.yml up -d
+        run: docker compose up -d
 
       # Every service must answer, serve real pages, and work with the
       # others. Run from inside the stack's network: Nest has no host port.
@@ -176,15 +179,57 @@ jobs:
           -e FRONTEND_URL=http://frontend:3002
           node:24-alpine node /scripts/smoke-check.mjs
 
+      # The demo store, with a demo administrator whose password exists
+      # only for this run.
+      - name: Seed demo data
+        run: |
+          admin_password=$(openssl rand -hex 16)
+          echo "::add-mask::$admin_password"
+          echo "E2E_ADMIN_EMAIL=e2e-admin@example.test" >> "$GITHUB_ENV"
+          echo "E2E_ADMIN_PASSWORD=$admin_password" >> "$GITHUB_ENV"
+          docker compose exec -T \
+            -e ALLOW_DEMO_SEED=true \
+            -e DEMO_ADMIN_EMAIL=e2e-admin@example.test \
+            -e DEMO_ADMIN_PASSWORD="$admin_password" \
+            payload-cms ./node_modules/.bin/payload run src/seed-demo.ts
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install Playwright
+        run: |
+          pnpm install --frozen-lockfile --filter e2e
+          pnpm --filter e2e exec playwright install --with-deps chromium
+
+      # A customer's whole purchase (paid through the mock gateway), the
+      # administrator shipping it, and site-wide checks: e2e/README.md.
+      - name: End-to-end tests
+        run: pnpm test:stack
+
+      - name: Upload end-to-end report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Show service status and logs
         if: failure()
         run: |
-          docker compose -f docker-compose.prod.yml ps -a
-          docker compose -f docker-compose.prod.yml logs --no-color --tail=200
+          docker compose ps -a
+          docker compose logs --no-color --tail=200
 
       - name: Stop the stack
         if: always()
-        run: docker compose -f docker-compose.prod.yml down -v
+        run: docker compose down -v
 
       # Known vulnerabilities in the images: every HIGH and CRITICAL one is
       # listed, and the job fails on a CRITICAL one that has a fix. Runs even
