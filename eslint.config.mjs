@@ -93,6 +93,7 @@ export default tseslint.config(
     files: [
       'backend/payload-cms/src/seed.ts',
       'backend/payload-cms/src/seed-admin.ts',
+      'backend/payload-cms/src/seed-demo.ts',
       'backend/nest-api/src/database/*.cli.ts',
       'scripts/**/*.{js,mjs}',
     ],

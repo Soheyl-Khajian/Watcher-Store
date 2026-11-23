@@ -13,10 +13,11 @@
     {
       "title": "خدمات مشتریان",
       "links": [
-        { "label": "تماس با ما", "url": "/tamas-ba-ma" },
-        { "label": "درباره ما", "url": "/darbare-ma" },
+        { "label": "تماس با ما", "url": "/contact-us" },
+        { "label": "درباره ما", "url": "/about-us" },
         { "label": "قوانین و مقررات", "url": "/terms" },
-        { "label": "پیگیری سفارش", "url": "/profile" }
+        { "label": "پیگیری سفارش", "url": "/profile" },
+        { "label": "اعتبار تصاویر", "url": "/image-credits" }
       ]
     },
     {

@@ -127,7 +127,7 @@ Seed does **not** create a user. Open http://localhost:3000/admin and create the
 
 ## Optional: seed categories and footer
 
-Not part of `postStartCommand`. Products are **not** seeded.
+Not part of `postStartCommand`.
 
 After the container is running, open a terminal **inside** the Dev Container (not a host terminal) and run:
 
@@ -135,9 +135,9 @@ After the container is running, open a terminal **inside** the Dev Container (no
 pnpm --filter payload-cms seed
 ```
 
-This upserts the category tree from `backend/payload-cms/seed-categories.json` and updates the footer global from `backend/payload-cms/seed-footer.json`. Safe to re-run (existing categories are skipped).
+This upserts the category tree from `backend/payload-cms/src/seed/data/categories.json` and updates the footer global from `backend/payload-cms/src/seed/data/footer.json`. Safe to re-run (existing categories are skipped).
 
-Without seed, add categories, footer, and products yourself in Payload admin.
+For a complete demo store (products with photos, blog posts, pages and demo accounts), run `pnpm --filter payload-cms seed:demo` instead (see `.env.example` for the demo account settings).
 
 ---
 
