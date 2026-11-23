@@ -61,6 +61,7 @@ export default tseslint.config(
     files: [
       'backend/**/*.{ts,tsx,js,mjs,cjs}',
       'scripts/**/*.{js,mjs,cjs}',
+      'e2e/**/*.{ts,js,mjs}',
       '*.{js,mjs,cjs}',
       '**/*.config.{js,mjs,cjs,ts}',
     ],
@@ -96,6 +97,7 @@ export default tseslint.config(
       'backend/payload-cms/src/seed-demo.ts',
       'backend/nest-api/src/database/*.cli.ts',
       'scripts/**/*.{js,mjs}',
+      'e2e/zarinpal-mock/*.mjs',
     ],
     rules: { 'no-console': 'off' },
   },
