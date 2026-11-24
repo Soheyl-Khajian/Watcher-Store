@@ -1,79 +1,54 @@
 {
-  // One terminal tab per service.
-  //
-  // "dev: all" is the folderOpen entry point. It runs sequentially:
-  //   1. "await: deps"    - blocks until postCreateCommand/bootstrap.sh is done
-  //   2. "dev: services"  - then starts the three watchers in parallel
-  //
-  // Step 1 is not optional. VS Code fires folderOpen tasks while
-  // postCreateCommand is still running, so on a cold container (volumes just
-  // deleted) the servers would otherwise launch against an empty node_modules
-  // and die with MODULE_NOT_FOUND.
+  // Tools for the Dev Container's apps (Terminal → Run Task). None runs by
+  // itself: the container starts the apps on every start
+  // (.devcontainer/dev.sh boot), and these tasks only look at or restart
+  // them. Each is the same as running .devcontainer/dev.sh in a terminal.
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "await: deps",
+      "label": "dev: status",
       "type": "shell",
-      "command": "bash .devcontainer/await-deps.sh",
+      "command": "bash .devcontainer/dev.sh status",
       "problemMatcher": [],
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated",
-        "reveal": "always",
-        "close": true
-      }
+      "presentation": { "panel": "shared", "reveal": "always" }
     },
     {
-      "label": "dev: payload-cms",
+      "label": "dev: logs",
       "type": "shell",
-      "command": "pnpm --filter payload-cms dev",
+      "command": "bash .devcontainer/dev.sh logs ${input:app}",
       "isBackground": true,
       "problemMatcher": [],
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated",
-        "reveal": "always",
-        "close": false
-      }
+      "presentation": { "panel": "new", "reveal": "always" }
     },
     {
-      "label": "dev: nest-api",
+      "label": "dev: restart",
       "type": "shell",
-      "command": "pnpm --filter nest-api start:dev",
-      "isBackground": true,
+      "command": "bash .devcontainer/dev.sh restart ${input:app}",
       "problemMatcher": [],
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated",
-        "reveal": "always",
-        "close": false
-      }
+      "presentation": { "panel": "shared", "reveal": "always" }
     },
     {
-      "label": "dev: frontend",
+      "label": "dev: stop",
       "type": "shell",
-      "command": "pnpm --filter frontend dev",
-      "isBackground": true,
+      "command": "bash .devcontainer/dev.sh stop ${input:app}",
       "problemMatcher": [],
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated",
-        "reveal": "always",
-        "close": false
-      }
+      "presentation": { "panel": "shared", "reveal": "always" }
     },
     {
-      "label": "dev: services",
-      "dependsOrder": "parallel",
-      "dependsOn": ["dev: payload-cms", "dev: nest-api", "dev: frontend"],
-      "problemMatcher": []
-    },
-    {
-      "label": "dev: all",
-      "dependsOrder": "sequence",
-      "dependsOn": ["await: deps", "dev: services"],
+      "label": "dev: start",
+      "type": "shell",
+      "command": "bash .devcontainer/dev.sh start ${input:app}",
       "problemMatcher": [],
-      "runOptions": { "runOn": "folderOpen" }
+      "presentation": { "panel": "shared", "reveal": "always" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "app",
+      "type": "pickString",
+      "description": "Which app?",
+      "options": ["all", "payload-cms", "nest-api", "frontend"],
+      "default": "all"
     }
   ]
 }
