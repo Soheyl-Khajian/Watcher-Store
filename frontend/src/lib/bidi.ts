@@ -13,9 +13,9 @@
 //   the bracket or dot on the wrong side), and the element keeps the
 //   page's alignment;
 // - text from data in a plain string, such as a toast: isolate();
-// - always-left-to-right values (emails, codes, phone numbers): <Bidi ltr>;
-// - inputs where people type names or addresses: dir="auto", so the text
-//   runs in the direction it is typed.
+// - always-left-to-right values (emails, codes, phone numbers): <Bidi ltr>.
+//   Inputs keep the page's direction: dir="auto" on an empty input falls
+//   back to left to right, which moves the caret and placeholder.
 
 // First Strong Isolate and Pop Directional Isolate: the plain-text
 // equivalent of <bdi>. Invisible; the text inside takes its own direction

@@ -188,9 +188,6 @@ export default function CheckoutPage() {
       handleChange(field, event.target.value),
     disabled: isProcessing,
     maxLength: SHIPPING_MAX_LENGTH[field],
-    // Names and addresses may be typed in either script; codes and
-    // numbers below override this with dir="ltr".
-    dir: 'auto' as const,
     'aria-invalid': errors[field] ? true : undefined,
     'aria-describedby': errors[field] ? `shipping-${field}-error` : undefined,
   });
