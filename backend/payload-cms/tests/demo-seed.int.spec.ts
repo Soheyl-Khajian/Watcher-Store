@@ -135,3 +135,57 @@ describe('Demo seed', () => {
     expect(await roleOf(ADMIN.email)).toBe('admin');
   });
 });
+
+// Run without demo accounts, as `pnpm --filter payload-cms seed:demo`
+// with no DEMO_* settings.
+describe('Demo seed without demo accounts', () => {
+  let t: TestPayload;
+
+  beforeAll(async () => {
+    t = await createTestPayload();
+  });
+
+  afterAll(async () => {
+    await t?.close();
+  });
+
+  it('skips the posts while there is no administrator to author them', async () => {
+    const result = await seedDemo(t.payload);
+
+    expect(result.posts).toEqual({
+      created: 0,
+      existing: 0,
+      skipped: POSTS.length,
+    });
+    expect(result.products.created).toBe(PRODUCTS.length);
+    expect(result.pages.created).toBe(PAGES.length + 1);
+    expect(result.admin).toBe('skipped');
+  }, 300_000);
+
+  it('adds them on the next run, written by the store’s administrator', async () => {
+    const owner = await t.payload.create({
+      collection: 'users',
+      data: {
+        email: 'owner@example.test',
+        password: 'owner-password-1',
+        displayName: 'مالک فروشگاه',
+        role: 'admin',
+      },
+    });
+
+    const result = await seedDemo(t.payload);
+
+    expect(result.posts).toEqual({
+      created: POSTS.length,
+      existing: 0,
+      skipped: 0,
+    });
+    expect(result.products).toEqual({ created: 0, existing: PRODUCTS.length });
+    const { docs } = await t.payload.find({ collection: 'posts', depth: 0 });
+    expect(docs).toHaveLength(POSTS.length);
+    for (const post of docs) {
+      expect(post.author).toBe(owner.id);
+      expect(post.authorName).toBe('مالک فروشگاه');
+    }
+  }, 300_000);
+});
