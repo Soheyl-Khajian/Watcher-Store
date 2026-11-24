@@ -5,6 +5,8 @@
 //
 //   DEFAULT_LOCALE   the language a bare address opens in (default: fa)
 //   ENABLED_LOCALES  comma-separated languages offered (default: all)
+//   STORE_TIME_ZONE  the time zone order and post times show in
+//                    (default: Asia/Tehran)
 //
 // A wrong value stops the storefront instead of serving a half-working
 // language.
@@ -14,11 +16,13 @@ import { isLocale, LOCALES, type Locale } from './config';
 export interface LocaleSettings {
   defaultLocale: Locale;
   enabledLocales: Locale[];
+  timeZone: string;
 }
 
 export function parseLocaleSettings(env: {
   DEFAULT_LOCALE?: string;
   ENABLED_LOCALES?: string;
+  STORE_TIME_ZONE?: string;
 }): LocaleSettings {
   const defaultLocale = env.DEFAULT_LOCALE?.trim() || 'fa';
   if (!isLocale(defaultLocale)) {
@@ -48,7 +52,16 @@ export function parseLocaleSettings(env: {
     );
   }
 
-  return { defaultLocale, enabledLocales };
+  const timeZone = env.STORE_TIME_ZONE?.trim() || 'Asia/Tehran';
+  try {
+    new Intl.DateTimeFormat('en', { timeZone });
+  } catch {
+    throw new Error(
+      `STORE_TIME_ZONE must be an IANA time zone such as Asia/Tehran; got "${timeZone}".`,
+    );
+  }
+
+  return { defaultLocale, enabledLocales, timeZone };
 }
 
 let cached: LocaleSettings | undefined;
@@ -57,6 +70,7 @@ export function localeSettings(): LocaleSettings {
   cached ??= parseLocaleSettings({
     DEFAULT_LOCALE: process.env.DEFAULT_LOCALE,
     ENABLED_LOCALES: process.env.ENABLED_LOCALES,
+    STORE_TIME_ZONE: process.env.STORE_TIME_ZONE,
   });
   return cached;
 }

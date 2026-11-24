@@ -1,4 +1,5 @@
 // مسیر فایل: src/app/(main)/products/page.tsx
+import { getFormatter } from '@/i18n/server';
 import { isolate } from '@/lib/bidi';
 import { Bidi } from '@/components/ui/bidi';
 import { Link } from '@/i18n/navigation';
@@ -39,24 +40,25 @@ export default async function AllProductsPage({
   const products = data?.docs || [];
   const totalPages = data?.totalPages || 1;
   const totalDocs: number = data?.totalDocs ?? 0;
+  const format = await getFormatter();
   const pageTitle = search
     ? `نتایج جستجو برای «${isolate(search)}»`
     : onSale
       ? 'محصولات در فروش ویژه'
       : 'همه محصولات';
 
-  // تابعی برای ساخت لینک‌های صفحه‌بندی با حفظ فیلتر
-  const createPageUrl = (p: number) => {
+  // The listing's address without its page; the pager adds that.
+  const listHref = (() => {
     const params = new URLSearchParams();
-    params.set('page', String(p));
     if (onSale) {
       params.set('onSale', 'true');
     }
     if (search) {
       params.set('q', search);
     }
-    return `/products?${params.toString()}`;
-  };
+    const query = params.toString();
+    return query ? `/products?${query}` : '/products';
+  })();
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -65,7 +67,7 @@ export default async function AllProductsPage({
           <h1 className="text-4xl font-bold">{pageTitle}</h1>
           {search && products.length > 0 ? (
             <p className="text-muted-foreground mt-2" role="status">
-              {totalDocs.toLocaleString('fa-IR')} محصول پیدا شد
+              {format.number(totalDocs)} محصول پیدا شد
             </p>
           ) : null}
         </div>
@@ -83,11 +85,7 @@ export default async function AllProductsPage({
             ))}
           </div>
           <div className="mt-12">
-            <Pager
-              page={page}
-              totalPages={totalPages}
-              hrefFor={createPageUrl}
-            />
+            <Pager page={page} totalPages={totalPages} href={listHref} />
           </div>
         </>
       ) : (

@@ -248,6 +248,7 @@ services:
       # Languages offered, and the one bare addresses open in.
       DEFAULT_LOCALE: ${DEFAULT_LOCALE:-fa}
       ENABLED_LOCALES: ${ENABLED_LOCALES:-}
+      STORE_TIME_ZONE: ${STORE_TIME_ZONE:-Asia/Tehran}
     depends_on:
       payload-cms:
         condition: service_healthy

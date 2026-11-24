@@ -14,7 +14,7 @@
 //   (useRequireSession).
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { LOCALE_COOKIE } from './i18n/config';
+import { LOCALE_COOKIE, LOCALE_HEADER } from './i18n/config';
 import { localizeHref } from './i18n/paths';
 import { routeLocale } from './i18n/routing';
 import { localeSettings } from './i18n/settings';
@@ -81,6 +81,12 @@ export function middleware(request: NextRequest): NextResponse {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(CSP_HEADER, csp);
   requestHeaders.set(NONCE_HEADER, nonce);
+  // The page's language for server components (i18n/server.ts); never
+  // taken from the browser.
+  requestHeaders.delete(LOCALE_HEADER);
+  if (route.kind === 'page') {
+    requestHeaders.set(LOCALE_HEADER, route.locale);
+  }
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set(CSP_HEADER, csp);
 

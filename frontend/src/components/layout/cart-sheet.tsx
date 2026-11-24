@@ -1,6 +1,7 @@
 // src/components/layout/cart-sheet.tsx
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { useState } from 'react'; // ۱. useState را وارد کنید
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -11,7 +12,8 @@ import { useMemo } from 'react';
 
 export function CartSheet() {
   const { cart } = useAuthStore();
-  const [isOpen, setIsOpen] = useState(false); // ۲. state را اضافه کنید
+  const [isOpen, setIsOpen] = useState(false);
+  const format = useFormatter();
 
   const totalQuantity = useMemo(() => {
     return cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
@@ -27,13 +29,13 @@ export function CartSheet() {
               aria-hidden="true"
               className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs"
             >
-              {totalQuantity.toLocaleString('fa-IR')}
+              {format.number(totalQuantity)}
             </span>
           )}
           <ShoppingCart className="h-5 w-5" aria-hidden="true" />
           <span className="sr-only">
             {totalQuantity > 0
-              ? `باز کردن سبد خرید، ${totalQuantity.toLocaleString('fa-IR')} کالا`
+              ? `باز کردن سبد خرید، ${format.number(totalQuantity)} کالا`
               : 'باز کردن سبد خرید'}
           </span>
         </Button>

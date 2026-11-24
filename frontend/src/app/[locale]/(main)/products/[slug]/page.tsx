@@ -1,4 +1,5 @@
 import { Bidi } from '@/components/ui/bidi';
+import { getFormatter } from '@/i18n/server';
 import { fetchProductBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/ui/product-gallery';
@@ -17,10 +18,6 @@ import {
   SITE_NAME,
   OPEN_GRAPH_DEFAULTS,
 } from '@/lib/seo';
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price);
-};
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -56,6 +53,7 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetailsPage({ params }: PageProps) {
+  const format = await getFormatter();
   const { slug } = await params;
   const product: Product | null = await fetchProductBySlug(slug);
 
@@ -89,15 +87,15 @@ export default async function ProductDetailsPage({ params }: PageProps) {
             product.salePrice > 0 ? (
               <div className="flex items-baseline gap-4">
                 <p className="text-primary text-2xl font-semibold">
-                  {formatPrice(product.salePrice)} تومان
+                  {format.toman(product.salePrice)}
                 </p>
                 <p className="text-muted-foreground text-lg line-through">
-                  {formatPrice(product.price)} تومان
+                  {format.toman(product.price)}
                 </p>
               </div>
             ) : (
               <p className="text-primary text-2xl font-semibold">
-                {formatPrice(product.price)} تومان
+                {format.toman(product.price)}
               </p>
             )}
           </div>

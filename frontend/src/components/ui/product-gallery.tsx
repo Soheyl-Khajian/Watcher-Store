@@ -2,6 +2,7 @@
 
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import type { Media } from '@payload-types';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -21,6 +22,7 @@ interface ProductGalleryProps {
 export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
   // set the first image in the gallery as active image
   const [selectedImage, setSelectedImage] = useState(gallery[0]?.image);
+  const format = useFormatter();
 
   if (!gallery || gallery.length === 0 || !selectedImage) {
     return (
@@ -40,7 +42,7 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
   const altFor = (image: Media, index: number) =>
     image.alt ||
     (images.length > 1
-      ? `${productName} - تصویر ${(index + 1).toLocaleString('fa-IR')}`
+      ? `${productName} - تصویر ${format.number(index + 1)}`
       : productName);
 
   const getImageUrl = (image: Media | number) => {
@@ -82,7 +84,7 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
               <button
                 key={item.id ?? item.image.id}
                 type="button"
-                aria-label={`نمایش تصویر ${(index + 1).toLocaleString('fa-IR')} از ${images.length.toLocaleString('fa-IR')}`}
+                aria-label={`نمایش تصویر ${format.number(index + 1)} از ${format.number(images.length)}`}
                 aria-pressed={isSelected}
                 onClick={() => setSelectedImage(item.image)}
                 className={cn(

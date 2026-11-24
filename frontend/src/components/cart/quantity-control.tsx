@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +24,7 @@ export function QuantityControl({
   busy: boolean;
   onChange: (quantity: number) => void;
 }) {
+  const format = useFormatter();
   return (
     <div
       className="flex items-center gap-1"
@@ -41,7 +43,7 @@ export function QuantityControl({
         <Plus className="h-3 w-3" aria-hidden="true" />
       </Button>
       <span className="min-w-8 text-center tabular-nums" aria-live="polite">
-        {quantity.toLocaleString('fa-IR')}
+        {format.number(quantity)}
       </span>
       <Button
         type="button"

@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { isolate } from '@/lib/bidi';
 import { Bidi } from '@/components/ui/bidi';
 import { Badge } from '@/components/ui/badge';
@@ -19,16 +20,6 @@ import {
   refundText,
 } from '@/lib/orders';
 import type { Order } from '@/types';
-
-const formatPrice = (price: number) =>
-  `${new Intl.NumberFormat('fa-IR').format(price)} تومان`;
-
-const formatDate = (value: string) =>
-  new Date(value).toLocaleString('fa-IR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Tehran',
-  });
 
 export function OrderCard({
   order,
@@ -44,6 +35,9 @@ export function OrderCard({
   onPay: (order: Order) => void;
   onCancel: (order: Order) => void;
 }) {
+  const format = useFormatter();
+  const formatPrice = format.toman;
+  const formatDate = format.dateTime;
   const notes = [cancelReasonText(order), refundText(order)].filter(Boolean);
   const timeline = [
     ['ثبت سفارش', order.createdAt],
@@ -57,9 +51,7 @@ export function OrderCard({
   return (
     <li className="rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">
-          سفارش #{order.id.toLocaleString('fa-IR', { useGrouping: false })}
-        </h2>
+        <h2 className="font-semibold">سفارش #{format.digits(order.id)}</h2>
         <Badge variant={orderStatusVariant(order.status)}>
           {orderStatusLabel(order.status)}
         </Badge>
@@ -121,7 +113,7 @@ export function OrderCard({
                       {productNames.get(String(item.productId)) ??
                         `محصول ${item.productId}`}
                     </Bidi>{' '}
-                    × <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi>
+                    × <Bidi>{format.number(item.quantity)}</Bidi>
                   </span>
                   <span>{formatPrice(item.price * item.quantity)}</span>
                 </li>

@@ -2,6 +2,7 @@
 
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
@@ -140,6 +141,7 @@ export default function CheckoutPage() {
   const checkoutKeyRef = useRef<string | null>(null);
 
   const router = useRouter();
+  const format = useFormatter();
 
   useEffect(() => {
     if (isProcessing || placedOrderId !== null) return;
@@ -276,9 +278,7 @@ export default function CheckoutPage() {
     }, 0);
   }, [cart, products]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-  };
+  const formatPrice = format.toman;
 
   if (placedOrderId !== null) {
     return (
@@ -291,9 +291,7 @@ export default function CheckoutPage() {
             <p>
               شماره سفارش:{' '}
               <span className="font-semibold">
-                {new Intl.NumberFormat('fa-IR', { useGrouping: false }).format(
-                  placedOrderId,
-                )}
+                {format.digits(placedOrderId)}
               </span>
             </p>
             <p className="text-muted-foreground text-sm">
@@ -446,7 +444,7 @@ export default function CheckoutPage() {
                       <Bidi>{product.name}</Bidi>
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi> ×{' '}
+                      <Bidi>{format.number(item.quantity)}</Bidi> ×{' '}
                       <Bidi>{formatPrice(currentPrice)}</Bidi>
                     </p>
                   </div>

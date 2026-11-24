@@ -1,6 +1,7 @@
 // frontend/src/components/layout/cart-content.tsx
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
@@ -32,6 +33,7 @@ interface CartContentProps {
 export function CartContent({ onClose }: CartContentProps) {
   const { status, cart, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
+  const format = useFormatter();
   const [productsFailed, setProductsFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // The cart line being changed; its controls are busy meanwhile.
@@ -137,7 +139,7 @@ export function CartContent({ onClose }: CartContentProps) {
   }, [cart, products]);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
+    return format.toman(price);
   };
 
   const itemCount = cart?.items?.length ?? 0;
@@ -154,7 +156,7 @@ export function CartContent({ onClose }: CartContentProps) {
         <SheetTitle>سبد خرید شما</SheetTitle>
         <SheetDescription>
           {itemCount > 0
-            ? `${itemCount.toLocaleString('fa-IR')} قلم کالا در سبد شماست.`
+            ? `${format.number(itemCount)} قلم کالا در سبد شماست.`
             : 'سبد خرید شما خالی است.'}
         </SheetDescription>
       </SheetHeader>
@@ -196,7 +198,7 @@ export function CartContent({ onClose }: CartContentProps) {
                       <Bidi>{product.name}</Bidi>
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi> ×{' '}
+                      <Bidi>{format.number(item.quantity)}</Bidi> ×{' '}
                       <Bidi>{formatPrice(pricePerItem)}</Bidi>
                     </p>
                     <QuantityControl

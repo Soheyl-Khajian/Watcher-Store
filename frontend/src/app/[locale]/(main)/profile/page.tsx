@@ -1,6 +1,7 @@
 // src/app/(main)/profile/page.tsx
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -26,6 +27,7 @@ function OrderHistory() {
   const [failed, setFailed] = useState(false);
   const [productNames, setProductNames] = useState(new Map<string, string>());
   const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
+  const format = useFormatter();
 
   const load = useCallback(async () => {
     const result = await fetchOrdersPage(page);
@@ -65,7 +67,7 @@ function OrderHistory() {
   };
 
   const cancel = async (order: Order) => {
-    const number = order.id.toLocaleString('fa-IR', { useGrouping: false });
+    const number = format.digits(order.id);
     if (!window.confirm(`سفارش #${number} لغو شود؟`)) return;
     setBusyOrderId(order.id);
     const result = await cancelOrder(order.id);
@@ -117,7 +119,7 @@ function OrderHistory() {
         <Pager
           page={orders.page}
           totalPages={orders.totalPages}
-          hrefFor={(p) => `/profile?page=${p}`}
+          href="/profile"
         />
       </div>
     </>

@@ -1,5 +1,6 @@
 // frontend/src/components/ui/post-card.tsx
 
+import { getFormatter } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { Link } from '@/i18n/navigation';
@@ -17,21 +18,14 @@ interface PostCardProps {
   post: Post;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export async function PostCard({ post }: PostCardProps) {
   const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
 
   const imageUrl = post.thumbnail?.url
     ? mediaSrc(post.thumbnail.url)
     : '/images/placeholder.png';
 
-  const publishedDate = new Date(post.publishedDate).toLocaleDateString(
-    'fa-IR',
-    {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    },
-  );
+  const publishedDate = (await getFormatter()).date(post.publishedDate);
 
   return (
     <Link href={`/blog/${post.slug}`} className="group block">

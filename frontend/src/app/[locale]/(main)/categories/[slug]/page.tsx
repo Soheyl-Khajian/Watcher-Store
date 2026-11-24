@@ -65,8 +65,7 @@ export default async function CategoryPage({
   const totalPages = productsResult?.totalPages || 1;
 
   // ۲. تابع کمکی برای ساخت URL های صفحه‌بندی
-  const createPageUrl = (p: number) =>
-    `/categories/${encodeURIComponent(slug)}?page=${p}`;
+  const listHref = `/categories/${encodeURIComponent(slug)}`;
 
   return (
     <div className="container mx-auto py-12">
@@ -84,11 +83,7 @@ export default async function CategoryPage({
 
           {/* ۳. اضافه شدن کامپوننت Pagination */}
           <div className="mt-12">
-            <Pager
-              page={page}
-              totalPages={totalPages}
-              hrefFor={createPageUrl}
-            />
+            <Pager page={page} totalPages={totalPages} href={listHref} />
           </div>
         </>
       ) : (

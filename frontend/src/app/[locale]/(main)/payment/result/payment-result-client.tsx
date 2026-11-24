@@ -8,6 +8,7 @@
 
 'use client';
 
+import { useFormatter } from '@/i18n/client';
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -41,6 +42,7 @@ export default function PaymentResultClient() {
   const status = useRequireSession();
   const orderId = searchParams.get('orderId');
   const [outcome, setOutcome] = useState<Outcome>('loading');
+  const format = useFormatter();
   const [stillChecking, setStillChecking] = useState(false);
 
   useEffect(() => {
@@ -83,9 +85,7 @@ export default function PaymentResultClient() {
     );
   }
 
-  const number = orderId
-    ? Number(orderId).toLocaleString('fa-IR', { useGrouping: false })
-    : '';
+  const number = orderId ? format.digits(Number(orderId)) : '';
 
   const view = {
     paid: {

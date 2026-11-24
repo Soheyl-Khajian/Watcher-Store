@@ -43,6 +43,7 @@ export async function DocumentShell({
         <I18nProvider
           locale={locale}
           enabledLocales={localeSettings().enabledLocales}
+          timeZone={localeSettings().timeZone}
         >
           <Providers nonce={nonce}>{children}</Providers>
         </I18nProvider>

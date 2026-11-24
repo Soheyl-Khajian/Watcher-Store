@@ -36,3 +36,7 @@ export function isLocale(value: unknown): value is Locale {
 // Remembers the language of the last page visited, so an address without
 // a prefix (an old link, the payment gateway's return) opens in it.
 export const LOCALE_COOKIE = 'ws_locale';
+
+// Set by the middleware on each page request, so server components can
+// read the page's language without it being passed down to them.
+export const LOCALE_HEADER = 'x-watcher-locale';

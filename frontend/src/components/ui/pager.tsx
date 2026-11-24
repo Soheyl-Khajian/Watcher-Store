@@ -2,26 +2,37 @@
 //
 // Page navigation for product and category listings. Previous/next are
 // real links only when there is somewhere to go (never href="#"), the
-// current page is marked for screen readers, and digits are Persian.
+// current page is marked for screen readers, and numbers are in the page's
+// language. href is the listing's address; the pager adds ?page=.
 
+'use client';
+
+import { useFormatter } from '@/i18n/client';
 import { Link } from '@/i18n/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { pageWindow } from '@/lib/utils/pagination';
 
-const faNumber = (n: number) =>
-  n.toLocaleString('fa-IR', { useGrouping: false });
+function pageHref(href: string, page: number): string {
+  const [path, query = ''] = href.split('?');
+  const params = new URLSearchParams(query);
+  params.set('page', String(page));
+  return `${path}?${params.toString()}`;
+}
 
 export function Pager({
   page,
   totalPages,
-  hrefFor,
+  href,
 }: {
   page: number;
   totalPages: number;
-  hrefFor: (page: number) => string;
+  href: string;
 }) {
+  const format = useFormatter();
+  const faNumber = format.digits;
+  const hrefFor = (p: number) => pageHref(href, p);
   if (totalPages <= 1) {
     return null;
   }

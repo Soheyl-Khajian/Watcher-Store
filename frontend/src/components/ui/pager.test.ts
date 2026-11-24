@@ -12,7 +12,7 @@ const render = (page: number, totalPages: number) =>
       createElement(Pager, {
         page,
         totalPages,
-        hrefFor: (p: number) => `/products?page=${p}`,
+        href: '/products',
       }),
     ),
   );

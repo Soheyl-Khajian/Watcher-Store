@@ -8,13 +8,22 @@ describe('language settings', () => {
     expect(parseLocaleSettings({})).toEqual({
       defaultLocale: 'fa',
       enabledLocales: ['fa', 'en'],
+      timeZone: 'Asia/Tehran',
     });
   });
 
   it('reads the default and the offered languages', () => {
     expect(
-      parseLocaleSettings({ DEFAULT_LOCALE: 'en', ENABLED_LOCALES: ' en ' }),
-    ).toEqual({ defaultLocale: 'en', enabledLocales: ['en'] });
+      parseLocaleSettings({
+        DEFAULT_LOCALE: 'en',
+        ENABLED_LOCALES: ' en ',
+        STORE_TIME_ZONE: 'Europe/Berlin',
+      }),
+    ).toEqual({
+      defaultLocale: 'en',
+      enabledLocales: ['en'],
+      timeZone: 'Europe/Berlin',
+    });
   });
 
   it.each([
@@ -24,6 +33,7 @@ describe('language settings', () => {
       { DEFAULT_LOCALE: 'en', ENABLED_LOCALES: 'fa' },
       /must be one of ENABLED_LOCALES/,
     ],
+    [{ STORE_TIME_ZONE: 'Mars/Olympus' }, /STORE_TIME_ZONE must be/],
   ])('refuses %j', (env, message) => {
     expect(() => parseLocaleSettings(env)).toThrow(message);
   });
@@ -62,11 +72,9 @@ describe('routing by language', () => {
   const both: LocaleSettings = {
     defaultLocale: 'fa',
     enabledLocales: ['fa', 'en'],
+    timeZone: 'Asia/Tehran',
   };
-  const persianOnly: LocaleSettings = {
-    defaultLocale: 'fa',
-    enabledLocales: ['fa'],
-  };
+  const persianOnly: LocaleSettings = { ...both, enabledLocales: ['fa'] };
 
   it('serves a prefixed page in its language', () => {
     expect(routeLocale('/en/products', '', both)).toEqual({

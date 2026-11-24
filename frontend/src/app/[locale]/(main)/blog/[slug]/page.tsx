@@ -1,5 +1,6 @@
 // frontend/app/(main)/blog/[slug]/page.tsx
 
+import { getFormatter } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { fetchPostBySlug } from '@/lib/api/payload';
@@ -58,14 +59,7 @@ export default async function PostPage({ params }: PageProps) {
     ? mediaSrc(post.thumbnail.url)
     : '/images/placeholder.png';
 
-  const publishedDate = new Date(post.publishedDate).toLocaleDateString(
-    'fa-IR',
-    {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    },
-  );
+  const publishedDate = (await getFormatter()).date(post.publishedDate);
 
   return (
     <article className="container mx-auto max-w-4xl py-12">
