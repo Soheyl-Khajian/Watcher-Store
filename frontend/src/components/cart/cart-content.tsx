@@ -1,6 +1,7 @@
 // frontend/src/components/layout/cart-content.tsx
 'use client';
 
+import { Bidi } from '@/components/ui/bidi';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   SheetHeader,
@@ -20,6 +21,8 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UnavailableCartItem } from '@/components/cart/unavailable-cart-item';
+import { StockNote } from '@/components/ui/stock-note';
+import { overStockLabel, stockOf } from '@/lib/stock';
 import { toast } from 'sonner';
 
 interface CartContentProps {
@@ -189,19 +192,29 @@ export function CartContent({ onClose }: CartContentProps) {
               return (
                 <li key={item.id} className="flex items-center gap-4">
                   <div className="flex-grow space-y-2">
-                    <p className="font-semibold">{product.name}</p>
+                    <p className="font-semibold">
+                      <Bidi>{product.name}</Bidi>
+                    </p>
                     <p className="text-muted-foreground text-sm">
-                      {item.quantity.toLocaleString('fa-IR')} ×{' '}
-                      {formatPrice(pricePerItem)}
+                      <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi> ×{' '}
+                      <Bidi>{formatPrice(pricePerItem)}</Bidi>
                     </p>
                     <QuantityControl
                       quantity={item.quantity}
                       productName={product.name}
+                      max={stockOf(product)}
                       busy={busyProductId !== null}
                       onChange={(quantity) =>
                         handleQuantity(String(item.productId), quantity)
                       }
                     />
+                    {item.quantity > stockOf(product) ? (
+                      <p className="text-destructive text-sm" role="alert">
+                        {overStockLabel(stockOf(product))}
+                      </p>
+                    ) : (
+                      <StockNote stock={stockOf(product)} className="text-xs" />
+                    )}
                   </div>
                   <p className="font-semibold">
                     {formatPrice(pricePerItem * item.quantity)}

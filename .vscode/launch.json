@@ -1,14 +1,16 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  // Debug the storefront (server and browser). It needs port 3002, so stop
+  // the background storefront first: "dev: stop" → frontend, or
+  // bash .devcontainer/dev.sh stop frontend.
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Next.js: debug full stack",
+      "name": "Storefront: debug full stack",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "${workspaceFolder}/frontend/node_modules/next/dist/bin/next",
+      "args": ["dev", "-p", "3002"],
       "runtimeArgs": ["--inspect"],
       "skipFiles": ["<node_internals>/**"],
       "serverReadyAction": {
@@ -16,9 +18,8 @@
         "killOnServerStop": true,
         "pattern": "- Local:.+(https?://.+)",
         "uriFormat": "%s",
-        "webRoot": "${workspaceFolder}"
-      },
-      "cwd": "${workspaceFolder}"
+        "webRoot": "${workspaceFolder}/frontend"
+      }
     }
   ]
 }

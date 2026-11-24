@@ -55,7 +55,10 @@ try {
       line('Categories', result.categories),
       line('Photos', result.media),
       line('Products', result.products),
-      line('Posts', result.posts),
+      line('Posts', result.posts) +
+        (result.posts.skipped > 0
+          ? `, ${result.posts.skipped} skipped: posts need an author, and there is no administrator yet (create one with seed:admin, or set DEMO_ADMIN_EMAIL and DEMO_ADMIN_PASSWORD), then run this again`
+          : ''),
       line('Pages', result.pages),
       `Footer: ${result.footer === 'set' ? 'filled in' : 'kept as it was'}`,
       `Demo admin: ${result.admin}`,

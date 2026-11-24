@@ -1,5 +1,6 @@
 // src/app/(main)/categories/[slug]/page.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import { fetchProductsAndCategoryBySlug } from '@/lib/api/payload';
 import { ProductCard } from '@/components/ui/product-card';
 import type { Product } from '@/types';
@@ -70,7 +71,7 @@ export default async function CategoryPage({
   return (
     <div className="container mx-auto py-12">
       <h1 className="mb-8 text-3xl font-bold md:text-4xl">
-        محصولات دسته‌بندی: {category.name}
+        محصولات دسته‌بندی: <Bidi>{category.name}</Bidi>
       </h1>
 
       {products.length > 0 ? (

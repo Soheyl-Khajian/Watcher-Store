@@ -9,24 +9,31 @@ import { useAddToCart } from '@/lib/hooks/use-add-to-cart';
 interface AddToCartButtonProps {
   productId: string | number;
   productName: string;
+  // False: shown as out of stock and disabled.
+  inStock?: boolean;
 }
 
 export function AddToCartButton({
   productId,
   productName,
+  inStock = true,
 }: AddToCartButtonProps) {
   const { add, isAdding } = useAddToCart(productId, productName);
 
   return (
     <Button
       size="lg"
-      className="w-full cursor-pointer"
+      className="w-full"
       onClick={add}
-      disabled={isAdding}
+      disabled={isAdding || !inStock}
       aria-busy={isAdding}
     >
       <ShoppingCart className="me-2 h-5 w-5" aria-hidden="true" />
-      {isAdding ? 'در حال افزودن...' : 'افزودن به سبد خرید'}
+      {!inStock
+        ? 'ناموجود'
+        : isAdding
+          ? 'در حال افزودن...'
+          : 'افزودن به سبد خرید'}
     </Button>
   );
 }

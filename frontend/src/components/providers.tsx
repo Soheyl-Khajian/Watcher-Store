@@ -22,7 +22,15 @@ export function Providers({
       nonce={nonce}
     >
       {children}
-      <Toaster richColors />
+      {/* Top centre, below the sticky header (4rem): sheets keep their
+          actions at the bottom, such as the cart's checkout button, and a
+          toast there would cover them. */}
+      <Toaster
+        richColors
+        position="top-center"
+        offset={{ top: 72 }}
+        mobileOffset={{ top: 72 }}
+      />
     </ThemeProvider>
   );
 }

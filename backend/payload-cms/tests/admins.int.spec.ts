@@ -82,3 +82,74 @@ describe('Deleting administrators', () => {
     expect(await exists(last.id)).toBe(true);
   });
 });
+
+// Changing a role must not lock everyone out of the admin panel either.
+describe('Changing administrators’ roles', () => {
+  let t: TestPayload;
+
+  beforeAll(async () => {
+    t = await createTestPayload();
+  });
+
+  afterAll(async () => {
+    await t?.close();
+  });
+
+  const roleOf = async (id: number) =>
+    (await t.payload.findByID({ collection: 'users', id, depth: 0 })).role;
+
+  it('refuses to make the only administrator a customer', async () => {
+    const only = await t.createUser('sole-admin@example.test', 'admin');
+    // Another administrator's session would be needed to try it through
+    // the panel; the local API (no access rules) shows the guard itself.
+    await expect(
+      t.payload.update({
+        collection: 'users',
+        id: only.id,
+        data: { role: 'customer' },
+      }),
+    ).rejects.toThrow(/آخرین مدیر/);
+    expect(await roleOf(only.id)).toBe('admin');
+  });
+
+  it('ignores an administrator changing their own role', async () => {
+    const self = await t.createUser('self-demoting@example.test', 'admin');
+
+    const response = await t.api('PATCH', `/users/${self.id}`, {
+      token: self.token,
+      body: { role: 'customer' },
+    });
+
+    // The field is read-only for one's own account: the rest of the
+    // update goes through, the role does not change.
+    expect(response.status).toBe(200);
+    expect(await roleOf(self.id)).toBe('admin');
+  });
+
+  it('lets an administrator demote another while one remains', async () => {
+    const manager = await t.createUser('head-admin@example.test', 'admin');
+    const other = await t.createUser('second-admin@example.test', 'admin');
+
+    const response = await t.api('PATCH', `/users/${other.id}`, {
+      token: manager.token,
+      body: { role: 'customer' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await roleOf(other.id)).toBe('customer');
+    expect(await roleOf(manager.id)).toBe('admin');
+  });
+
+  it('lets an administrator promote a customer', async () => {
+    const manager = await t.createUser('promoting-admin@example.test', 'admin');
+    const customer = await t.createUser('promoted@example.test');
+
+    const response = await t.api('PATCH', `/users/${customer.id}`, {
+      token: manager.token,
+      body: { role: 'admin' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await roleOf(customer.id)).toBe('admin');
+  });
+});

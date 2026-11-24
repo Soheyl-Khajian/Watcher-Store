@@ -1,9 +1,10 @@
 {
-  "name": "Store DevContainer",
+  "name": "Watcher Store",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
   "remoteUser": "node",
+
   "forwardPorts": [3000, 3001, 3002],
   "portsAttributes": {
     "3000": { "label": "payload-cms", "onAutoForward": "silent" },
@@ -12,9 +13,8 @@
   },
   "otherPortsAttributes": { "onAutoForward": "ignore" },
 
-  // Persisted across rebuilds. The VS Code/Curser server volume is the single biggest
-  // traffic saver: without it VS Code/Curser re-downloads its server plus every
-  // extension on each rebuild.
+  // Kept across rebuilds: the pnpm store, and the editor's server and
+  // extensions (otherwise downloaded again on every rebuild).
   "mounts": [
     "source=watcher-pnpm-store,target=/home/node/.local/share/pnpm/store,type=volume",
     "source=watcher-cursor-server,target=/home/node/.cursor-server,type=volume",
@@ -25,23 +25,18 @@
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
       "settings": {
-        "task.allowAutomaticTasks": "on",
         "terminal.integrated.defaultProfile.linux": "bash",
         "terminal.integrated.profiles.linux": {
           "bash": { "path": "/bin/bash" }
         },
-        "dev.containers.logLevel": "info",
-        "dev.containers.showLogOnStart": true,
         "remote.autoForwardPorts": false
       }
     }
   },
 
-  // Runs on first create and on every "Rebuild Container".
-  // The script no-ops in ~0.1s when no manifest changed.
-  "postCreateCommand": "bash .devcontainer/bootstrap.sh",
-
-  // Runs on create and on every reopen/start. Migrations only; services are
-  // launched detached so the container never blocks on "Finalizing".
-  "postStartCommand": "bash .devcontainer/start.sh"
+  // The one step, on every container start (first create included): the
+  // database schemas, packages, Payload's migrations, then the three apps
+  // in the background. It runs in this order, inside the container only.
+  // Status, logs and restarts: .devcontainer/dev.sh, or the "dev:" tasks.
+  "postStartCommand": "bash .devcontainer/dev.sh boot"
 }

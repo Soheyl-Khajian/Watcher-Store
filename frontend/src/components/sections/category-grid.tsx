@@ -1,5 +1,6 @@
 // مسیر فایل: src/components/sections/category-grid.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import Link from 'next/link';
 import type { Category } from '@/types';
 import { Icon } from '@/components/ui/icon';
@@ -38,7 +39,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
                   className="text-muted-foreground group-hover:text-primary h-8 w-8 transition-colors"
                 />
               </div>
-              <p className="text-sm font-semibold">{category.name}</p>
+              <p className="text-sm font-semibold">
+                <Bidi>{category.name}</Bidi>
+              </p>
             </Link>
           ))}
         </div>

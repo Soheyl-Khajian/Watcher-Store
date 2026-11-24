@@ -1,28 +1,22 @@
 # .devcontainer/docker-compose.yml
-# Dev Container runtime: one app container (VS Code attaches here) and Postgres.
 #
-# Rules:
-# - Hostname of the database on this network is "db", port 5432.
-#   Host mapping 5433:5432 is only for tools on the host (psql, GUI).
-# - Root ../.env is injected into both services. Compose does not expand
-#   ${VAR} from that file; use $$VAR inside container shell commands.
-# - postgres-init scripts run only on first create of volume postgres-data.
-# - app must stay "sleep infinity"; Dev Containers runs postCreate/postStart.
-# - Only the ROOT node_modules gets a volume. It holds pnpm's virtual store
-#   (node_modules/.pnpm, ~1379 packages / ~1.5 GB) and must sit on the same
-#   filesystem as the watcher-pnpm-store volume so pnpm hardlinks instead of
-#   copying. Both are Docker local volumes, so that holds.
-#   Do NOT add volumes for the per-package node_modules: each contains only
-#   ~25 symlinks pointing at ../../node_modules/.pnpm, so a volume there
-#   caches nothing and only makes state harder to reason about.
-# - Do not add a second compose stack (Mongo, extra Postgres) here.
+# The Dev Container: one app container (the editor attaches to it) and
+# PostgreSQL. The apps' database host is "db"; port 5433 on this computer's
+# loopback interface is there for your own tools (psql, a GUI).
+#
+# Volumes keep the slow parts between rebuilds: node_modules (it must sit on
+# the same filesystem as the pnpm store volume, so pnpm can hardlink instead
+# of copying), the two Next.js caches and the database. Only the root
+# node_modules gets a volume: the per-package ones hold just symlinks into
+# it.
 
 services:
   app:
     build:
-      context: ../backend
+      # Nothing is copied into the image: the smallest possible context.
+      context: .
       dockerfile: Dockerfile
-    image: custom-devcontainer:latest
+    image: watcher-store-devcontainer:latest
     working_dir: /workspace
     user: node
     volumes:
@@ -35,6 +29,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # The editor runs the lifecycle commands (devcontainer.json); the
+    # container itself only has to stay up.
     command: sleep infinity
 
   db:
@@ -42,7 +38,6 @@ services:
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d
     env_file:
       - ../.env
     healthcheck:
@@ -51,8 +46,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    # Loopback only: the development password must not be reachable from
+    # other machines on the network.
     ports:
-      - '5433:5432'
+      - '127.0.0.1:5433:5432'
 
 volumes:
   postgres-data:

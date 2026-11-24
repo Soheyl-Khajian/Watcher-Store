@@ -181,12 +181,26 @@ pnpm or PostgreSQL on your machine.
    rest works as it is for development.
 
 2. Open the folder in the editor and run **Dev Containers: Reopen in
-   Container**. The first start builds the container, starts PostgreSQL
-   (host port 5433), installs the packages (`.devcontainer/bootstrap.sh`)
-   and applies Payload's migrations (`.devcontainer/start.sh`). The three
-   apps then start as VS Code tasks, one terminal each (or set
-   `AUTOSTART_SERVERS=1` to have the container start them). Ports
-   3000–3002 are forwarded.
+   Container**. On every start the container runs one script,
+   `.devcontainer/dev.sh boot`, in order: the database schemas, the
+   packages (`pnpm install` from the lockfile; seconds when nothing
+   changed), Payload's migrations, then the three apps in the background.
+   The first start takes a couple of minutes, later ones a few seconds.
+   Ports 3000–3002 are forwarded; PostgreSQL is on `localhost:5433` for
+   your own tools. Nothing runs when the folder is opened outside the
+   container.
+
+   The apps run in the background, each with its own log. Use the
+   **dev:** tasks (Terminal → Run Task) or the script directly:
+
+   ```bash
+   bash .devcontainer/dev.sh status            # which apps are running
+   bash .devcontainer/dev.sh logs frontend     # follow one app (or all, without a name)
+   bash .devcontainer/dev.sh restart nest-api  # restart one app (or all)
+   bash .devcontainer/dev.sh stop|start [app]
+   ```
+
+   Set `AUTOSTART_SERVERS=0` in `.env` to start them yourself instead.
 
 3. Fill the store with the demo data, in a terminal inside the container:
 
@@ -210,17 +224,33 @@ works there).
 
 Useful commands (repository root, inside the container):
 
-| Command                                                | Purpose                                      |
-| ------------------------------------------------------ | -------------------------------------------- |
-| `pnpm start:all`                                       | Run the three apps (the container does this) |
-| `pnpm start:payload` / `start:nest` / `start:frontend` | Run one app                                  |
-| `pnpm lint` · `pnpm typecheck` · `pnpm format:check`   | Static checks                                |
-| `pnpm build`                                           | Production builds of all apps                |
-| `pnpm --filter payload-cms migrate`                    | Apply Payload migrations                     |
-| `pnpm --filter payload-cms generate:migration`         | Create a Payload migration                   |
-| `pnpm --filter nest-api migration:generate`            | Create a Nest migration                      |
-| `pnpm --filter payload-cms seed:demo`                  | Demo data                                    |
-| `pnpm --filter payload-cms seed:admin`                 | Create the administrator from `ADMIN_*`      |
+| Command                                                | Purpose                                                    |
+| ------------------------------------------------------ | ---------------------------------------------------------- |
+| `pnpm start:all`                                       | Run the three apps in one terminal (outside the container) |
+| `pnpm start:payload` / `start:nest` / `start:frontend` | Run one app                                                |
+| `pnpm lint` · `pnpm typecheck` · `pnpm format:check`   | Static checks                                              |
+| `pnpm build`                                           | Production builds of all apps                              |
+| `pnpm --filter payload-cms migrate`                    | Apply Payload migrations                                   |
+| `pnpm --filter payload-cms generate:migration`         | Create a Payload migration                                 |
+| `pnpm --filter nest-api migration:generate`            | Create a Nest migration                                    |
+| `pnpm --filter payload-cms seed:demo`                  | Demo data                                                  |
+| `pnpm --filter payload-cms seed:admin`                 | Create the administrator from `ADMIN_*`                    |
+
+**Locked out of the admin panel?** The panel never lets the last
+administrator be demoted or deleted, or anyone change their own role, but
+if no administrator is left (for example after editing the database by
+hand), make an existing account an administrator again, keeping its
+password:
+
+```bash
+# Dev Container
+ADMIN_EMAIL=you@example.com ADMIN_PROMOTE_EXISTING=true pnpm --filter payload-cms seed:admin
+
+# Production stack
+docker compose -f docker-compose.prod.yml exec \
+  -e ADMIN_EMAIL=you@example.com -e ADMIN_PROMOTE_EXISTING=true \
+  payload-cms ./node_modules/.bin/payload run src/seed-admin.ts
+```
 
 ---
 

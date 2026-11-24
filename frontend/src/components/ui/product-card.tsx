@@ -1,5 +1,6 @@
 // frontend/src/components/ui/product-card.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import type { Product } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,6 +13,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { AddToCartButtonCard } from '../cart/add-to-cart-button-card';
+import { StockNote } from './stock-note';
+import { stockOf } from '@/lib/stock';
 
 interface ProductCardProps {
   product: Product;
@@ -56,7 +59,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 href={`/products/${encodeURIComponent(product.slug ?? '')}`}
                 className="after:focus-visible:ring-ring after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none after:focus-visible:ring-2"
               >
-                {product.name}
+                <Bidi>{product.name}</Bidi>
               </Link>
             </h3>
           </CardTitle>
@@ -83,11 +86,13 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
           </div>
+          <StockNote stock={stockOf(product)} className="text-xs" />
           {/* Above the stretched link, so it stays clickable. */}
           <div className="relative z-10 w-full">
             <AddToCartButtonCard
               productId={product.id}
               productName={product.name}
+              inStock={stockOf(product) > 0}
             />
           </div>
         </CardFooter>

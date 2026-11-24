@@ -1,4 +1,6 @@
 // مسیر فایل: src/app/(main)/products/page.tsx
+import { isolate } from '@/lib/bidi';
+import { Bidi } from '@/components/ui/bidi';
 import Link from 'next/link';
 import { fetchAllProducts } from '@/lib/api/payload';
 import { ProductSearchForm } from '@/components/search/product-search-form';
@@ -38,7 +40,7 @@ export default async function AllProductsPage({
   const totalPages = data?.totalPages || 1;
   const totalDocs: number = data?.totalDocs ?? 0;
   const pageTitle = search
-    ? `نتایج جستجو برای «${search}»`
+    ? `نتایج جستجو برای «${isolate(search)}»`
     : onSale
       ? 'محصولات در فروش ویژه'
       : 'همه محصولات';
@@ -92,7 +94,9 @@ export default async function AllProductsPage({
         <div className="text-muted-foreground text-center" role="status">
           {search ? (
             <>
-              <p>محصولی با عبارت «{search}» پیدا نشد.</p>
+              <p>
+                محصولی با عبارت «<Bidi>{search}</Bidi>» پیدا نشد.
+              </p>
               <Link
                 href="/products"
                 className="text-primary mt-2 inline-block underline"

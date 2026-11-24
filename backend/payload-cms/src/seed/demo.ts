@@ -55,9 +55,10 @@ export interface SeedDemoResult {
   footer: 'set' | 'kept';
   media: Tally;
   products: Tally;
-  posts: Tally;
+  // skipped: posts need an author and no administrator exists.
+  posts: Tally & { skipped: number };
   pages: Tally;
-  admin: 'created' | 'exists' | 'skipped';
+  admin: 'created' | 'exists' | 'promoted' | 'skipped';
   customer: 'created' | 'exists' | 'skipped';
 }
 
@@ -96,6 +97,18 @@ async function findOneBy(
   return docs[0] as { id: number; role?: string } | undefined;
 }
 
+async function firstAdministrator(payload: Payload) {
+  const { docs } = await payload.find({
+    collection: 'users',
+    where: { role: { equals: 'admin' } },
+    sort: 'id',
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  });
+  return docs[0] as { id: number } | undefined;
+}
+
 function creditsPage(credits: Credit[]): RichTextNode[] {
   return [
     p(
@@ -130,7 +143,7 @@ export async function seedDemo(
     footer: 'kept',
     media: tally(),
     products: tally(),
-    posts: tally(),
+    posts: { ...tally(), skipped: 0 },
     pages: tally(),
     admin: 'skipped',
     customer: 'skipped',
@@ -169,9 +182,12 @@ export async function seedDemo(
       log(`customer ${customer.email}`);
     }
   }
+  // Posts need an author: the demo administrator, or else the store's
+  // first administrator (e.g. the account from the admin panel's first-user
+  // screen). The byline is that account's display name.
   const author = admin
     ? await findOneBy(payload, 'users', 'email', admin.email)
-    : undefined;
+    : await firstAdministrator(payload);
 
   // Photos: uploaded once each, by file name.
   const mediaIds = new Map<string, number>();
@@ -245,6 +261,10 @@ export async function seedDemo(
       result.posts.existing += 1;
       continue;
     }
+    if (!author) {
+      result.posts.skipped += 1;
+      continue;
+    }
     await payload.create({
       collection: 'posts',
       data: {
@@ -255,8 +275,7 @@ export async function seedDemo(
         status: 'published',
         publishedDate: post.publishedDate,
         thumbnail: await uploadImage(post.thumbnail),
-        authorName: DEMO_AUTHOR_NAME,
-        ...(author ? { author: author.id } : {}),
+        author: author.id,
       },
     });
     result.posts.created += 1;

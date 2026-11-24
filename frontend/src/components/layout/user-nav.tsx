@@ -1,8 +1,10 @@
 // src/components/layout/user-nav.tsx
 'use client';
 
+import { Bidi } from '@/components/ui/bidi';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 import { loadSession, logoutUser } from '@/lib/api/nestjs';
 import { useCartRefresh } from '@/lib/hooks/use-cart-refresh';
@@ -19,6 +21,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function UserNav() {
   const { user, clear } = useAuthStore();
+  const pathname = usePathname();
+  // Back to this page after logging in or registering.
+  const next =
+    pathname && !['/login', '/register'].includes(pathname)
+      ? `?next=${encodeURIComponent(pathname)}`
+      : '';
 
   // The header is on every page, so it asks the server who is logged in.
   useEffect(() => {
@@ -38,6 +46,7 @@ export function UserNav() {
           <Button
             variant="ghost"
             className="relative h-8 w-8 cursor-pointer rounded-full"
+            aria-label="حساب کاربری"
           >
             <Avatar className="h-8 w-8">
               <AvatarImage src="" alt={user.email} />
@@ -54,7 +63,7 @@ export function UserNav() {
             <div className="flex flex-col space-y-1">
               <p className="text-sm leading-none font-medium">کاربر</p>
               <p className="text-muted-foreground text-xs leading-none">
-                {user.email}
+                <Bidi ltr>{user.email}</Bidi>
               </p>
             </div>
           </DropdownMenuLabel>
@@ -76,10 +85,10 @@ export function UserNav() {
   return (
     <div className="flex items-center gap-2">
       <Button asChild variant="ghost">
-        <Link href="/login">ورود</Link>
+        <Link href={`/login${next}`}>ورود</Link>
       </Button>
       <Button asChild>
-        <Link href="/register">ثبت‌نام</Link>
+        <Link href={`/register${next}`}>ثبت‌نام</Link>
       </Button>
     </div>
   );

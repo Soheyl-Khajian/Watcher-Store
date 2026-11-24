@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ensureAdmin } from '../src/utils/ensureAdmin';
-import { createTestPayload, type TestPayload } from './helpers/test-payload';
+import {
+  createTestPayload,
+  TEST_PASSWORD,
+  type TestPayload,
+} from './helpers/test-payload';
 
 describe('First administrator', () => {
   let t: TestPayload;
@@ -120,6 +124,32 @@ describe('First administrator', () => {
 
       await expect(ensureAdmin(t.payload, admin)).rejects.toThrow(/customer/i);
       expect(await roleOf(admin.email)).toBe('customer');
+    });
+
+    it('promotes an existing account when asked to, keeping its password', async () => {
+      const email = 'locked-out@example.test';
+      await t.createUser(email);
+
+      const result = await ensureAdmin(t.payload, {
+        email,
+        promoteExisting: true,
+      });
+
+      expect(result).toBe('promoted');
+      expect(await roleOf(email)).toBe('admin');
+      const login = await t.api('POST', '/users/login', {
+        body: { email, password: TEST_PASSWORD },
+      });
+      expect(login.status).toBe(200);
+    });
+
+    it('needs a password to create an account', async () => {
+      await expect(
+        ensureAdmin(t.payload, {
+          email: 'no-password@example.test',
+          promoteExisting: true,
+        }),
+      ).rejects.toThrow(/ADMIN_PASSWORD/);
     });
 
     it('rejects a password shorter than 8 characters', async () => {

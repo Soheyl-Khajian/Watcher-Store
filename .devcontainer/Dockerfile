@@ -1,6 +1,7 @@
-# backend/Dockerfile
-# Image used by .devcontainer/docker-compose.yml service "app".
-# VS Code attaches here;
+# .devcontainer/Dockerfile
+# The Dev Container's image (docker-compose.yml, service "app"); the editor
+# attaches here. Development only: the production images are the apps' own
+# Dockerfiles.
 #
 # Rules:
 # - corepack enable writes to /usr/bin; that RUN must be root.
@@ -11,7 +12,7 @@
 #   pnpm tarball on every container rebuild.
 # - Every named-volume mount point must exist here and be owned by node.
 # - Final USER must be node (remoteUser + compose user).
-# - Do not npm install -g pnpm or corepack prepare in postCreate.
+# - Do not npm install -g pnpm or corepack prepare in dev.sh.
 
 FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm
 
@@ -20,7 +21,8 @@ USER root
 # Drop the preinstalled global pnpm so it cannot shadow Corepack.
 RUN npm uninstall -g pnpm || true
 
-# psql for schema inspection and migration debugging from the app container.
+# psql: dev.sh creates the schemas with it, and it helps when inspecting
+# the database from the app container.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends postgresql-client \
  && rm -rf /var/lib/apt/lists/*

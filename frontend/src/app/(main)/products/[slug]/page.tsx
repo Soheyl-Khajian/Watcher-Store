@@ -1,3 +1,4 @@
+import { Bidi } from '@/components/ui/bidi';
 import { fetchProductBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/ui/product-gallery';
@@ -5,6 +6,8 @@ import { RichText } from '@/components/RichText';
 import { Check } from 'lucide-react';
 import type { Product } from '@payload-types';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
+import { StockNote } from '@/components/ui/stock-note';
+import { stockOf } from '@/lib/stock';
 import type { Metadata } from 'next';
 import {
   jsonLdString,
@@ -78,7 +81,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         </div>
         <div className="flex flex-col">
           <h1 className="text-3xl font-extrabold tracking-tight lg:text-4xl">
-            {product.name}
+            <Bidi>{product.name}</Bidi>
           </h1>
           <div className="mt-4">
             {product.isOnSale &&
@@ -114,10 +117,12 @@ export default async function ProductDetailsPage({ params }: PageProps) {
               </ul>
             </div>
           )}
-          <div className="mt-8">
+          <div className="mt-8 space-y-3">
+            <StockNote stock={stockOf(product)} />
             <AddToCartButton
               productId={product.id}
               productName={product.name}
+              inStock={stockOf(product) > 0}
             />
           </div>
         </div>
