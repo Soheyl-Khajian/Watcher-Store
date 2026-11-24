@@ -10,9 +10,7 @@ import { useAuthStore } from '../store/auth';
 import { localizeHref, splitLocale } from '@/i18n/paths';
 import { loginPathFor } from '../utils/safe-next';
 import type { ShippingPayload } from '../validation/shipping';
-
-const UNAVAILABLE_MESSAGE =
-  'ارتباط با فروشگاه برقرار نشد. لطفاً کمی بعد دوباره تلاش کنید.';
+import type { ErrorRef } from '@/i18n/messages';
 
 // The session ended while the customer was doing something (it expired, or
 // they logged out in another tab): forget it and ask them to log in again,
@@ -86,10 +84,28 @@ async function api(
   }
 }
 
-// The Persian message an API error carries, if any.
-function messageOf(result: ApiResult): string | null {
-  const message = (result.body as { message?: unknown } | null)?.message;
-  return typeof message === 'string' ? message : null;
+// A failed call: the API's error code (worded by the page, in its
+// language), or UNREACHABLE when the API could not be reached at all.
+export interface ApiFailure extends ErrorRef {
+  status: number | null;
+}
+
+function failureOf(result: ApiResult): ApiFailure {
+  const body = result.body as { code?: unknown; params?: unknown } | null;
+  const params =
+    typeof body?.params === 'object' && body.params !== null
+      ? (body.params as ErrorRef['params'])
+      : undefined;
+  return {
+    code:
+      typeof body?.code === 'string'
+        ? body.code
+        : result.status === null
+          ? 'UNREACHABLE'
+          : 'UNKNOWN',
+    ...(params ? { params } : {}),
+    status: result.status,
+  };
 }
 
 const segment = (value: string | number) => encodeURIComponent(String(value));
@@ -99,7 +115,7 @@ const segment = (value: string | number) => encodeURIComponent(String(value));
 // ---------------------------------------------------------------------------
 
 export type AuthResult =
-  { ok: true; user: AuthUser } | { ok: false; message: string };
+  { ok: true; user: AuthUser } | { ok: false; error: ApiFailure };
 
 export async function loginUser(credentials: {
   email: string;
@@ -114,21 +130,19 @@ export async function loginUser(credentials: {
   if (result.ok && user) {
     return { ok: true, user };
   }
-  return { ok: false, message: messageOf(result) ?? UNAVAILABLE_MESSAGE };
+  return { ok: false, error: failureOf(result) };
 }
 
 export async function registerUser(credentials: {
   email: string;
   password: string;
-}): Promise<{ ok: true } | { ok: false; message: string }> {
+}): Promise<{ ok: true } | { ok: false; error: ApiFailure }> {
   const result = await api(
     'auth/register',
     { method: 'POST', body: credentials },
     { redirectOnSignedOut: false },
   );
-  return result.ok
-    ? { ok: true }
-    : { ok: false, message: messageOf(result) ?? UNAVAILABLE_MESSAGE };
+  return result.ok ? { ok: true } : { ok: false, error: failureOf(result) };
 }
 
 export async function logoutUser(): Promise<void> {
@@ -203,22 +217,17 @@ export async function addToCart(
 }
 
 // Sets how many of a product are in the cart. The server checks stock and
-// answers with a message for the customer when there is not enough.
+// says how many there are when there is not enough.
 export async function setCartQuantity(
   productId: string,
   quantity: number,
-): Promise<{ ok: true; cart: Cart } | { ok: false; message: string }> {
+): Promise<{ ok: true; cart: Cart } | { ok: false; error: ApiFailure }> {
   const result = await api(`nest/cart/${segment(productId)}`, {
     method: 'PATCH',
     body: { quantity },
   });
   const cart = cartOf(result);
-  return cart
-    ? { ok: true, cart }
-    : {
-        ok: false,
-        message: messageOf(result) ?? 'تغییر تعداد ممکن نشد. دوباره تلاش کنید.',
-      };
+  return cart ? { ok: true, cart } : { ok: false, error: failureOf(result) };
 }
 
 // The updated cart is returned.
@@ -233,8 +242,7 @@ export async function removeFromCart(productId: string): Promise<Cart | null> {
 // ---------------------------------------------------------------------------
 
 export type CreateOrderResult =
-  | { ok: true; order: { id: number } }
-  | { ok: false; status: number | null; message: string | null };
+  { ok: true; order: { id: number } } | { ok: false; error: ApiFailure };
 
 export async function createOrder(
   checkoutKey: string,
@@ -247,19 +255,13 @@ export async function createOrder(
   });
 
   if (!result.ok) {
-    // Only conflicts (for example insufficient stock) carry a message that
-    // is written for customers. Validation messages are not shown.
-    return {
-      ok: false,
-      status: result.status,
-      message: result.status === 409 ? messageOf(result) : null,
-    };
+    return { ok: false, error: failureOf(result) };
   }
 
   const id = (result.body as { id?: unknown } | null)?.id;
   return typeof id === 'number'
     ? { ok: true, order: { id } }
-    : { ok: false, status: null, message: null };
+    : { ok: false, error: { code: 'UNKNOWN', status: result.status } };
 }
 
 // The gateway page to send the customer to, or null.
@@ -326,11 +328,9 @@ export async function fetchOrdersPage(
 // Cancels one of the customer's unpaid orders.
 export async function cancelOrder(
   orderId: number,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: true } | { ok: false; error: ApiFailure }> {
   const result = await api(`nest/orders/${segment(orderId)}/cancel`, {
     method: 'POST',
   });
-  return result.ok
-    ? { ok: true }
-    : { ok: false, message: messageOf(result) ?? UNAVAILABLE_MESSAGE };
+  return result.ok ? { ok: true } : { ok: false, error: failureOf(result) };
 }

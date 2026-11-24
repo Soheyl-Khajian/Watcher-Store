@@ -6,20 +6,11 @@
 // - Payload answering with something unexpected     -> 502
 // Responses are validated before use.
 
-import {
-  BadGatewayException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { env } from '../env';
 import type { ProductDto } from '../products/dto/product.dto';
-
-const UNAVAILABLE_MESSAGE =
-  'سرویس فروشگاه موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.';
-const BAD_RESPONSE_MESSAGE = 'پاسخ نامعتبری از سرویس فروشگاه دریافت شد.';
+import { ApiError } from '../common/http/api-error';
 
 const positiveId = z.coerce.number().int().positive();
 
@@ -93,8 +84,10 @@ export class PayloadClient {
     );
 
     if (response.status === 403 || response.status === 404) {
-      throw new NotFoundException(
-        'محصول مورد نظر یافت نشد یا دیگر در دسترس نیست.',
+      throw new ApiError(
+        HttpStatus.NOT_FOUND,
+        'PRODUCT_NOT_FOUND',
+        'The product was not found or is not published.',
       );
     }
 
@@ -135,14 +128,22 @@ export class PayloadClient {
           error instanceof Error ? error.message : 'unknown error'
         }`,
       );
-      throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'UNAVAILABLE',
+        'Payload could not be reached.',
+      );
     }
 
     if (status >= 500) {
       this.logger.error(
         `Payload request ${path.split('?')[0]} answered HTTP ${status}.`,
       );
-      throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'UNAVAILABLE',
+        'Payload could not be reached.',
+      );
     }
 
     let body: unknown;
@@ -167,7 +168,11 @@ export class PayloadClient {
       this.logger.error(
         `Payload ${what} returned an unexpected response (HTTP ${response.status}).`,
       );
-      throw new BadGatewayException(BAD_RESPONSE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.BAD_GATEWAY,
+        'BAD_GATEWAY',
+        'Payload sent an unexpected response.',
+      );
     }
 
     return result.data;

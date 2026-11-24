@@ -2,10 +2,10 @@
 
 import {
   HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   Logger,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, Repository } from 'typeorm';
@@ -15,6 +15,7 @@ import { OrdersService } from '../orders/orders.service';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { PAYMENT_GATEWAY } from './gateways/payment-gateway';
 import type { PaymentGateway } from './gateways/payment-gateway';
+import { ApiError } from '../common/http/api-error';
 
 // Older pending payments are left alone: the gateway has long forgotten
 // them, and an administrator should look instead.
@@ -37,8 +38,10 @@ export class PaymentService {
 
   private requireGateway(): PaymentGateway {
     if (!this.gateway) {
-      throw new ServiceUnavailableException(
-        'پرداخت آنلاین در حال حاضر در دسترس نیست.',
+      throw new ApiError(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'PAYMENT_UNAVAILABLE',
+        'Online payment is turned off.',
       );
     }
     return this.gateway;
@@ -60,6 +63,7 @@ export class PaymentService {
     const started = await gateway.start({
       orderId: order.id,
       amountRial,
+      // Shown on the gateway's own payment page, which is in Persian.
       description: `پرداخت سفارش شماره ${order.id}`,
       callbackUrl: env.PAYMENT_CALLBACK_URL,
     });

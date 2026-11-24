@@ -76,7 +76,7 @@ function OrderHistory() {
       toast.success(t('profile.cancelled'));
       await load();
     } else {
-      toast.error(result.message);
+      toast.error(t.error(result.error));
     }
     setBusyOrderId(null);
   };

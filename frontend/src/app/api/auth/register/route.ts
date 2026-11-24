@@ -11,7 +11,7 @@ import {
   forwardedHeaders,
   rejectCrossSite,
   serverEnv,
-  UNAVAILABLE_MESSAGE,
+  unavailableResponse,
 } from '@/lib/server/bff';
 
 // Payload requires at least 8 characters; the upper bound only keeps
@@ -21,8 +21,12 @@ const registrationSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
-const INVALID_MESSAGE = 'ایمیل معتبر و رمز عبوری با دست‌کم ۸ نویسه وارد کنید.';
-const DUPLICATE_MESSAGE = 'این ایمیل قبلاً ثبت شده است.';
+const invalid = () =>
+  errorResponse(
+    400,
+    'REGISTRATION_INVALID',
+    'Send a valid email and a password of at least 8 characters.',
+  );
 
 // Payload reports field problems as
 // { errors: [{ data: { errors: [{ path: 'email', message }] } }] }.
@@ -53,11 +57,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     body = await request.json();
   } catch {
-    return errorResponse(400, INVALID_MESSAGE);
+    return invalid();
   }
   const parsed = registrationSchema.safeParse(body);
   if (!parsed.success) {
-    return errorResponse(400, INVALID_MESSAGE);
+    return invalid();
   }
 
   const created = await callUpstream(`${serverEnv().payloadUrl}/users`, {
@@ -70,13 +74,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   if (!created || created.status >= 500) {
-    return errorResponse(503, UNAVAILABLE_MESSAGE);
+    return unavailableResponse();
   }
   if (created.status === 201 || created.status === 200) {
     return NextResponse.json({ ok: true }, { status: 201 });
   }
   if (created.status === 400 && emailRejected(created.json)) {
-    return errorResponse(409, DUPLICATE_MESSAGE);
+    return errorResponse(
+      409,
+      'EMAIL_TAKEN',
+      'An account with this email exists.',
+    );
   }
-  return errorResponse(400, INVALID_MESSAGE);
+  return invalid();
 }

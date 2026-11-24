@@ -123,7 +123,7 @@ export function CartContent({ onClose }: CartContentProps) {
       setCart(result.cart);
     } else {
       // For example: not enough in stock.
-      toast.error(result.message);
+      toast.error(t.error(result.error, 'cart.quantityFailed'));
     }
   };
 

@@ -1,11 +1,13 @@
 // backend/nest-api/src/common/http/error-response.filter.ts
 //
 // Turns every error into one response shape:
-//   { statusCode, error, message, details? }
-// - message: one Persian sentence for people. Messages the code already
-//   writes in Persian are kept; framework defaults in English ("Unauthorized",
-//   "Cannot GET /x", "Too Many Requests", body-parser errors) are replaced by
-//   a Persian sentence for their status.
+//   { statusCode, error, code, params?, message, details?, requestId? }
+// - code: what went wrong, as a stable code (api-error.ts) the storefront
+//   words in its page's language; params: values for that wording.
+//   Errors without a code of their own (framework defaults such as
+//   "Unauthorized", "Cannot GET /x", "Too Many Requests", body-parser
+//   errors) get the general code for their status.
+// - message: English, for developers and logs; never shown to customers.
 // - details: field problems from validation, for developers.
 // Unexpected errors become a generic 500; the real error is only logged.
 
@@ -19,38 +21,34 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { STATUS_CODES } from 'http';
+import type { ErrorCode, ErrorParams } from './api-error';
 
-const PERSIAN = /[؀-ۿ]/;
-
-const VALIDATION_MESSAGE = 'اطلاعات ارسالی معتبر نیست.';
-
-const DEFAULT_MESSAGES: Record<number, string> = {
-  400: 'درخواست معتبر نیست.',
-  401: 'برای ادامه وارد حساب کاربری خود شوید.',
-  403: 'اجازه انجام این کار را ندارید.',
-  404: 'مورد درخواستی یافت نشد.',
-  409: 'این درخواست با وضعیت فعلی سازگار نیست.',
-  413: 'حجم درخواست بیش از حد مجاز است.',
-  429: 'تعداد درخواست‌ها بیش از حد مجاز است. لطفاً کمی بعد دوباره تلاش کنید.',
-  500: 'خطای غیرمنتظره‌ای رخ داد. لطفاً دوباره تلاش کنید.',
-  502: 'پاسخ نامعتبری از سرویس فروشگاه دریافت شد.',
-  503: 'سرویس فروشگاه موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.',
+const DEFAULT_CODES: Record<number, ErrorCode> = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  413: 'PAYLOAD_TOO_LARGE',
+  429: 'RATE_LIMITED',
+  500: 'INTERNAL',
+  502: 'BAD_GATEWAY',
+  503: 'UNAVAILABLE',
 };
 
 export interface ErrorBody {
   statusCode: number;
   error: string;
+  code: ErrorCode;
+  params?: ErrorParams;
   message: string;
   details?: string[];
   // Matches the X-Request-Id header and the server's log line.
   requestId?: string;
 }
 
-function defaultMessage(status: number): string {
-  return (
-    DEFAULT_MESSAGES[status] ??
-    (status >= 500 ? DEFAULT_MESSAGES[500] : DEFAULT_MESSAGES[400])
-  );
+function defaultCode(status: number): ErrorCode {
+  return DEFAULT_CODES[status] ?? (status >= 500 ? 'INTERNAL' : 'BAD_REQUEST');
 }
 
 // Errors raised before Nest's routing, such as body-parser's invalid JSON or
@@ -68,37 +66,57 @@ function clientErrorStatus(exception: unknown): number | null {
 
 export function toErrorBody(exception: unknown): ErrorBody {
   let statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR;
-  let message = defaultMessage(statusCode);
+  let code = defaultCode(statusCode);
+  let params: ErrorParams | undefined;
+  let message: string | undefined;
   let details: string[] | undefined;
 
   if (exception instanceof HttpException) {
     statusCode = exception.getStatus();
+    code = defaultCode(statusCode);
     const response = exception.getResponse();
-    const raw =
+    const body =
       typeof response === 'string'
-        ? response
-        : (response as { message?: unknown }).message;
+        ? { message: response }
+        : (response as { message?: unknown; code?: unknown; params?: unknown });
 
-    if (Array.isArray(raw)) {
-      message = VALIDATION_MESSAGE;
-      details = raw.map(String);
-    } else if (typeof raw === 'string' && PERSIAN.test(raw)) {
-      message = raw;
+    if (Array.isArray(body.message)) {
+      code = 'VALIDATION_FAILED';
+      message = 'The request is not valid.';
+      details = body.message.map(String);
     } else {
-      message = defaultMessage(statusCode);
+      if (typeof body.code === 'string') {
+        code = body.code as ErrorCode;
+      }
+      if (typeof body.params === 'object' && body.params !== null) {
+        params = body.params as ErrorParams;
+      }
+      // Only our own errors' messages: a framework default such as
+      // "Cannot GET /x" would describe the server, not the problem.
+      if (
+        typeof body.code === 'string' &&
+        typeof body.message === 'string' &&
+        statusCode < 500
+      ) {
+        message = body.message;
+      }
     }
   } else {
     const status = clientErrorStatus(exception);
     if (status !== null) {
       statusCode = status;
-      message = defaultMessage(status);
+      code = defaultCode(status);
     }
   }
 
+  const error = STATUS_CODES[statusCode] ?? 'Error';
   return {
     statusCode,
-    error: STATUS_CODES[statusCode] ?? 'Error',
-    message,
+    error,
+    code,
+    ...(params ? { params } : {}),
+    // A 500's own message may describe internals; the status says enough.
+    message: message ?? error,
     ...(details ? { details } : {}),
   };
 }

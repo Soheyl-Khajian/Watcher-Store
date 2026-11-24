@@ -50,6 +50,27 @@ export interface MessageRef {
 
 export type MessageValue = string | number | MessageRef;
 
+// An error from the storefront's API: a code (apiErrors.* in the message
+// files) and the values its wording needs.
+export interface ErrorRef {
+  code: string;
+  params?: Record<string, string | number>;
+}
+
+// Codes that only name an HTTP status. A page that knows what it was doing
+// ("your order couldn't be placed") says more than they do.
+const GENERAL_CODES = new Set([
+  'UNKNOWN',
+  'BAD_REQUEST',
+  'VALIDATION_FAILED',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'CONFLICT',
+  'INTERNAL',
+  'BAD_GATEWAY',
+]);
+
 export interface Translate {
   (key: MessageKey, values?: Record<string, MessageValue>): string;
   // For messages with elements inside, such as a highlighted name:
@@ -60,6 +81,9 @@ export interface Translate {
   // Without isolating text from data, for text outside the page body
   // (titles and descriptions in <head>), where the marks have no use.
   plain(key: MessageKey, values?: Record<string, MessageValue>): string;
+  // An API error in the page's language. A specific code has its own
+  // message; a general one gives way to the page's fallback, if any.
+  error(error: ErrorRef, fallback?: MessageKey): string;
 }
 
 function isPlural(value: unknown): value is Plural {
@@ -118,6 +142,15 @@ export function createTranslator(
 
   const t = ((key, values) => fill(key, values, isolate)) as Translate;
   t.plain = (key, values) => fill(key, values, (text) => text);
+
+  t.error = (error, fallback) => {
+    const key = `apiErrors.${error.code}` as MessageKey;
+    const known = lookup(messages, key) !== undefined;
+    if (known && !(fallback && GENERAL_CODES.has(error.code))) {
+      return t(key, error.params);
+    }
+    return t(fallback ?? 'apiErrors.UNKNOWN');
+  };
 
   t.rich = (key, values) => {
     const parts = template(key, values).split(PLACEHOLDER);

@@ -16,11 +16,7 @@
 //   configuration problem such as a wrong merchant id) -> 502
 // - Zarinpal saying this payment did not happen -> not paid
 
-import {
-  BadGatewayException,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { HttpStatus, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import type {
   PaymentGateway,
@@ -29,16 +25,13 @@ import type {
   VerifyPaymentInput,
   VerifyPaymentResult,
 } from './payment-gateway';
+import { ApiError } from '../../common/http/api-error';
 
 export interface ZarinpalConfig {
   merchantId: string;
   baseUrl: string;
   timeoutMs: number;
 }
-
-const UNAVAILABLE_MESSAGE =
-  'درگاه پرداخت موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.';
-const BAD_RESPONSE_MESSAGE = 'پاسخ نامعتبری از درگاه پرداخت دریافت شد.';
 
 const PAID = 100;
 const ALREADY_VERIFIED = 101;
@@ -123,7 +116,11 @@ export class ZarinpalGateway implements PaymentGateway {
             : 'unreadable'
         }).`,
       );
-      throw new BadGatewayException(BAD_RESPONSE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.BAD_GATEWAY,
+        'GATEWAY_BAD_RESPONSE',
+        'The payment gateway sent an unexpected response.',
+      );
     }
 
     return {
@@ -147,7 +144,11 @@ export class ZarinpalGateway implements PaymentGateway {
     const parsed = verifyResponseSchema.safeParse(body);
     if (!parsed.success) {
       this.logger.error('Zarinpal sent an unreadable verification answer.');
-      throw new BadGatewayException(BAD_RESPONSE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.BAD_GATEWAY,
+        'GATEWAY_BAD_RESPONSE',
+        'The payment gateway sent an unexpected response.',
+      );
     }
 
     const { data, errors } = parsed.data;
@@ -180,7 +181,11 @@ export class ZarinpalGateway implements PaymentGateway {
     this.logger.error(
       `Zarinpal could not verify authority ${input.authority} (code ${code ?? 'none'}).`,
     );
-    throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+    throw new ApiError(
+      HttpStatus.SERVICE_UNAVAILABLE,
+      'GATEWAY_UNAVAILABLE',
+      'The payment gateway could not be reached.',
+    );
   }
 
   private async post(path: string, payload: unknown): Promise<unknown> {
@@ -206,12 +211,20 @@ export class ZarinpalGateway implements PaymentGateway {
           error instanceof Error ? error.message : 'unknown error'
         }`,
       );
-      throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'GATEWAY_UNAVAILABLE',
+        'The payment gateway could not be reached.',
+      );
     }
 
     if (status >= 500) {
       this.logger.error(`Zarinpal request ${path} answered HTTP ${status}.`);
-      throw new ServiceUnavailableException(UNAVAILABLE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'GATEWAY_UNAVAILABLE',
+        'The payment gateway could not be reached.',
+      );
     }
 
     try {
@@ -220,7 +233,11 @@ export class ZarinpalGateway implements PaymentGateway {
       this.logger.error(
         `Zarinpal request ${path} answered HTTP ${status} without JSON.`,
       );
-      throw new BadGatewayException(BAD_RESPONSE_MESSAGE);
+      throw new ApiError(
+        HttpStatus.BAD_GATEWAY,
+        'GATEWAY_BAD_RESPONSE',
+        'The payment gateway sent an unexpected response.',
+      );
     }
   }
 }

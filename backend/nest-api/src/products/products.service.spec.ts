@@ -1,4 +1,4 @@
-import { BadGatewayException, NotFoundException } from '@nestjs/common';
+import { expectApiError } from '../../test/expect-api-error';
 import type { PayloadClient } from '../payload/payload-client';
 import { ProductDto } from './dto/product.dto';
 import { ProductsService } from './products.service';
@@ -47,8 +47,10 @@ describe('ProductsService pricing and stock rules', () => {
     it.each([0, -1, 10.5, Number.NaN])(
       'rejects an invalid price of %p',
       (price) => {
-        expect(() => service.getCurrentPrice(product({ price }))).toThrow(
-          BadGatewayException,
+        expectApiError(
+          () => service.getCurrentPrice(product({ price })),
+          502,
+          'PRODUCT_DATA_INVALID',
         );
       },
     );
@@ -63,8 +65,10 @@ describe('ProductsService pricing and stock rules', () => {
     it.each(['draft', null, undefined] as const)(
       'hides products with status %p',
       (status) => {
-        expect(() => service.getAvailableStock(product({ status }))).toThrow(
-          NotFoundException,
+        expectApiError(
+          () => service.getAvailableStock(product({ status })),
+          404,
+          'PRODUCT_NOT_FOUND',
         );
       },
     );
@@ -72,8 +76,10 @@ describe('ProductsService pricing and stock rules', () => {
     it.each([null, undefined, -1, 2.5])(
       'rejects an invalid stock of %p',
       (stock) => {
-        expect(() => service.getAvailableStock(product({ stock }))).toThrow(
-          BadGatewayException,
+        expectApiError(
+          () => service.getAvailableStock(product({ stock })),
+          502,
+          'PRODUCT_DATA_INVALID',
         );
       },
     );

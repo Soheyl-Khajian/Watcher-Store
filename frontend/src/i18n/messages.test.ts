@@ -50,6 +50,34 @@ describe('messages', () => {
     expect(html).toBe('<p>محصولی با عبارت «<bdi>lock</bdi>» پیدا نشد.</p>');
   });
 
+  it('words API errors, with their values', () => {
+    expect(en.error({ code: 'STOCK_LIMIT', params: { available: 2 } })).toBe(
+      'You can order at most 2 of this product.',
+    );
+    expect(t.error({ code: 'OUT_OF_STOCK' })).toBe(
+      'این محصول در حال حاضر موجود نیست.',
+    );
+  });
+
+  it("prefers the page's fallback to a general code", () => {
+    expect(en.error({ code: 'BAD_REQUEST' }, 'checkout.invalid')).toBe(
+      "Your delivery details or cart aren't valid. Please check the form.",
+    );
+    // A specific code keeps its own message.
+    expect(en.error({ code: 'CART_CHANGED' }, 'checkout.failed')).toContain(
+      'Your cart changed',
+    );
+  });
+
+  it('falls back for a code it does not know', () => {
+    expect(en.error({ code: 'SOMETHING_NEW' })).toBe(
+      'Something went wrong. Please try again.',
+    );
+    expect(en.error({ code: 'SOMETHING_NEW' }, 'cart.quantityFailed')).toBe(
+      "The quantity couldn't be changed. Please try again.",
+    );
+  });
+
   it('shows the key of a missing message rather than nothing', () => {
     expect(t('cart.nope' as MessageKey)).toBe('cart.nope');
   });

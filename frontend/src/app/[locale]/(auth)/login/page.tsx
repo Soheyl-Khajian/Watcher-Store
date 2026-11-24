@@ -40,7 +40,7 @@ function LoginForm() {
       return;
     }
 
-    setError(result.message);
+    setError(t.error(result.error));
     setIsSubmitting(false);
   };
 

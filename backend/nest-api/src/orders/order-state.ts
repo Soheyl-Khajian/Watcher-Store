@@ -1,7 +1,8 @@
 // backend/nest-api/src/orders/order-state.ts
 
-import { ConflictException } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import { OrderStatus } from './entities/order.entity';
+import { ApiError, type ErrorCode } from '../common/http/api-error';
 
 // The single source of truth for allowed status changes. Every transition in
 // the service must pass through assertTransition.
@@ -22,9 +23,13 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
 export function assertTransition(
   from: OrderStatus,
   to: OrderStatus,
-  message: string,
+  code: ErrorCode,
 ): void {
   if (!canTransition(from, to)) {
-    throw new ConflictException(message);
+    throw new ApiError(
+      HttpStatus.CONFLICT,
+      code,
+      `An order cannot go from ${from} to ${to}.`,
+    );
   }
 }

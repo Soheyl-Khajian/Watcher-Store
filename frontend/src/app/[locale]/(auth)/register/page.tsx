@@ -69,7 +69,7 @@ function RegisterForm() {
     const credentials = { email: form.email.trim(), password: form.password };
     const registered = await registerUser(credentials);
     if (!registered.ok) {
-      setError(registered.message);
+      setError(t.error(registered.error));
       setIsSubmitting(false);
       return;
     }
@@ -84,7 +84,7 @@ function RegisterForm() {
 
     // The account exists; only the automatic login failed.
     toast.success(t('auth.registeredPleaseLogin'));
-    setError(loggedIn.message);
+    setError(t.error(loggedIn.error));
     setIsSubmitting(false);
   };
 

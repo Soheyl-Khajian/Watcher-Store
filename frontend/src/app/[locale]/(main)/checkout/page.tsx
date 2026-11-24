@@ -25,7 +25,7 @@ import {
   createOrder,
   initiatePayment,
   removeFromCart,
-  type CreateOrderResult,
+  type ApiFailure,
 } from '@/lib/api/nestjs';
 import { findUnavailableItems } from '@/lib/utils/cart';
 import { UnavailableCartItem } from '@/components/cart/unavailable-cart-item';
@@ -53,28 +53,19 @@ import { Separator } from '@/components/ui/separator';
 import { getCurrentPrice } from '@/lib/utils/pricing';
 import { cn } from '@/lib/utils';
 
-// The server's message for a conflict (such as too little stock), or one
-// of ours.
-function orderErrorMessage(
-  result: Extract<CreateOrderResult, { ok: false }>,
-): MessageRef | string {
-  if (result.status === 401) {
-    return { key: 'checkout.sessionExpired' };
+// What checkout says about a failed order when the API's code is a general
+// one; a specific code (such as too little stock) says it better.
+function orderErrorFallback(error: ApiFailure): MessageKey {
+  switch (error.status) {
+    case 401:
+      return 'checkout.sessionExpired';
+    case 404:
+      return 'checkout.productGone';
+    case 400:
+      return 'checkout.invalid';
+    default:
+      return 'checkout.failed';
   }
-
-  if (result.status === 409 && result.message) {
-    return result.message;
-  }
-
-  if (result.status === 404) {
-    return { key: 'checkout.productGone' };
-  }
-
-  if (result.status === 400) {
-    return { key: 'checkout.invalid' };
-  }
-
-  return { key: 'checkout.failed' };
 }
 
 // Format hints, shown under the field and read with it.
@@ -260,8 +251,7 @@ export default function CheckoutPage() {
     const created = await createOrder(checkoutKey, result.payload);
 
     if (!created.ok) {
-      const message = orderErrorMessage(created);
-      toast.error(typeof message === 'string' ? message : t.ref(message));
+      toast.error(t.error(created.error, orderErrorFallback(created.error)));
       setIsProcessing(false);
       return;
     }

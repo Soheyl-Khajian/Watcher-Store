@@ -1,14 +1,7 @@
 // backend/nest-api/src/orders/orders.service.ts
 
 import type { ShippingDetailsDto } from './dto/create-order.dto';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   DataSource,
@@ -33,6 +26,7 @@ import {
   toOrderResponse,
 } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
+import { ApiError } from '../common/http/api-error';
 
 // What a payment result did to its order.
 export type PaymentOutcome =
@@ -128,7 +122,11 @@ export class OrdersService {
         });
 
         if (!cart) {
-          throw new BadRequestException('سبد خرید شما خالی است.');
+          throw new ApiError(
+            HttpStatus.BAD_REQUEST,
+            'CART_EMPTY',
+            'The cart is empty.',
+          );
         }
 
         // A concurrent request with the same key may have committed while this
@@ -155,12 +153,18 @@ export class OrdersService {
         });
 
         if (cartItems.length === 0) {
-          throw new BadRequestException('سبد خرید شما خالی است.');
+          throw new ApiError(
+            HttpStatus.BAD_REQUEST,
+            'CART_EMPTY',
+            'The cart is empty.',
+          );
         }
 
         if (!sameCartContents(snapshot, cartItems)) {
-          throw new ConflictException(
-            'سبد خرید شما در حین ثبت سفارش تغییر کرد. لطفاً دوباره تلاش کنید.',
+          throw new ApiError(
+            HttpStatus.CONFLICT,
+            'CART_CHANGED',
+            'The cart changed while the order was being placed.',
           );
         }
 
@@ -174,8 +178,10 @@ export class OrdersService {
             this.productsService.getAvailableStock(product);
 
           if (availableStock < item.quantity) {
-            throw new ConflictException(
-              'موجودی یکی از محصولات سبد خرید کافی نیست. لطفاً سبد خرید را بررسی کنید.',
+            throw new ApiError(
+              HttpStatus.CONFLICT,
+              'ORDER_STOCK_INSUFFICIENT',
+              'A product in the cart is not in stock in the quantity ordered.',
             );
           }
 
@@ -191,8 +197,10 @@ export class OrdersService {
           const nextTotal = total + lineTotal;
 
           if (!isTomanAmount(lineTotal) || !isTomanAmount(nextTotal)) {
-            throw new BadRequestException(
-              'مبلغ سفارش از محدوده مجاز بیشتر است.',
+            throw new ApiError(
+              HttpStatus.BAD_REQUEST,
+              'ORDER_TOTAL_TOO_LARGE',
+              'The order total is above the allowed amount.',
             );
           }
 
@@ -232,8 +240,10 @@ export class OrdersService {
         );
 
         if (!createdOrder) {
-          throw new InternalServerErrorException(
-            'امکان بارگذاری سفارش ثبت‌شده وجود ندارد.',
+          throw new ApiError(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'ORDER_LOAD_FAILED',
+            'The placed order could not be loaded.',
           );
         }
 
@@ -263,7 +273,11 @@ export class OrdersService {
     });
 
     if (items.length === 0) {
-      throw new BadRequestException('سبد خرید شما خالی است.');
+      throw new ApiError(
+        HttpStatus.BAD_REQUEST,
+        'CART_EMPTY',
+        'The cart is empty.',
+      );
     }
 
     return items.map(({ productId, quantity }) => ({ productId, quantity }));
@@ -304,7 +318,11 @@ export class OrdersService {
     });
 
     if (!order) {
-      throw new NotFoundException('سفارش مورد نظر یافت نشد.');
+      throw new ApiError(
+        HttpStatus.NOT_FOUND,
+        'ORDER_NOT_FOUND',
+        'The order was not found.',
+      );
     }
 
     order.items.sort((a, b) => a.id - b.id);
@@ -316,7 +334,11 @@ export class OrdersService {
     const order = await this.findOne(id, userId);
 
     if (order.status !== OrderStatus.PENDING) {
-      throw new ConflictException('این سفارش در وضعیت قابل پرداخت نیست.');
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        'ORDER_NOT_PAYABLE',
+        'The order cannot be paid in its current status.',
+      );
     }
 
     return order;
@@ -348,7 +370,11 @@ export class OrdersService {
     });
 
     if (!order) {
-      throw new NotFoundException('سفارش مورد نظر یافت نشد.');
+      throw new ApiError(
+        HttpStatus.NOT_FOUND,
+        'ORDER_NOT_FOUND',
+        'The order was not found.',
+      );
     }
 
     if (!paid) {
@@ -358,7 +384,7 @@ export class OrdersService {
       assertTransition(
         order.status,
         OrderStatus.CANCELLED,
-        'این سفارش دیگر قابل لغو نیست.',
+        'ORDER_NOT_CANCELLABLE',
       );
       order.status = OrderStatus.CANCELLED;
       order.cancelledAt = new Date();
@@ -402,7 +428,11 @@ export class OrdersService {
     });
 
     if (orderItems.length === 0) {
-      throw new InternalServerErrorException('سفارش ثبت‌شده فاقد آیتم است.');
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'ORDER_LOAD_FAILED',
+        'The placed order has no items.',
+      );
     }
 
     // Undo stock already taken for earlier items if a later one ran out.
@@ -410,7 +440,11 @@ export class OrdersService {
     try {
       await this.takeStock(manager, orderItems);
     } catch (error) {
-      if (!(error instanceof ConflictException)) {
+      // Out of stock: the payment is kept and flagged for a refund. Any
+      // other failure is a real error.
+      if (!(
+        error instanceof ApiError && error.code === 'ORDER_STOCK_INSUFFICIENT'
+      )) {
         throw error;
       }
       await manager.query('ROLLBACK TO SAVEPOINT take_stock_for_payment');
@@ -436,19 +470,25 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
+        throw new ApiError(
+          HttpStatus.NOT_FOUND,
+          'ORDER_NOT_FOUND',
+          'The order was not found.',
+        );
       }
 
       if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException(
-          'فقط سفارش‌های پرداخت‌نشده قابل لغو هستند. برای سفارش‌های پرداخت‌شده با پشتیبانی تماس بگیرید.',
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          'ORDER_PAID_CANCEL_VIA_SUPPORT',
+          'Only unpaid orders can be cancelled by the customer.',
         );
       }
 
       assertTransition(
         order.status,
         OrderStatus.CANCELLED,
-        'این سفارش دیگر قابل لغو نیست.',
+        'ORDER_NOT_CANCELLABLE',
       );
 
       order.status = OrderStatus.CANCELLED;
@@ -464,8 +504,10 @@ export class OrdersService {
       });
 
       if (!cancelled) {
-        throw new InternalServerErrorException(
-          'امکان بارگذاری سفارش لغوشده وجود ندارد.',
+        throw new ApiError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'ORDER_LOAD_FAILED',
+          'The cancelled order could not be loaded.',
         );
       }
 
@@ -490,7 +532,11 @@ export class OrdersService {
       });
 
       if (!order) {
-        throw new NotFoundException('سفارش مورد نظر یافت نشد.');
+        throw new ApiError(
+          HttpStatus.NOT_FOUND,
+          'ORDER_NOT_FOUND',
+          'The order was not found.',
+        );
       }
 
       await mutate(order, manager);
@@ -503,8 +549,10 @@ export class OrdersService {
       });
 
       if (!updated) {
-        throw new InternalServerErrorException(
-          'امکان بارگذاری سفارش وجود ندارد.',
+        throw new ApiError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'ORDER_LOAD_FAILED',
+          'The order could not be loaded.',
         );
       }
 
@@ -519,7 +567,7 @@ export class OrdersService {
       assertTransition(
         order.status,
         OrderStatus.SHIPPED,
-        'فقط سفارش‌های پرداخت‌شده (در حال پردازش) قابل ارسال هستند.',
+        'ORDER_NOT_SHIPPABLE',
       );
 
       order.status = OrderStatus.SHIPPED;
@@ -535,7 +583,7 @@ export class OrdersService {
       assertTransition(
         order.status,
         OrderStatus.COMPLETED,
-        'فقط سفارش‌های ارسال‌شده قابل تکمیل هستند.',
+        'ORDER_NOT_COMPLETABLE',
       );
 
       order.status = OrderStatus.COMPLETED;
@@ -552,7 +600,7 @@ export class OrdersService {
       assertTransition(
         order.status,
         OrderStatus.CANCELLED,
-        'این سفارش دیگر قابل لغو نیست.',
+        'ORDER_NOT_CANCELLABLE',
       );
 
       if (order.status === OrderStatus.PROCESSING) {
@@ -569,8 +617,10 @@ export class OrdersService {
   async markOrderRefunded(id: number): Promise<Order> {
     return this.mutateOrder(id, (order) => {
       if (order.refundStatus !== OrderRefundStatus.REQUIRED) {
-        throw new ConflictException(
-          'این سفارش نیازی به بازپرداخت ندارد یا قبلاً بازپرداخت شده است.',
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          'ORDER_NO_REFUND_NEEDED',
+          'The order needs no refund, or was already refunded.',
         );
       }
 
@@ -637,8 +687,10 @@ export class OrdersService {
       );
 
       if (!taken) {
-        throw new ConflictException(
-          'موجودی یکی از محصولات سبد خرید کافی نیست. لطفاً سبد خرید را بررسی کنید.',
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          'ORDER_STOCK_INSUFFICIENT',
+          'A product in the cart is not in stock in the quantity ordered.',
         );
       }
     }
