@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import { RichText } from '@/components/RichText';
 import type { Page } from '@payload-types';
 import type { Metadata } from 'next';
-import { plainText, openGraphDefaults } from '@/lib/seo';
+import { plainText, openGraphDefaults, alternatesFor } from '@/lib/seo';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -21,14 +21,15 @@ export async function generateMetadata({
     return {};
   }
   const path = `/${encodeURIComponent(page.slug ?? slug)}`;
+  const alternates = await alternatesFor(path);
   const description = plainText(page.content);
   return {
     title: page.title,
     ...(description ? { description } : {}),
-    alternates: { canonical: path },
+    alternates,
     openGraph: {
       ...(await openGraphDefaults()),
-      url: path,
+      url: alternates.canonical,
       title: page.title,
     },
   };

@@ -1,4 +1,5 @@
 // frontend/src/app/[locale]/(main)/products/page.tsx
+import { alternatesFor } from '@/lib/seo';
 import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import { Link } from '@/i18n/navigation';
@@ -23,11 +24,11 @@ export async function generateMetadata({
   return awaited?.onSale === 'true'
     ? {
         title: t('products.specialsTitle'),
-        alternates: { canonical: '/products?onSale=true' },
+        alternates: await alternatesFor('/products?onSale=true'),
       }
     : {
         title: t('products.allTitle'),
-        alternates: { canonical: '/products' },
+        alternates: await alternatesFor('/products'),
       };
 }
 

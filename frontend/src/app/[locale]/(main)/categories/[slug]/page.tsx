@@ -8,7 +8,7 @@ import type { Product } from '@/types';
 import { notFound } from 'next/navigation';
 import { Pager } from '@/components/ui/pager';
 import type { Metadata } from 'next';
-import { openGraphDefaults } from '@/lib/seo';
+import { openGraphDefaults, alternatesFor } from '@/lib/seo';
 
 export async function generateMetadata({
   params,
@@ -26,6 +26,7 @@ export async function generateMetadata({
     return {};
   }
   const path = `/categories/${encodeURIComponent(slug)}${page > 1 ? `?page=${page}` : ''}`;
+  const alternates = await alternatesFor(path);
   const t = await getT();
   const description = t.plain('category.metaDescription', {
     name: category.name,
@@ -34,10 +35,10 @@ export async function generateMetadata({
   return {
     title: category.name,
     description,
-    alternates: { canonical: path },
+    alternates,
     openGraph: {
       ...(await openGraphDefaults()),
-      url: path,
+      url: alternates.canonical,
       title: category.name,
       description,
     },

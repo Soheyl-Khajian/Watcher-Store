@@ -1,5 +1,6 @@
 // frontend/src/app/[locale]/(main)/blog/page.tsx
 
+import { alternatesFor } from '@/lib/seo';
 import { getT } from '@/i18n/server';
 import { fetchPosts } from '@/lib/api/payload';
 import type { Post } from '@/types';
@@ -11,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('blog.title'),
     description: t('blog.description'),
-    alternates: { canonical: '/blog' },
+    alternates: await alternatesFor('/blog'),
   };
 }
 

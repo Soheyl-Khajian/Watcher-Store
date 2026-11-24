@@ -1,4 +1,6 @@
 // frontend/src/app/[locale]/(main)/page.tsx
+import type { Metadata } from 'next';
+import { alternatesFor } from '@/lib/seo';
 import { getT } from '@/i18n/server';
 import { HeroSection } from '@/components/sections/hero-section';
 import { CategoryGrid } from '@/components/sections/category-grid';
@@ -20,6 +22,10 @@ const importantCategorySlugs = [
   'smart-lighting',
   'alarm-systems',
 ];
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { alternates: await alternatesFor('/') };
+}
 
 export default async function HomePage() {
   const t = await getT();

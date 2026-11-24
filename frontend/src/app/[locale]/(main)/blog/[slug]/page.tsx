@@ -9,7 +9,12 @@ import Image from 'next/image';
 import { mediaSrc } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { mediaImage, plainText, openGraphDefaults } from '@/lib/seo';
+import {
+  mediaImage,
+  plainText,
+  openGraphDefaults,
+  alternatesFor,
+} from '@/lib/seo';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -24,16 +29,17 @@ export async function generateMetadata({
     return {};
   }
   const path = `/blog/${encodeURIComponent(post.slug)}`;
+  const alternates = await alternatesFor(path);
   const description = post.excerpt?.trim() || plainText(post.content);
   const image = mediaImage(post.thumbnail);
   return {
     title: post.title,
     description,
-    alternates: { canonical: path },
+    alternates,
     openGraph: {
       ...(await openGraphDefaults()),
       type: 'article',
-      url: path,
+      url: alternates.canonical,
       title: post.title,
       description,
       publishedTime: post.publishedDate,

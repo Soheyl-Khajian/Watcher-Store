@@ -1,5 +1,5 @@
 import { Bidi } from '@/components/ui/bidi';
-import { getFormatter, getT } from '@/i18n/server';
+import { getFormatter, getLocale, getT } from '@/i18n/server';
 import { fetchProductBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/ui/product-gallery';
@@ -16,6 +16,7 @@ import {
   plainText,
   productJsonLd,
   openGraphDefaults,
+  alternatesFor,
 } from '@/lib/seo';
 
 type PageProps = {
@@ -34,6 +35,7 @@ export async function generateMetadata({
     return {};
   }
   const path = `/products/${encodeURIComponent(product.slug ?? slug)}`;
+  const alternates = await alternatesFor(path);
   const t = await getT();
   const description =
     plainText(product.description) ||
@@ -45,10 +47,10 @@ export async function generateMetadata({
   return {
     title: product.name,
     description,
-    alternates: { canonical: path },
+    alternates,
     openGraph: {
       ...(await openGraphDefaults()),
-      url: path,
+      url: alternates.canonical,
       title: product.name,
       description,
       ...(image ? { images: [image] } : {}),
@@ -71,7 +73,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonLdString(productJsonLd(product)),
+          __html: jsonLdString(productJsonLd(product, await getLocale())),
         }}
       />
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
