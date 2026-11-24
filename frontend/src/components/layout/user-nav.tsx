@@ -1,6 +1,7 @@
 // src/components/layout/user-nav.tsx
 'use client';
 
+import { Bidi } from '@/components/ui/bidi';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth';
@@ -54,7 +55,7 @@ export function UserNav() {
             <div className="flex flex-col space-y-1">
               <p className="text-sm leading-none font-medium">کاربر</p>
               <p className="text-muted-foreground text-xs leading-none">
-                {user.email}
+                <Bidi ltr>{user.email}</Bidi>
               </p>
             </div>
           </DropdownMenuLabel>

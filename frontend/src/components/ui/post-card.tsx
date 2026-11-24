@@ -1,5 +1,6 @@
 // frontend/src/components/ui/post-card.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,11 +49,15 @@ export function PostCard({ post }: PostCardProps) {
         </CardHeader>
 
         <CardContent className="flex-grow p-4">
-          <h3 className="text-lg leading-tight font-bold">{post.title}</h3>
+          <h3 className="text-lg leading-tight font-bold">
+            <Bidi>{post.title}</Bidi>
+          </h3>
         </CardContent>
 
         <CardFooter className="text-muted-foreground p-4 pt-0 text-sm">
-          <span className="me-1">توسط {authorName}</span>
+          <span className="me-1">
+            توسط <Bidi>{authorName}</Bidi>
+          </span>
           <span>{publishedDate}</span>
         </CardFooter>
       </Card>

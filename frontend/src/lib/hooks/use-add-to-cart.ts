@@ -5,6 +5,7 @@
 
 'use client';
 
+import { isolate } from '@/lib/bidi';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { addToCart } from '../api/nestjs';
@@ -27,7 +28,7 @@ export function useAddToCart(productId: string | number, productName: string) {
       const updatedCart = await addToCart(String(productId), 1);
       if (updatedCart) {
         setCart(updatedCart);
-        toast.success(`${productName} به سبد خرید اضافه شد.`);
+        toast.success(`${isolate(productName)} به سبد خرید اضافه شد.`);
       } else {
         toast.error('خطا در افزودن محصول به سبد خرید.');
       }

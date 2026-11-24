@@ -2,6 +2,7 @@
 
 'use client';
 
+import { Bidi } from '@/components/ui/bidi';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -187,6 +188,9 @@ export default function CheckoutPage() {
       handleChange(field, event.target.value),
     disabled: isProcessing,
     maxLength: SHIPPING_MAX_LENGTH[field],
+    // Names and addresses may be typed in either script; codes and
+    // numbers below override this with dir="ltr".
+    dir: 'auto' as const,
     'aria-invalid': errors[field] ? true : undefined,
     'aria-describedby': errors[field] ? `shipping-${field}-error` : undefined,
   });
@@ -421,9 +425,12 @@ export default function CheckoutPage() {
               return (
                 <li key={item.id} className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold">{product.name}</p>
-                    <p className="text-muted-foreground text-sm" dir="ltr">
-                      {item.quantity} x {formatPrice(currentPrice)}
+                    <p className="font-semibold">
+                      <Bidi>{product.name}</Bidi>
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi> ×{' '}
+                      <Bidi>{formatPrice(currentPrice)}</Bidi>
                     </p>
                   </div>
                   <p className="font-semibold">

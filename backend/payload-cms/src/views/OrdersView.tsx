@@ -15,6 +15,12 @@ import {
   type OrderAction,
   type OrderActionOutcome,
 } from '../utils/nestOrders';
+import {
+  formatToman,
+  OrderItemLine,
+  priceFormatter,
+  ShippingCell,
+} from './OrderCells';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'در انتظار پرداخت',
@@ -53,7 +59,6 @@ const ACTION_FAILED: Record<Exclude<OrderActionOutcome, 'done'>, string> = {
     'آدرس سرویس سفارش‌ها (NEST_INTERNAL_URL) تنظیم نشده است. با مدیر سیستم تماس بگیرید.',
 };
 
-const priceFormatter = new Intl.NumberFormat('fa-IR');
 const dateFormatter = new Intl.DateTimeFormat('fa-IR', {
   dateStyle: 'medium',
   timeStyle: 'short',
@@ -216,9 +221,6 @@ function OrderActions({
   );
 }
 
-const formatToman = (amount: number): string =>
-  `${priceFormatter.format(amount)} تومان`;
-
 const formatDate = (value: string): string => {
   const date = new Date(value);
 
@@ -234,51 +236,6 @@ const cellStyle: React.CSSProperties = {
 
 function Notice({ children }: { children: React.ReactNode }) {
   return <p style={{ padding: '1rem 0' }}>{children}</p>;
-}
-
-const wrappingText: React.CSSProperties = {
-  overflowWrap: 'anywhere',
-  whiteSpace: 'pre-wrap',
-};
-
-function ShippingCell({ shipping }: { shipping: NestOrder['shipping'] }) {
-  const hasDetails =
-    !!shipping && Object.values(shipping).some((value) => value !== null);
-
-  if (!shipping || !hasDetails) {
-    return <span>ثبت نشده</span>;
-  }
-
-  const location = [shipping.province, shipping.city]
-    .filter((part): part is string => !!part)
-    .join('، ');
-
-  const unitAndFloor = [
-    shipping.unit ? `واحد ${shipping.unit}` : null,
-    shipping.floor ? `طبقه ${shipping.floor}` : null,
-  ]
-    .filter((part): part is string => part !== null)
-    .join('، ');
-
-  return (
-    <div style={{ ...wrappingText, minWidth: '14rem', maxWidth: '24rem' }}>
-      {shipping.recipientName && <strong>{shipping.recipientName}</strong>}
-      {shipping.phone && (
-        <div>
-          <bdi dir="ltr">{shipping.phone}</bdi>
-        </div>
-      )}
-      {location && <div>{location}</div>}
-      {shipping.address && <div>{shipping.address}</div>}
-      {unitAndFloor && <div>{unitAndFloor}</div>}
-      {shipping.postalCode && (
-        <div>
-          کد پستی: <bdi dir="ltr">{shipping.postalCode}</bdi>
-        </div>
-      )}
-      {shipping.deliveryNotes && <div>توضیحات: {shipping.deliveryNotes}</div>}
-    </div>
-  );
 }
 
 // Customer emails and product names live in Payload. Lookups run as the
@@ -424,8 +381,11 @@ async function renderContent(
                 <td style={cellStyle}>{order.id}</td>
                 <td style={cellStyle}>
                   <a href={`${adminRoute}/collections/users/${order.userId}`}>
-                    {customerEmails.get(order.userId) ??
-                      `کاربر ${order.userId}`}
+                    {customerEmails.has(order.userId) ? (
+                      <bdi dir="ltr">{customerEmails.get(order.userId)}</bdi>
+                    ) : (
+                      `کاربر ${order.userId}`
+                    )}
                   </a>
                 </td>
                 <td style={cellStyle}>
@@ -438,13 +398,19 @@ async function renderContent(
                   <RefundNote refundStatus={order.refundStatus} />
                 </td>
                 <td style={cellStyle}>
-                  <ul style={{ margin: 0, paddingInlineStart: '1rem' }}>
+                  <ul
+                    style={{
+                      margin: 0,
+                      paddingInlineStart: '1rem',
+                      minWidth: '16rem',
+                    }}
+                  >
                     {order.items.map((item) => (
                       <li key={item.id}>
-                        {productNames.get(item.productId) ??
-                          `محصول ${item.productId}`}{' '}
-                        × {priceFormatter.format(item.quantity)} —{' '}
-                        {formatToman(item.price)}
+                        <OrderItemLine
+                          name={productNames.get(item.productId)}
+                          item={item}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -500,7 +466,11 @@ export default async function OrdersView({
       user={req.user || undefined}
       visibleEntities={initPageResult.visibleEntities}
     >
-      <Gutter>{content}</Gutter>
+      {/* This view is written in Persian, so it reads right to left even
+          when the admin panel itself is in English. */}
+      <div dir="rtl" lang="fa">
+        <Gutter>{content}</Gutter>
+      </div>
     </DefaultTemplate>
   );
 }

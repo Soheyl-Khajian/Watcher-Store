@@ -1,5 +1,6 @@
 // مسیر فایل: frontend/app/(main)/[slug]/page.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import { fetchPageBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { RichText } from '@/components/RichText';
@@ -48,7 +49,7 @@ export default async function StaticPage({ params }: PageProps) {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-8 text-4xl font-extrabold tracking-tight lg:text-5xl">
-        {page.title}
+        <Bidi>{page.title}</Bidi>
       </h1>
 
       {/* ۳. از کامپوننت RichText برای نمایش محتوا استفاده می‌کنیم */}

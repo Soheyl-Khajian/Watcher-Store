@@ -2,6 +2,7 @@
 
 'use client';
 
+import { Bidi } from '@/components/ui/bidi';
 import Link from 'next/link';
 import {
   Accordion,
@@ -33,7 +34,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
             // اگر فرزند داشت، یک آیتم آکاردیونی بساز
             <AccordionItem value={String(category.id)} key={category.id}>
               <AccordionTrigger className="text-lg">
-                {category.name}
+                <Bidi>{category.name}</Bidi>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex flex-col space-y-2 ps-4">
@@ -43,7 +44,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
                       href={`/categories/${category.slug}`}
                       className="text-muted-foreground py-2"
                     >
-                      همه محصولات {category.name}
+                      همه محصولات <Bidi>{category.name}</Bidi>
                     </Link>
                   </SheetClose>
                   {/* لیست فرزندان */}
@@ -53,7 +54,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
                         href={`/categories/${child.slug}`}
                         className="text-muted-foreground py-2"
                       >
-                        {child.name}
+                        <Bidi>{child.name}</Bidi>
                       </Link>
                     </SheetClose>
                   ))}
@@ -67,7 +68,7 @@ export function MobileNav({ categories, otherLinks }: MobileNavProps) {
                 href={`/categories/${category.slug}`}
                 className="block border-b py-4 text-lg"
               >
-                {category.name}
+                <Bidi>{category.name}</Bidi>
               </Link>
             </SheetClose>
           ),

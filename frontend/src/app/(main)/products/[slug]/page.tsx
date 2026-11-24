@@ -1,3 +1,4 @@
+import { Bidi } from '@/components/ui/bidi';
 import { fetchProductBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/ui/product-gallery';
@@ -80,7 +81,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         </div>
         <div className="flex flex-col">
           <h1 className="text-3xl font-extrabold tracking-tight lg:text-4xl">
-            {product.name}
+            <Bidi>{product.name}</Bidi>
           </h1>
           <div className="mt-4">
             {product.isOnSale &&

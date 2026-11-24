@@ -1,5 +1,6 @@
 // frontend/src/components/ui/product-card.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import type { Product } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -58,7 +59,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 href={`/products/${encodeURIComponent(product.slug ?? '')}`}
                 className="after:focus-visible:ring-ring after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none after:focus-visible:ring-2"
               >
-                {product.name}
+                <Bidi>{product.name}</Bidi>
               </Link>
             </h3>
           </CardTitle>

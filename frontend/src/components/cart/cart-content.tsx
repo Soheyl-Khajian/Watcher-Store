@@ -1,6 +1,7 @@
 // frontend/src/components/layout/cart-content.tsx
 'use client';
 
+import { Bidi } from '@/components/ui/bidi';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   SheetHeader,
@@ -191,10 +192,12 @@ export function CartContent({ onClose }: CartContentProps) {
               return (
                 <li key={item.id} className="flex items-center gap-4">
                   <div className="flex-grow space-y-2">
-                    <p className="font-semibold">{product.name}</p>
+                    <p className="font-semibold">
+                      <Bidi>{product.name}</Bidi>
+                    </p>
                     <p className="text-muted-foreground text-sm">
-                      {item.quantity.toLocaleString('fa-IR')} ×{' '}
-                      {formatPrice(pricePerItem)}
+                      <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi> ×{' '}
+                      <Bidi>{formatPrice(pricePerItem)}</Bidi>
                     </p>
                     <QuantityControl
                       quantity={item.quantity}

@@ -6,6 +6,8 @@
 
 'use client';
 
+import { isolate } from '@/lib/bidi';
+import { Bidi } from '@/components/ui/bidi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -115,9 +117,11 @@ export function OrderCard({
               {order.items.map((item) => (
                 <li key={item.id} className="flex justify-between gap-4">
                   <span>
-                    {productNames.get(String(item.productId)) ??
-                      `محصول ${item.productId}`}{' '}
-                    × {item.quantity.toLocaleString('fa-IR')}
+                    <Bidi>
+                      {productNames.get(String(item.productId)) ??
+                        `محصول ${item.productId}`}
+                    </Bidi>{' '}
+                    × <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi>
                   </span>
                   <span>{formatPrice(item.price * item.quantity)}</span>
                 </li>
@@ -128,19 +132,28 @@ export function OrderCard({
           {shipping?.recipientName ? (
             <section>
               <h3 className="mb-1 font-semibold">ارسال به</h3>
-              <p>{shipping.recipientName}</p>
+              <p>
+                <Bidi>{shipping.recipientName}</Bidi>
+              </p>
               <p dir="ltr" className="text-end">
                 {shipping.phone}
               </p>
               <p>
-                {[shipping.province, shipping.city, shipping.address]
+                {[
+                  shipping.province,
+                  shipping.city,
+                  shipping.address,
+                  shipping.unit ? `واحد ${isolate(shipping.unit)}` : null,
+                  shipping.floor ? `طبقه ${isolate(shipping.floor)}` : null,
+                ]
                   .filter(Boolean)
+                  .map((part) => isolate(part as string))
                   .join('، ')}
-                {shipping.unit ? `، واحد ${shipping.unit}` : ''}
-                {shipping.floor ? `، طبقه ${shipping.floor}` : ''}
               </p>
               {shipping.postalCode ? (
-                <p>کد پستی: {shipping.postalCode}</p>
+                <p>
+                  کد پستی: <Bidi ltr>{shipping.postalCode}</Bidi>
+                </p>
               ) : null}
             </section>
           ) : null}

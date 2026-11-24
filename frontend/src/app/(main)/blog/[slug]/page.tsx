@@ -1,5 +1,6 @@
 // frontend/app/(main)/blog/[slug]/page.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { fetchPostBySlug } from '@/lib/api/payload';
 import { RichText } from '@/components/RichText';
@@ -71,10 +72,12 @@ export default async function PostPage({ params }: PageProps) {
       {/*header*/}
       <header className="mb-8">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-          {post.title}
+          <Bidi>{post.title}</Bidi>
         </h1>
         <div className="text-muted-foreground mt-4 flex items-center gap-4">
-          <span>توسط {authorName}</span>
+          <span>
+            توسط <Bidi>{authorName}</Bidi>
+          </span>
           <time dateTime={post.publishedDate}>{publishedDate}</time>
         </div>
       </header>

@@ -1,5 +1,6 @@
 // frontend/src/components/sections/articles-section.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -40,10 +41,12 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
                   </CardHeader>
                   <CardContent className="flex flex-grow flex-col p-6">
                     <CardTitle className="mb-2 text-xl font-bold">
-                      <h3>{post.title}</h3>
+                      <h3>
+                        <Bidi>{post.title}</Bidi>
+                      </h3>
                     </CardTitle>
                     <p className="text-muted-foreground flex-grow">
-                      {post.excerpt || ''}
+                      <Bidi>{post.excerpt || ''}</Bidi>
                     </p>
                     <div className="text-primary mt-4 text-sm font-bold transition-transform duration-300 group-hover:translate-x-[-4px]">
                       ادامه مطلب &larr;

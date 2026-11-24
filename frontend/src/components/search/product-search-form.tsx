@@ -29,6 +29,7 @@ export function ProductSearchForm({
         id="product-search"
         type="search"
         name="q"
+        dir="auto"
         defaultValue={defaultValue}
         maxLength={SEARCH_MAX_LENGTH}
         placeholder="دنبال چه محصولی می‌گردی؟"
