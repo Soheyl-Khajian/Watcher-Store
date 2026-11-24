@@ -4,7 +4,16 @@
 // checkout or the API.
 
 import type { MetadataRoute } from 'next';
+import { localeSettings } from '@/i18n/settings';
 import { absoluteUrl } from '@/lib/seo';
+
+const PRIVATE_PAGES = [
+  '/checkout',
+  '/profile',
+  '/payment/',
+  '/login',
+  '/register',
+];
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -13,11 +22,9 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: [
         '/api/',
-        '/checkout',
-        '/profile',
-        '/payment/',
-        '/login',
-        '/register',
+        ...localeSettings().enabledLocales.flatMap((locale) =>
+          PRIVATE_PAGES.map((page) => `/${locale}${page}`),
+        ),
       ],
     },
     sitemap: absoluteUrl('/sitemap.xml'),

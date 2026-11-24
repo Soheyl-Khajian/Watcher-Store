@@ -1,6 +1,6 @@
 // مسیر فایل: src/components/layout/footer.tsx
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Instagram, Linkedin, Send } from 'lucide-react';
 import { fetchFooter } from '@/lib/api/payload';
 import type { Footer as FooterType } from '@payload-types';

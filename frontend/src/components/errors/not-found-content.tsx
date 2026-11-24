@@ -2,7 +2,7 @@
 //
 // The 404 message, shared by the storefront's not-found pages.
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 
 export function NotFoundContent() {

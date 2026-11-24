@@ -46,7 +46,7 @@ test('a new customer buys a product and pays', async ({ page }) => {
   await page.getByLabel('رمز عبور', { exact: true }).fill(password);
   await page.getByLabel('تکرار رمز عبور').fill(password);
   await page.getByRole('button', { name: 'ثبت‌نام' }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/fa$/);
 
   // Search, and open the product.
   await page.getByLabel('جستجوی محصول').fill('دزدگیر');

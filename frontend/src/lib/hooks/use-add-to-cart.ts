@@ -6,7 +6,7 @@
 'use client';
 
 import { isolate } from '@/lib/bidi';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { addToCart } from '../api/nestjs';

@@ -57,7 +57,7 @@ test('capture the demo store', async ({ page, browser }) => {
   await page.getByLabel('رمز عبور', { exact: true }).fill(password);
   await page.getByLabel('تکرار رمز عبور').fill(password);
   await page.getByRole('button', { name: 'ثبت‌نام' }).click();
-  await page.waitForURL(/\/$/);
+  await page.waitForURL(/\/fa$/);
 
   await page.getByLabel('جستجوی محصول').fill('خورشیدی');
   await page.getByRole('button', { name: 'جستجو', exact: true }).click();

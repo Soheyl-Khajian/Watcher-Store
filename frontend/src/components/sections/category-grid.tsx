@@ -1,7 +1,7 @@
 // مسیر فایل: src/components/sections/category-grid.tsx
 
 import { Bidi } from '@/components/ui/bidi';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import type { Category } from '@/types';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils'; // cn را برای کلاس‌های شرطی وارد می‌کنیم

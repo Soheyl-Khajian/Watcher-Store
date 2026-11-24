@@ -3,7 +3,11 @@
 // Product search: a plain GET form to /products?q=..., so it works with
 // Enter, the search button, and without JavaScript.
 
+'use client';
+
 import { Search } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
+import { localizeHref } from '@/i18n/paths';
 import { Input } from '@/components/ui/input';
 import { SEARCH_MAX_LENGTH } from '@/lib/utils/search';
 import { cn } from '@/lib/utils';
@@ -15,9 +19,10 @@ export function ProductSearchForm({
   defaultValue?: string;
   className?: string;
 }) {
+  const locale = useLocale();
   return (
     <form
-      action="/products"
+      action={localizeHref(locale, '/products')}
       method="get"
       role="search"
       className={cn('relative', className)}

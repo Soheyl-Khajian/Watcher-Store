@@ -2,7 +2,7 @@
 
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { mediaSrc } from '@/lib/utils/media';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

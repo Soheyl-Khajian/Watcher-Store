@@ -9,7 +9,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
 import { fetchOrderStatus, type OrderStatus } from '@/lib/api/nestjs';

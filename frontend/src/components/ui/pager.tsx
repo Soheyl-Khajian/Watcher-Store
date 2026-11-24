@@ -4,7 +4,7 @@
 // real links only when there is somewhere to go (never href="#"), the
 // current page is marked for screen readers, and digits are Persian.
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

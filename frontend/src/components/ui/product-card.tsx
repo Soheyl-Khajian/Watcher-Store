@@ -3,7 +3,7 @@
 import { Bidi } from '@/components/ui/bidi';
 import type { Product } from '@/types';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { mediaSrc } from '@/lib/utils/media';
 import {
   Card,

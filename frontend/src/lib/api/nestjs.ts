@@ -7,6 +7,7 @@
 import type { AuthUser, Cart, Order, OrderStatus } from '@/types';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from '../csrf';
 import { useAuthStore } from '../store/auth';
+import { localizeHref, splitLocale } from '@/i18n/paths';
 import { loginPathFor } from '../utils/safe-next';
 import type { ShippingPayload } from '../validation/shipping';
 
@@ -18,14 +19,17 @@ const UNAVAILABLE_MESSAGE =
 // coming back here afterwards.
 function sessionEnded(): void {
   useAuthStore.getState().clear();
-  if (typeof window === 'undefined' || window.location.pathname === '/login') {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const { locale, path } = splitLocale(window.location.pathname);
+  if (path === '/login') {
     return;
   }
   // A full page load on purpose: this runs outside React (no router at
   // hand), and a fresh page leaves no state from the ended session behind.
-  window.location.assign(
-    loginPathFor(window.location.pathname + window.location.search),
-  );
+  const login = loginPathFor(path + window.location.search);
+  window.location.assign(locale ? localizeHref(locale, login) : login);
 }
 
 interface ApiResult {

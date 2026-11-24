@@ -1,9 +1,12 @@
 // frontend/src/app/not-found.tsx
 //
-// Addresses that match no route at all (for example /a/b/c).
+// Addresses that match no page in any language, such as /en/... on a
+// deployment that offers only Persian. Shown in the default language.
 
 import type { Metadata } from 'next';
 import { NotFoundContent } from '@/components/errors/not-found-content';
+import { DocumentShell } from '@/components/layout/document-shell';
+import { localeSettings } from '@/i18n/settings';
 
 export const metadata: Metadata = {
   title: 'صفحه پیدا نشد',
@@ -12,8 +15,10 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen items-center">
-      <NotFoundContent />
-    </main>
+    <DocumentShell locale={localeSettings().defaultLocale}>
+      <main className="flex min-h-screen items-center">
+        <NotFoundContent />
+      </main>
+    </DocumentShell>
   );
 }

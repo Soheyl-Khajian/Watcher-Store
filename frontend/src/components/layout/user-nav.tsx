@@ -3,8 +3,8 @@
 
 import { Bidi } from '@/components/ui/bidi';
 import { useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 import { loadSession, logoutUser } from '@/lib/api/nestjs';
 import { useCartRefresh } from '@/lib/hooks/use-cart-refresh';

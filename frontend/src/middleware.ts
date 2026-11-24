@@ -2,6 +2,9 @@
 //
 // Runs for every page and API route (not for build assets):
 //
+// - Language: an address without a language prefix redirects to one
+//   (i18n/routing.ts), and the language of each page visited is remembered
+//   in a cookie for the next unprefixed address.
 // - Sets a Content-Security-Policy with a fresh nonce (lib/security-headers).
 //   The other security headers are fixed and come from next.config.ts.
 // - Account pages need a logged-in customer. A visitor without a session
@@ -11,6 +14,10 @@
 //   (useRequireSession).
 
 import { NextResponse, type NextRequest } from 'next/server';
+import { LOCALE_COOKIE } from './i18n/config';
+import { localizeHref } from './i18n/paths';
+import { routeLocale } from './i18n/routing';
+import { localeSettings } from './i18n/settings';
 import {
   contentSecurityPolicy,
   createNonce,
@@ -21,6 +28,7 @@ import { sessionCookieFor } from './lib/session-cookie';
 import { loginPathFor } from './lib/utils/safe-next';
 
 const CSP_HEADER = 'Content-Security-Policy';
+const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function middleware(request: NextRequest): NextResponse {
   const frontendOrigin = new URL(
@@ -37,15 +45,35 @@ export function middleware(request: NextRequest): NextResponse {
     payloadOrigin,
     upgradeInsecureRequests: frontendOrigin.startsWith('https://'),
   });
-
-  const { pathname, search } = request.nextUrl;
-  const { name } = sessionCookieFor(frontendOrigin);
-  if (requiresSession(pathname) && !request.cookies.get(name)?.value) {
+  const redirectTo = (location: string, status: 307 | 308) => {
     const redirect = NextResponse.redirect(
-      new URL(loginPathFor(pathname + search), request.url),
+      new URL(location, request.url),
+      status,
     );
     redirect.headers.set(CSP_HEADER, csp);
     return redirect;
+  };
+
+  const { pathname, search } = request.nextUrl;
+  const route = routeLocale(
+    pathname,
+    search,
+    localeSettings(),
+    request.cookies.get(LOCALE_COOKIE)?.value,
+  );
+  if (route.kind === 'redirect') {
+    // Permanent: the unprefixed addresses of before keep their links.
+    return redirectTo(route.location, 308);
+  }
+
+  if (route.kind === 'page') {
+    const { name } = sessionCookieFor(frontendOrigin);
+    if (requiresSession(route.path) && !request.cookies.get(name)?.value) {
+      return redirectTo(
+        localizeHref(route.locale, loginPathFor(route.path + search)),
+        307,
+      );
+    }
   }
 
   // Next.js takes the nonce for its own scripts from the request's copy of
@@ -55,6 +83,19 @@ export function middleware(request: NextRequest): NextResponse {
   requestHeaders.set(NONCE_HEADER, nonce);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set(CSP_HEADER, csp);
+
+  if (
+    route.kind === 'page' &&
+    request.cookies.get(LOCALE_COOKIE)?.value !== route.locale
+  ) {
+    response.cookies.set(LOCALE_COOKIE, route.locale, {
+      path: '/',
+      maxAge: ONE_YEAR,
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: frontendOrigin.startsWith('https://'),
+    });
+  }
   return response;
 }
 

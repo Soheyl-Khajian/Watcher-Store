@@ -1,7 +1,7 @@
 // مسیر فایل: src/app/(main)/products/page.tsx
 import { isolate } from '@/lib/bidi';
 import { Bidi } from '@/components/ui/bidi';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { fetchAllProducts } from '@/lib/api/payload';
 import { ProductSearchForm } from '@/components/search/product-search-form';
 import { normalizeSearchQuery } from '@/lib/utils/search';

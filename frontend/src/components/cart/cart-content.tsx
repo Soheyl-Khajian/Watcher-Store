@@ -9,7 +9,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 import { fetchCart, removeFromCart, setCartQuantity } from '@/lib/api/nestjs';
 import { QuantityControl } from '@/components/cart/quantity-control';

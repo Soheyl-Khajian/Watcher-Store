@@ -3,8 +3,8 @@
 'use client';
 
 import { Bidi } from '@/components/ui/bidi';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import {
   useEffect,
   useMemo,

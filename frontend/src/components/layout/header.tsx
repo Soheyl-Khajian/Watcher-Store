@@ -1,5 +1,5 @@
 // مسیر فایل: src/components/layout/header.tsx
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Menu } from 'lucide-react';
 
 import {

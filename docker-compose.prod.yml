@@ -245,6 +245,9 @@ services:
       # (it reports the customer's address to Nest's rate limits), 0 when
       # browsers reach port 3002 directly.
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-0}
+      # Languages offered, and the one bare addresses open in.
+      DEFAULT_LOCALE: ${DEFAULT_LOCALE:-fa}
+      ENABLED_LOCALES: ${ENABLED_LOCALES:-}
     depends_on:
       payload-cms:
         condition: service_healthy
