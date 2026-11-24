@@ -15,8 +15,17 @@ export default function MainLayout({
 }>) {
   return (
     <div className="flex min-h-screen flex-col">
+      {/* First stop for the keyboard: past the header to the content. */}
+      <a
+        href="#main"
+        className="bg-background focus:ring-ring sr-only z-[60] rounded-md px-4 py-2 font-medium focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:ring-2"
+      >
+        رفتن به محتوای اصلی
+      </a>
       <Header />
-      <main className="flex-grow">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-grow outline-none">
+        {children}
+      </main>
       <Footer />
     </div>
   );

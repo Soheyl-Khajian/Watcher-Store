@@ -73,10 +73,17 @@ function orderErrorMessage(
   return 'خطا در ثبت سفارش. لطفاً دوباره تلاش کنید.';
 }
 
+// Format hints, shown under the field and read with it.
+const HINTS: Partial<Record<ShippingField, string>> = {
+  phone: '۱۱ رقم، با ۰۹ شروع می‌شود.',
+  postalCode: '۱۰ رقم، بدون خط تیره.',
+};
+
 function FormField({
   id,
   label,
   required,
+  hint,
   error,
   className,
   children,
@@ -84,6 +91,7 @@ function FormField({
   id: string;
   label: string;
   required?: boolean;
+  hint?: string;
   error?: string;
   className?: string;
   children: ReactNode;
@@ -101,6 +109,11 @@ function FormField({
         )}
       </Label>
       {children}
+      {hint ? (
+        <p id={`${id}-hint`} className="text-muted-foreground text-sm">
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <p id={`${id}-error`} className="text-destructive text-sm">
           {error}
@@ -189,7 +202,13 @@ export default function CheckoutPage() {
     disabled: isProcessing,
     maxLength: SHIPPING_MAX_LENGTH[field],
     'aria-invalid': errors[field] ? true : undefined,
-    'aria-describedby': errors[field] ? `shipping-${field}-error` : undefined,
+    'aria-describedby':
+      [
+        HINTS[field] && `shipping-${field}-hint`,
+        errors[field] && `shipping-${field}-error`,
+      ]
+        .filter(Boolean)
+        .join(' ') || undefined,
   });
 
   const startPayment = async (orderId: number) => {
@@ -307,8 +326,9 @@ export default function CheckoutPage() {
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="container mx-auto max-w-2xl space-y-6 py-12"
+      className="container mx-auto max-w-2xl space-y-6 px-4 py-12"
     >
+      <h1 className="text-3xl font-bold">تسویه حساب</h1>
       <Card>
         <CardHeader>
           <CardTitle>اطلاعات ارسال</CardTitle>
@@ -327,6 +347,7 @@ export default function CheckoutPage() {
             id="shipping-phone"
             label="شماره موبایل"
             required
+            hint={HINTS.phone}
             error={errors.phone}
           >
             <Input
@@ -334,7 +355,6 @@ export default function CheckoutPage() {
               dir="ltr"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="09123456789"
             />
           </FormField>
 
@@ -374,6 +394,7 @@ export default function CheckoutPage() {
             id="shipping-postalCode"
             label="کد پستی"
             required
+            hint={HINTS.postalCode}
             error={errors.postalCode}
           >
             <Input
@@ -381,7 +402,6 @@ export default function CheckoutPage() {
               dir="ltr"
               inputMode="numeric"
               autoComplete="postal-code"
-              placeholder="1234567890"
             />
           </FormField>
 
