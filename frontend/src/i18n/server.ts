@@ -6,7 +6,9 @@
 
 import { headers } from 'next/headers';
 import { isLocale, LOCALE_HEADER, type Locale } from './config';
+import { messagesFor } from './catalog';
 import { createFormatter, type Formatter } from './format';
+import { createTranslator, type Translate } from './messages';
 import { localeSettings } from './settings';
 
 export async function getLocale(): Promise<Locale> {
@@ -16,4 +18,13 @@ export async function getLocale(): Promise<Locale> {
 
 export async function getFormatter(): Promise<Formatter> {
   return createFormatter(await getLocale(), localeSettings().timeZone);
+}
+
+export async function getT(): Promise<Translate> {
+  const locale = await getLocale();
+  return createTranslator(
+    locale,
+    messagesFor(locale),
+    createFormatter(locale, localeSettings().timeZone),
+  );
 }

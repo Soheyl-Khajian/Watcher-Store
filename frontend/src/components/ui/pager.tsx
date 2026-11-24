@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useFormatter } from '@/i18n/client';
+import { useFormatter, useT } from '@/i18n/client';
 import { Link } from '@/i18n/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
@@ -31,6 +31,7 @@ export function Pager({
   href: string;
 }) {
   const format = useFormatter();
+  const t = useT();
   const faNumber = format.digits;
   const hrefFor = (p: number) => pageHref(href, p);
   if (totalPages <= 1) {
@@ -41,19 +42,19 @@ export function Pager({
   const disabledClass = cn(stepClass, 'pointer-events-none opacity-40');
 
   return (
-    <nav aria-label="صفحه‌بندی" className="mx-auto flex justify-center">
+    <nav aria-label={t('pager.label')} className="mx-auto flex justify-center">
       <ul className="flex flex-wrap items-center justify-center gap-1">
         <li>
           {current > 1 ? (
             <Link href={hrefFor(current - 1)} rel="prev" className={stepClass}>
               {/* Right-to-left: "previous" points right. */}
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              قبلی
+              {t('pager.previous')}
             </Link>
           ) : (
             <span aria-disabled="true" className={disabledClass}>
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              قبلی
+              {t('pager.previous')}
             </span>
           )}
         </li>
@@ -78,7 +79,7 @@ export function Pager({
               ) : (
                 <Link
                   href={hrefFor(item)}
-                  aria-label={`صفحه ${faNumber(item)}`}
+                  aria-label={t('pager.page', { number: item })}
                   className={buttonVariants({ variant: 'ghost', size: 'icon' })}
                 >
                   {faNumber(item)}
@@ -91,12 +92,12 @@ export function Pager({
         <li>
           {current < totalPages ? (
             <Link href={hrefFor(current + 1)} rel="next" className={stepClass}>
-              بعدی
+              {t('pager.next')}
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Link>
           ) : (
             <span aria-disabled="true" className={disabledClass}>
-              بعدی
+              {t('pager.next')}
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </span>
           )}

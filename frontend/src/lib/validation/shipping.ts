@@ -1,7 +1,10 @@
 // frontend/src/lib/validation/shipping.ts
 
 // Mirrors the server-side rules in the Nest ShippingDetailsDto. The server is
-// authoritative; this only gives users immediate feedback.
+// authoritative; this only gives users immediate feedback, as messages
+// worded in the page's language.
+
+import type { MessageRef, Messages } from '@/i18n/messages';
 
 export interface ShippingFormValues {
   recipientName: string;
@@ -16,7 +19,7 @@ export interface ShippingFormValues {
 }
 
 export type ShippingField = keyof ShippingFormValues;
-export type ShippingErrors = Partial<Record<ShippingField, string>>;
+export type ShippingErrors = Partial<Record<ShippingField, MessageRef>>;
 
 export interface ShippingPayload {
   recipientName: string;
@@ -77,31 +80,37 @@ export function normalizeDigits(value: string): string {
   });
 }
 
-const faNumber = (value: number) =>
-  new Intl.NumberFormat('fa-IR').format(value);
+type FieldName = keyof Messages['validation']['fields'];
 
 function requiredText(
   value: string,
-  label: string,
+  field: FieldName,
   min: number,
   max: number,
-): string | undefined {
+): MessageRef | undefined {
+  const label: MessageRef = { key: `validation.fields.${field}` };
   if (value.length === 0) {
-    return `${label} را وارد کنید.`;
+    return { key: 'validation.required', values: { field: label } };
   }
   if (value.length < min || value.length > max) {
-    return `${label} باید بین ${faNumber(min)} تا ${faNumber(max)} نویسه باشد.`;
+    return {
+      key: 'validation.length',
+      values: { field: label, min, max },
+    };
   }
   return undefined;
 }
 
 function optionalText(
   value: string,
-  label: string,
+  field: FieldName,
   max: number,
-): string | undefined {
+): MessageRef | undefined {
   if (value.length > max) {
-    return `${label} نباید بیشتر از ${faNumber(max)} نویسه باشد.`;
+    return {
+      key: 'validation.tooLong',
+      values: { field: { key: `validation.fields.${field}` }, max },
+    };
   }
   return undefined;
 }
@@ -128,31 +137,26 @@ export function validateShipping(
 
   const errors: ShippingErrors = {};
 
-  errors.recipientName = requiredText(
-    recipientName,
-    'نام و نام خانوادگی گیرنده',
-    2,
-    100,
-  );
-  errors.province = requiredText(province, 'استان', 2, 50);
-  errors.city = requiredText(city, 'شهر', 2, 50);
-  errors.address = requiredText(address, 'نشانی', 10, 500);
+  errors.recipientName = requiredText(recipientName, 'recipientName', 2, 100);
+  errors.province = requiredText(province, 'province', 2, 50);
+  errors.city = requiredText(city, 'city', 2, 50);
+  errors.address = requiredText(address, 'address', 10, 500);
 
   if (phone.length === 0) {
-    errors.phone = 'شماره موبایل را وارد کنید.';
+    errors.phone = { key: 'validation.phoneRequired' };
   } else if (!/^09\d{9}$/.test(phone)) {
-    errors.phone = 'شماره موبایل معتبر نیست. نمونه: ۰۹۱۲۳۴۵۶۷۸۹';
+    errors.phone = { key: 'validation.phoneInvalid' };
   }
 
   if (postalCode.length === 0) {
-    errors.postalCode = 'کد پستی را وارد کنید.';
+    errors.postalCode = { key: 'validation.postalCodeRequired' };
   } else if (!/^\d{10}$/.test(postalCode)) {
-    errors.postalCode = 'کد پستی باید ۱۰ رقم باشد.';
+    errors.postalCode = { key: 'validation.postalCodeInvalid' };
   }
 
-  errors.unit = optionalText(unit, 'واحد', 20);
-  errors.floor = optionalText(floor, 'طبقه', 20);
-  errors.deliveryNotes = optionalText(deliveryNotes, 'توضیحات تحویل', 500);
+  errors.unit = optionalText(unit, 'unit', 20);
+  errors.floor = optionalText(floor, 'floor', 20);
+  errors.deliveryNotes = optionalText(deliveryNotes, 'deliveryNotes', 500);
 
   const cleaned = Object.fromEntries(
     Object.entries(errors).filter(([, message]) => message !== undefined),

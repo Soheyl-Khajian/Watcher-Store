@@ -1,6 +1,9 @@
-// frontend/src/components/ui/stock-note.tsx -> "۱۲ عدد در انبار",
-// "فقط ۲ عدد ... باقی مانده" or "ناموجود" (lib/stock.ts).
+// frontend/src/components/ui/stock-note.tsx -> "12 in stock", "Only 2
+// left" or "Out of stock", in the page's language (lib/stock.ts).
 
+'use client';
+
+import { useT } from '@/i18n/client';
 import { cn } from '@/lib/utils';
 import { stockLabel, stockLevel } from '@/lib/stock';
 
@@ -17,9 +20,10 @@ export function StockNote({
   stock: number;
   className?: string;
 }) {
+  const t = useT();
   return (
     <p className={cn('text-sm', TONE[stockLevel(stock)], className)}>
-      {stockLabel(stock)}
+      {t.ref(stockLabel(stock))}
     </p>
   );
 }

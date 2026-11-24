@@ -2,22 +2,29 @@
 //
 // What search engines and link previews learn about the shop's pages.
 
+import type { Locale } from '@/i18n/config';
+import { getLocale, getT } from '@/i18n/server';
 import { env } from './env';
 import { mediaSrc } from './utils/media';
 
-export const SITE_NAME = 'فروشگاه امنیتی واچر';
-export const SITE_DESCRIPTION =
-  'خرید آنلاین انواع دوربین مداربسته، پنل خورشیدی، تجهیزات خانه هوشمند و سیستم‌های کنترل تردد با بهترین قیمت و ضمانت اصالت کالا از فروشگاه واچر.';
-
 // The storefront's public address; absolute URLs (canonical links, the
 // sitemap, Open Graph) are built on it.
-// Open Graph fields every page needs. A page's openGraph replaces the
-// layout's entirely (Next.js does not merge it), so pages spread this in.
-export const OPEN_GRAPH_DEFAULTS = {
-  type: 'website',
-  locale: 'fa_IR',
-  siteName: SITE_NAME,
-} as const;
+const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
+  fa: 'fa_IR',
+  en: 'en_US',
+};
+
+// Open Graph fields every page needs, in the page's language. A page's
+// openGraph replaces the layout's entirely (Next.js does not merge it), so
+// pages spread this in.
+export async function openGraphDefaults() {
+  const [locale, t] = await Promise.all([getLocale(), getT()]);
+  return {
+    type: 'website',
+    locale: OPEN_GRAPH_LOCALES[locale],
+    siteName: t('site.name'),
+  } as const;
+}
 
 export function siteUrl(): URL {
   return new URL(env.NEXT_PUBLIC_FRONTEND_URL ?? 'http://localhost:3002');

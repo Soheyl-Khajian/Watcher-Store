@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { inPersian } from '@/test/i18n';
 import type { Order } from '@/types';
 import {
   canCancel,
@@ -30,11 +31,15 @@ function order(overrides: Partial<Order> = {}): Order {
 
 describe('order descriptions', () => {
   it('labels every status in Persian', () => {
-    expect(orderStatusLabel('pending')).toBe('در انتظار پرداخت');
-    expect(orderStatusLabel('processing')).toBe('در حال پردازش');
-    expect(orderStatusLabel('shipped')).toBe('ارسال‌شده');
-    expect(orderStatusLabel('completed')).toBe('تکمیل‌شده');
-    expect(orderStatusLabel('cancelled')).toBe('لغوشده');
+    const label = (status: string) => {
+      const result = orderStatusLabel(status);
+      return typeof result === 'string' ? result : inPersian(result);
+    };
+    expect(label('pending')).toBe('در انتظار پرداخت');
+    expect(label('processing')).toBe('در حال پردازش');
+    expect(label('shipped')).toBe('ارسال‌شده');
+    expect(label('completed')).toBe('تکمیل‌شده');
+    expect(label('cancelled')).toBe('لغوشده');
   });
 
   it('shows an unknown status as is', () => {
@@ -43,18 +48,22 @@ describe('order descriptions', () => {
 
   it('explains why an order was cancelled', () => {
     expect(
-      cancelReasonText(order({ status: 'cancelled', cancelReason: 'expired' })),
+      inPersian(
+        cancelReasonText(
+          order({ status: 'cancelled', cancelReason: 'expired' }),
+        ),
+      ),
     ).toContain('مهلت');
     expect(cancelReasonText(order())).toBeNull();
   });
 
   it('tells the customer about refunds', () => {
-    expect(refundText(order({ refundStatus: 'required' }))).toContain(
-      'بازگردانده می‌شود',
-    );
-    expect(refundText(order({ refundStatus: 'refunded' }))).toContain(
-      'بازگردانده شد',
-    );
+    expect(
+      inPersian(refundText(order({ refundStatus: 'required' }))),
+    ).toContain('بازگردانده می‌شود');
+    expect(
+      inPersian(refundText(order({ refundStatus: 'refunded' }))),
+    ).toContain('بازگردانده شد');
     expect(refundText(order())).toBeNull();
   });
 });

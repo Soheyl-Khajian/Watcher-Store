@@ -1,4 +1,4 @@
-// frontend/src/app/(main)/payment/result/payment-result-client.tsx
+// frontend/src/app/[locale]/(main)/payment/result/payment-result-client.tsx
 //
 // Shows the order's status as the server records it, never a status from
 // the URL: the API verified the payment with the gateway before sending
@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useFormatter } from '@/i18n/client';
+import { useFormatter, useT } from '@/i18n/client';
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -43,6 +43,7 @@ export default function PaymentResultClient() {
   const orderId = searchParams.get('orderId');
   const [outcome, setOutcome] = useState<Outcome>('loading');
   const format = useFormatter();
+  const t = useT();
   const [stillChecking, setStillChecking] = useState(false);
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function PaymentResultClient() {
   if (outcome === 'loading') {
     return (
       <div className="container mx-auto py-24 text-center" role="status">
-        در حال بررسی اطلاعات پرداخت...
+        {t('payment.checking')}
       </div>
     );
   }
@@ -90,25 +91,25 @@ export default function PaymentResultClient() {
   const view = {
     paid: {
       icon: <CheckCircle className="mb-4 h-16 w-16 text-green-500" />,
-      title: 'پرداخت موفق',
-      text: `پرداخت سفارش شماره ${number} تأیید شد.`,
+      title: t('payment.paidTitle'),
+      text: t('payment.paidText', { number }),
     },
     failed: {
       icon: <XCircle className="mb-4 h-16 w-16 text-red-500" />,
-      title: 'پرداخت ناموفق',
-      text: 'پرداخت انجام نشد و سفارش لغو شد.',
+      title: t('payment.failedTitle'),
+      text: t('payment.failedText'),
     },
     pending: {
       icon: <Clock className="mb-4 h-16 w-16 text-amber-500" />,
-      title: 'پرداخت در انتظار تأیید',
+      title: t('payment.pendingTitle'),
       text: stillChecking
-        ? 'در حال دریافت تأیید از درگاه پرداخت...'
-        : 'هنوز تأییدی از درگاه پرداخت دریافت نشده است. وضعیت سفارش را چند دقیقه بعد در حساب کاربری خود ببینید.',
+        ? t('payment.pendingChecking')
+        : t('payment.pendingLater'),
     },
     unknown: {
       icon: <XCircle className="mb-4 h-16 w-16 text-red-500" />,
-      title: 'پرداخت یافت نشد',
-      text: 'اطلاعات این پرداخت پیدا نشد.',
+      title: t('payment.notFoundTitle'),
+      text: t('payment.notFoundText'),
     },
   }[outcome];
 
@@ -122,7 +123,7 @@ export default function PaymentResultClient() {
       <h1 className="text-2xl font-bold">{view.title}</h1>
       <p className="text-muted-foreground mt-2">{view.text}</p>
       <Link href="/profile" className="text-primary mt-6 underline">
-        مشاهده سفارش‌ها
+        {t('payment.viewOrders')}
       </Link>
     </div>
   );

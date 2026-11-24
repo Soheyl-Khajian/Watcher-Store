@@ -1,6 +1,7 @@
-// src/app/(auth)/register/page.tsx
+// frontend/src/app/[locale]/(auth)/register/page.tsx
 'use client';
 
+import { useT } from '@/i18n/client';
 import { Suspense, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import {
@@ -28,6 +29,7 @@ const FIELD_ORDER: (keyof RegistrationForm)[] = [
 ];
 
 function RegisterForm() {
+  const t = useT();
   const [form, setForm] = useState<RegistrationForm>({
     email: '',
     password: '',
@@ -75,13 +77,13 @@ function RegisterForm() {
     // Straight in: no need to type the same password twice more.
     const loggedIn = await loginUser(credentials);
     if (loggedIn.ok) {
-      toast.success('حساب کاربری شما ساخته شد. خوش آمدید!');
+      toast.success(t('auth.registered'));
       await finishLogin(loggedIn.user);
       return;
     }
 
     // The account exists; only the automatic login failed.
-    toast.success('حساب کاربری شما ساخته شد. لطفاً وارد شوید.');
+    toast.success(t('auth.registeredPleaseLogin'));
     setError(loggedIn.message);
     setIsSubmitting(false);
   };
@@ -90,7 +92,7 @@ function RegisterForm() {
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <AuthAlert message={error} />
 
-      <AuthField id="email" label="ایمیل" error={errors.email}>
+      <AuthField id="email" label={t('auth.email')} error={errors.email}>
         <Input
           {...fieldA11y('email', errors.email)}
           type="email"
@@ -106,7 +108,11 @@ function RegisterForm() {
         />
       </AuthField>
 
-      <AuthField id="password" label="رمز عبور" error={errors.password}>
+      <AuthField
+        id="password"
+        label={t('auth.password')}
+        error={errors.password}
+      >
         <Input
           {...fieldA11y('password', errors.password)}
           type="password"
@@ -123,7 +129,7 @@ function RegisterForm() {
 
       <AuthField
         id="confirmPassword"
-        label="تکرار رمز عبور"
+        label={t('auth.confirmPassword')}
         error={errors.confirmPassword}
       >
         <Input
@@ -146,23 +152,24 @@ function RegisterForm() {
         disabled={isSubmitting}
         aria-busy={isSubmitting}
       >
-        {isSubmitting ? 'در حال ساخت حساب...' : 'ثبت‌نام'}
+        {isSubmitting ? t('auth.registering') : t('auth.registerSubmit')}
       </Button>
 
       <p className="text-muted-foreground text-center text-sm">
-        قبلاً ثبت‌نام کرده‌اید؟{' '}
-        <AuthSwitchLink href="/login">وارد شوید</AuthSwitchLink>
+        {t('auth.haveAccount')}{' '}
+        <AuthSwitchLink href="/login">{t('auth.toLogin')}</AuthSwitchLink>
       </p>
     </form>
   );
 }
 
 export default function RegisterPage() {
+  const t = useT();
   return (
     <div className="bg-muted/40 flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>ساخت حساب کاربری جدید</CardTitle>
+          <CardTitle>{t('auth.registerTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Suspense fallback={null}>

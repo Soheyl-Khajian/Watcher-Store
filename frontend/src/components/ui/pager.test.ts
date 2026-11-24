@@ -1,20 +1,15 @@
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { I18nProvider } from '@/i18n/client';
+import { renderIn } from '@/test/i18n';
 import { Pager } from './pager';
 
 const render = (page: number, totalPages: number) =>
-  renderToStaticMarkup(
-    createElement(
-      I18nProvider,
-      { locale: 'fa', enabledLocales: ['fa'] },
-      createElement(Pager, {
-        page,
-        totalPages,
-        href: '/products',
-      }),
-    ),
+  renderIn(
+    createElement(Pager, {
+      page,
+      totalPages,
+      href: '/products',
+    }),
   );
 
 describe('Pager', () => {

@@ -1,6 +1,5 @@
-// مسیر فایل: src/app/(main)/products/page.tsx
-import { getFormatter } from '@/i18n/server';
-import { isolate } from '@/lib/bidi';
+// frontend/src/app/[locale]/(main)/products/page.tsx
+import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import { Link } from '@/i18n/navigation';
 import { fetchAllProducts } from '@/lib/api/payload';
@@ -17,12 +16,19 @@ export async function generateMetadata({
   searchParams?: Promise<{ q?: string; onSale?: string }>;
 }): Promise<Metadata> {
   const awaited = await searchParams;
+  const t = await getT();
   if (normalizeSearchQuery(awaited?.q)) {
-    return { title: 'جستجوی محصولات', robots: { index: false } };
+    return { title: t('products.searchTitle'), robots: { index: false } };
   }
   return awaited?.onSale === 'true'
-    ? { title: 'فروش ویژه', alternates: { canonical: '/products?onSale=true' } }
-    : { title: 'همه محصولات', alternates: { canonical: '/products' } };
+    ? {
+        title: t('products.specialsTitle'),
+        alternates: { canonical: '/products?onSale=true' },
+      }
+    : {
+        title: t('products.allTitle'),
+        alternates: { canonical: '/products' },
+      };
 }
 
 export default async function AllProductsPage({
@@ -40,12 +46,12 @@ export default async function AllProductsPage({
   const products = data?.docs || [];
   const totalPages = data?.totalPages || 1;
   const totalDocs: number = data?.totalDocs ?? 0;
-  const format = await getFormatter();
+  const t = await getT();
   const pageTitle = search
-    ? `نتایج جستجو برای «${isolate(search)}»`
+    ? t('products.searchHeading', { query: search })
     : onSale
-      ? 'محصولات در فروش ویژه'
-      : 'همه محصولات';
+      ? t('products.specialsHeading')
+      : t('products.allTitle');
 
   // The listing's address without its page; the pager adds that.
   const listHref = (() => {
@@ -67,7 +73,7 @@ export default async function AllProductsPage({
           <h1 className="text-4xl font-bold">{pageTitle}</h1>
           {search && products.length > 0 ? (
             <p className="text-muted-foreground mt-2" role="status">
-              {format.number(totalDocs)} محصول پیدا شد
+              {t('products.found', { count: totalDocs })}
             </p>
           ) : null}
         </div>
@@ -93,17 +99,17 @@ export default async function AllProductsPage({
           {search ? (
             <>
               <p>
-                محصولی با عبارت «<Bidi>{search}</Bidi>» پیدا نشد.
+                {t.rich('products.noMatch', { query: <Bidi>{search}</Bidi> })}
               </p>
               <Link
                 href="/products"
                 className="text-primary mt-2 inline-block underline"
               >
-                مشاهده همه محصولات
+                {t('products.viewAll')}
               </Link>
             </>
           ) : (
-            <p>محصولی برای نمایش یافت نشد.</p>
+            <p>{t('products.none')}</p>
           )}
         </div>
       )}

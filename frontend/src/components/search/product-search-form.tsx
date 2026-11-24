@@ -6,7 +6,7 @@
 'use client';
 
 import { Search } from 'lucide-react';
-import { useLocale } from '@/i18n/client';
+import { useLocale, useT } from '@/i18n/client';
 import { localizeHref } from '@/i18n/paths';
 import { Input } from '@/components/ui/input';
 import { SEARCH_MAX_LENGTH } from '@/lib/utils/search';
@@ -20,6 +20,7 @@ export function ProductSearchForm({
   className?: string;
 }) {
   const locale = useLocale();
+  const t = useT();
   return (
     <form
       action={localizeHref(locale, '/products')}
@@ -28,7 +29,7 @@ export function ProductSearchForm({
       className={cn('relative', className)}
     >
       <label htmlFor="product-search" className="sr-only">
-        جستجوی محصول
+        {t('search.label')}
       </label>
       <Input
         id="product-search"
@@ -36,12 +37,12 @@ export function ProductSearchForm({
         name="q"
         defaultValue={defaultValue}
         maxLength={SEARCH_MAX_LENGTH}
-        placeholder="دنبال چه محصولی می‌گردی؟"
+        placeholder={t('search.placeholder')}
         className="h-12 rounded-full ps-4 pe-12 text-base"
       />
       <button
         type="submit"
-        aria-label="جستجو"
+        aria-label={t('search.submit')}
         className="text-muted-foreground hover:text-foreground absolute inset-y-0 end-0 flex items-center px-4"
       >
         <Search className="h-5 w-5" aria-hidden="true" />

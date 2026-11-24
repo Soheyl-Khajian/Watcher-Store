@@ -1,7 +1,7 @@
-// src/app/(main)/profile/page.tsx
+// frontend/src/app/[locale]/(main)/profile/page.tsx
 'use client';
 
-import { useFormatter } from '@/i18n/client';
+import { useFormatter, useT } from '@/i18n/client';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ function OrderHistory() {
   const [productNames, setProductNames] = useState(new Map<string, string>());
   const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
   const format = useFormatter();
+  const t = useT();
 
   const load = useCallback(async () => {
     const result = await fetchOrdersPage(page);
@@ -62,17 +63,17 @@ function OrderHistory() {
       window.location.href = payment.paymentUrl;
       return;
     }
-    toast.error('اتصال به درگاه پرداخت ممکن نشد. لطفاً دوباره تلاش کنید.');
+    toast.error(t('profile.gatewayFailed'));
     setBusyOrderId(null);
   };
 
   const cancel = async (order: Order) => {
     const number = format.digits(order.id);
-    if (!window.confirm(`سفارش #${number} لغو شود؟`)) return;
+    if (!window.confirm(t('profile.confirmCancel', { number }))) return;
     setBusyOrderId(order.id);
     const result = await cancelOrder(order.id);
     if (result.ok) {
-      toast.success('سفارش لغو شد.');
+      toast.success(t('profile.cancelled'));
       await load();
     } else {
       toast.error(result.message);
@@ -81,24 +82,24 @@ function OrderHistory() {
   };
 
   if (!orders && !failed) {
-    return <p role="status">در حال بارگذاری تاریخچه سفارشات...</p>;
+    return <p role="status">{t('profile.loading')}</p>;
   }
   if (failed || !orders) {
     return (
       <div role="alert" className="space-y-3">
-        <p>دریافت سفارش‌ها ممکن نشد.</p>
+        <p>{t('profile.failed')}</p>
         <button
           type="button"
           className="text-primary underline"
           onClick={() => void load()}
         >
-          تلاش دوباره
+          {t('common.retry')}
         </button>
       </div>
     );
   }
   if (orders.items.length === 0) {
-    return <p>شما تاکنون هیچ سفارشی ثبت نکرده‌اید.</p>;
+    return <p>{t('profile.none')}</p>;
   }
 
   return (
@@ -127,15 +128,16 @@ function OrderHistory() {
 }
 
 export default function ProfilePage() {
+  const t = useT();
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
-      <h1 className="mb-8 text-3xl font-bold">پروفایل من</h1>
+      <h1 className="mb-8 text-3xl font-bold">{t('profile.title')}</h1>
       <Card>
         <CardHeader>
-          <CardTitle>تاریخچه سفارشات</CardTitle>
+          <CardTitle>{t('profile.history')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<p role="status">در حال بارگذاری...</p>}>
+          <Suspense fallback={<p role="status">{t('common.loading')}</p>}>
             <OrderHistory />
           </Suspense>
         </CardContent>

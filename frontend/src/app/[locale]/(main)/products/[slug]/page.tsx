@@ -1,5 +1,5 @@
 import { Bidi } from '@/components/ui/bidi';
-import { getFormatter } from '@/i18n/server';
+import { getFormatter, getT } from '@/i18n/server';
 import { fetchProductBySlug } from '@/lib/api/payload';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/ui/product-gallery';
@@ -15,8 +15,7 @@ import {
   mediaImage,
   plainText,
   productJsonLd,
-  SITE_NAME,
-  OPEN_GRAPH_DEFAULTS,
+  openGraphDefaults,
 } from '@/lib/seo';
 
 type PageProps = {
@@ -35,15 +34,20 @@ export async function generateMetadata({
     return {};
   }
   const path = `/products/${encodeURIComponent(product.slug ?? slug)}`;
+  const t = await getT();
   const description =
-    plainText(product.description) || `خرید ${product.name} از ${SITE_NAME}`;
+    plainText(product.description) ||
+    t.plain('products.metaDescription', {
+      name: product.name,
+      site: t('site.name'),
+    });
   const image = mediaImage(product.gallery?.[0]?.image);
   return {
     title: product.name,
     description,
     alternates: { canonical: path },
     openGraph: {
-      ...OPEN_GRAPH_DEFAULTS,
+      ...(await openGraphDefaults()),
       url: path,
       title: product.name,
       description,
@@ -53,7 +57,7 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetailsPage({ params }: PageProps) {
-  const format = await getFormatter();
+  const [format, t] = await Promise.all([getFormatter(), getT()]);
   const { slug } = await params;
   const product: Product | null = await fetchProductBySlug(slug);
 
@@ -102,7 +106,9 @@ export default async function ProductDetailsPage({ params }: PageProps) {
 
           {product.features && product.features.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-lg font-semibold">ویژگی‌های کلیدی:</h3>
+              <h3 className="text-lg font-semibold">
+                {t('products.keyFeatures')}
+              </h3>
               <ul className="mt-2 space-y-2">
                 {(product.features || []).map((item) => (
                   <li key={item.id} className="flex items-center gap-2">
@@ -129,7 +135,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         {product.specifications && product.specifications.length > 0 && (
           <section>
             <h2 className="mb-4 border-b pb-2 text-2xl font-bold">
-              مشخصات فنی
+              {t('products.specifications')}
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-start">
@@ -150,7 +156,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         {product.description && (
           <section className="mt-12">
             <h2 className="mb-4 border-b pb-2 text-2xl font-bold">
-              نقد و بررسی
+              {t('products.review')}
             </h2>
             <div className="prose prose-lg dark:prose-invert max-w-none">
               <RichText content={product.description} />

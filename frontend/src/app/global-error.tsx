@@ -6,6 +6,9 @@
 'use client';
 
 import { useEffect } from 'react';
+import { messagesFor } from '@/i18n/catalog';
+import { LOCALE_INFO } from '@/i18n/config';
+import { splitLocale } from '@/i18n/paths';
 
 export default function GlobalError({
   error,
@@ -19,8 +22,16 @@ export default function GlobalError({
     console.error(error);
   }, [error]);
 
+  // Nothing else is left to ask, so the address tells the language.
+  const locale =
+    (typeof window !== 'undefined' &&
+      splitLocale(window.location.pathname).locale) ||
+    'fa';
+  const { errors, common } = messagesFor(locale);
+  const { tag, dir } = LOCALE_INFO[locale];
+
   return (
-    <html lang="fa" dir="rtl">
+    <html lang={tag} dir={dir}>
       <body
         style={{
           margin: 0,
@@ -34,14 +45,14 @@ export default function GlobalError({
         }}
       >
         <div role="alert">
-          <h1>خطای غیرمنتظره‌ای رخ داد</h1>
-          <p>لطفاً صفحه را دوباره بارگذاری کنید.</p>
+          <h1>{errors.unexpectedTitle}</h1>
+          <p>{errors.unexpectedText}</p>
           <button
             type="button"
             onClick={reset}
             style={{ padding: '0.5rem 1.5rem', cursor: 'pointer' }}
           >
-            تلاش دوباره
+            {common.retry}
           </button>
         </div>
       </body>

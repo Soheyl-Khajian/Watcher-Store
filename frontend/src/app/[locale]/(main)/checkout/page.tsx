@@ -1,8 +1,9 @@
-// frontend/src/app/(main)/checkout/page.tsx
+// frontend/src/app/[locale]/(main)/checkout/page.tsx
 
 'use client';
 
-import { useFormatter } from '@/i18n/client';
+import { useFormatter, useT } from '@/i18n/client';
+import type { MessageKey, MessageRef } from '@/i18n/messages';
 import { Bidi } from '@/components/ui/bidi';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
@@ -52,11 +53,13 @@ import { Separator } from '@/components/ui/separator';
 import { getCurrentPrice } from '@/lib/utils/pricing';
 import { cn } from '@/lib/utils';
 
+// The server's message for a conflict (such as too little stock), or one
+// of ours.
 function orderErrorMessage(
   result: Extract<CreateOrderResult, { ok: false }>,
-): string {
+): MessageRef | string {
   if (result.status === 401) {
-    return 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید.';
+    return { key: 'checkout.sessionExpired' };
   }
 
   if (result.status === 409 && result.message) {
@@ -64,20 +67,20 @@ function orderErrorMessage(
   }
 
   if (result.status === 404) {
-    return 'یکی از محصولات سبد خرید دیگر در دسترس نیست. صفحه را دوباره بارگذاری کنید.';
+    return { key: 'checkout.productGone' };
   }
 
   if (result.status === 400) {
-    return 'اطلاعات ارسال یا سبد خرید معتبر نیست. لطفاً فرم را بررسی کنید.';
+    return { key: 'checkout.invalid' };
   }
 
-  return 'خطا در ثبت سفارش. لطفاً دوباره تلاش کنید.';
+  return { key: 'checkout.failed' };
 }
 
 // Format hints, shown under the field and read with it.
-const HINTS: Partial<Record<ShippingField, string>> = {
-  phone: '۱۱ رقم، با ۰۹ شروع می‌شود.',
-  postalCode: '۱۰ رقم، بدون خط تیره.',
+const HINTS: Partial<Record<ShippingField, MessageKey>> = {
+  phone: 'checkout.phoneHint',
+  postalCode: 'checkout.postalCodeHint',
 };
 
 function FormField({
@@ -92,11 +95,12 @@ function FormField({
   id: string;
   label: string;
   required?: boolean;
-  hint?: string;
-  error?: string;
+  hint?: MessageKey;
+  error?: MessageRef;
   className?: string;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className={cn('space-y-2', className)}>
       <Label htmlFor={id}>
@@ -106,18 +110,20 @@ function FormField({
             *
           </span>
         ) : (
-          <span className="text-muted-foreground font-normal">(اختیاری)</span>
+          <span className="text-muted-foreground font-normal">
+            {t('common.optional')}
+          </span>
         )}
       </Label>
       {children}
       {hint ? (
         <p id={`${id}-hint`} className="text-muted-foreground text-sm">
-          {hint}
+          {t(hint)}
         </p>
       ) : null}
       {error ? (
         <p id={`${id}-error`} className="text-destructive text-sm">
-          {error}
+          {t.ref(error)}
         </p>
       ) : null}
     </div>
@@ -142,6 +148,7 @@ export default function CheckoutPage() {
 
   const router = useRouter();
   const format = useFormatter();
+  const t = useT();
 
   useEffect(() => {
     if (isProcessing || placedOrderId !== null) return;
@@ -179,9 +186,9 @@ export default function CheckoutPage() {
 
     if (updatedCart) {
       setCart(updatedCart);
-      toast.success('محصول از سبد خرید حذف شد.');
+      toast.success(t('cart.removed'));
     } else {
-      toast.error('خطا در حذف محصول.');
+      toast.error(t('cart.removeFailed'));
     }
   };
 
@@ -223,7 +230,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    toast.error('خطا در اتصال به درگاه پرداخت.');
+    toast.error(t('checkout.gatewayError'));
     setIsProcessing(false);
   };
 
@@ -253,7 +260,8 @@ export default function CheckoutPage() {
     const created = await createOrder(checkoutKey, result.payload);
 
     if (!created.ok) {
-      toast.error(orderErrorMessage(created));
+      const message = orderErrorMessage(created);
+      toast.error(typeof message === 'string' ? message : t.ref(message));
       setIsProcessing(false);
       return;
     }
@@ -261,7 +269,7 @@ export default function CheckoutPage() {
     // The server emptied the cart when it created the order.
     setPlacedOrderId(created.order.id);
     setCart(null);
-    toast.success('سفارش ثبت شد. در حال انتقال به درگاه پرداخت...');
+    toast.success(t('checkout.placed'));
 
     await startPayment(created.order.id);
   };
@@ -285,18 +293,17 @@ export default function CheckoutPage() {
       <div className="container mx-auto max-w-2xl py-12">
         <Card>
           <CardHeader>
-            <CardTitle>سفارش شما ثبت شد</CardTitle>
+            <CardTitle>{t('checkout.placedTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p>
-              شماره سفارش:{' '}
+              {t('checkout.orderNumber')}{' '}
               <span className="font-semibold">
                 {format.digits(placedOrderId)}
               </span>
             </p>
             <p className="text-muted-foreground text-sm">
-              اتصال به درگاه پرداخت برقرار نشد. سفارش شما ذخیره شده است و
-              می‌توانید دوباره برای پرداخت تلاش کنید.
+              {t('checkout.gatewayUnreachable')}
             </p>
           </CardContent>
           <CardFooter className="flex gap-2">
@@ -305,10 +312,12 @@ export default function CheckoutPage() {
               onClick={() => startPayment(placedOrderId)}
               disabled={isProcessing}
             >
-              {isProcessing ? 'در حال اتصال...' : 'تلاش مجدد برای پرداخت'}
+              {isProcessing
+                ? t('checkout.connecting')
+                : t('checkout.retryPayment')}
             </Button>
             <Button asChild variant="outline">
-              <Link href="/">بازگشت به فروشگاه</Link>
+              <Link href="/">{t('checkout.backToShop')}</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -317,7 +326,7 @@ export default function CheckoutPage() {
   }
 
   if (isLoading || !cart) {
-    return <div role="status">در حال بارگذاری اطلاعات سفارش...</div>;
+    return <div role="status">{t('checkout.loading')}</div>;
   }
 
   return (
@@ -326,15 +335,15 @@ export default function CheckoutPage() {
       noValidate
       className="container mx-auto max-w-2xl space-y-6 px-4 py-12"
     >
-      <h1 className="text-3xl font-bold">تسویه حساب</h1>
+      <h1 className="text-3xl font-bold">{t('checkout.title')}</h1>
       <Card>
         <CardHeader>
-          <CardTitle>اطلاعات ارسال</CardTitle>
+          <CardTitle>{t('checkout.shipping')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <FormField
             id="shipping-recipientName"
-            label="نام و نام خانوادگی گیرنده"
+            label={t('checkout.recipientName')}
             required
             error={errors.recipientName}
           >
@@ -343,7 +352,7 @@ export default function CheckoutPage() {
 
           <FormField
             id="shipping-phone"
-            label="شماره موبایل"
+            label={t('checkout.phone')}
             required
             hint={HINTS.phone}
             error={errors.phone}
@@ -358,7 +367,7 @@ export default function CheckoutPage() {
 
           <FormField
             id="shipping-province"
-            label="استان"
+            label={t('checkout.province')}
             required
             error={errors.province}
           >
@@ -367,7 +376,7 @@ export default function CheckoutPage() {
 
           <FormField
             id="shipping-city"
-            label="شهر"
+            label={t('checkout.city')}
             required
             error={errors.city}
           >
@@ -376,7 +385,7 @@ export default function CheckoutPage() {
 
           <FormField
             id="shipping-address"
-            label="نشانی کامل"
+            label={t('checkout.address')}
             required
             error={errors.address}
             className="sm:col-span-2"
@@ -390,7 +399,7 @@ export default function CheckoutPage() {
 
           <FormField
             id="shipping-postalCode"
-            label="کد پستی"
+            label={t('checkout.postalCode')}
             required
             hint={HINTS.postalCode}
             error={errors.postalCode}
@@ -404,17 +413,25 @@ export default function CheckoutPage() {
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField id="shipping-unit" label="واحد" error={errors.unit}>
+            <FormField
+              id="shipping-unit"
+              label={t('checkout.unit')}
+              error={errors.unit}
+            >
               <Input {...fieldProps('unit')} dir="ltr" />
             </FormField>
-            <FormField id="shipping-floor" label="طبقه" error={errors.floor}>
+            <FormField
+              id="shipping-floor"
+              label={t('checkout.floor')}
+              error={errors.floor}
+            >
               <Input {...fieldProps('floor')} dir="ltr" />
             </FormField>
           </div>
 
           <FormField
             id="shipping-deliveryNotes"
-            label="توضیحات تحویل"
+            label={t('checkout.deliveryNotes')}
             error={errors.deliveryNotes}
             className="sm:col-span-2"
           >
@@ -425,7 +442,7 @@ export default function CheckoutPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>خلاصه سفارش و تسویه حساب</CardTitle>
+          <CardTitle>{t('checkout.summary')}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-4">
@@ -469,23 +486,22 @@ export default function CheckoutPage() {
                 ))}
               </ul>
               <p className="text-destructive text-sm">
-                برای ثبت سفارش، ابتدا محصولات ناموجود را از سبد حذف کنید.
+                {t('checkout.removeUnavailableFirst')}
               </p>
             </div>
           )}
           {productsFailed && (
             <p className="text-destructive mt-4 text-sm">
-              امکان دریافت اطلاعات محصولات وجود ندارد. صفحه را دوباره بارگذاری
-              کنید.
+              {t('checkout.productsFailed')}
             </p>
           )}
           <Separator className="my-4" />
           <div className="flex justify-between text-lg font-bold">
-            <p>جمع کل</p>
+            <p>{t('common.total')}</p>
             <p>{formatPrice(cartTotal)}</p>
           </div>
           <p className="text-muted-foreground mt-2 text-sm">
-            هزینه ارسال پس از ثبت سفارش با شما هماهنگ می‌شود.
+            {t('checkout.shippingCost')}
           </p>
         </CardContent>
         <CardFooter>
@@ -494,7 +510,7 @@ export default function CheckoutPage() {
             className="w-full cursor-pointer"
             disabled={isProcessing || checkoutBlocked}
           >
-            {isProcessing ? 'در حال پردازش...' : 'ثبت سفارش و پرداخت'}
+            {isProcessing ? t('checkout.processing') : t('checkout.submit')}
           </Button>
         </CardFooter>
       </Card>

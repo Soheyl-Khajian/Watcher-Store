@@ -1,6 +1,6 @@
 // frontend/src/components/ui/post-card.tsx
 
-import { getFormatter } from '@/i18n/server';
+import { getFormatter, getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { Link } from '@/i18n/navigation';
@@ -12,14 +12,14 @@ import {
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
-import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
 
 interface PostCardProps {
   post: Post;
 }
 
 export async function PostCard({ post }: PostCardProps) {
-  const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
+  const t = await getT();
+  const authorName = post.authorName?.trim() || t('site.defaultAuthor');
 
   const imageUrl = post.thumbnail?.url
     ? mediaSrc(post.thumbnail.url)
@@ -50,7 +50,7 @@ export async function PostCard({ post }: PostCardProps) {
 
         <CardFooter className="text-muted-foreground p-4 pt-0 text-sm">
           <span className="me-1">
-            توسط <Bidi>{authorName}</Bidi>
+            {t.rich('common.byAuthor', { name: <Bidi>{authorName}</Bidi> })}
           </span>
           <span>{publishedDate}</span>
         </CardFooter>

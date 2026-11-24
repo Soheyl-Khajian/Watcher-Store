@@ -1,4 +1,4 @@
-// مسیر فایل: frontend/app/(main)/[slug]/page.tsx
+// frontend/src/app/[locale]/(main)/[slug]/page.tsx
 
 import { Bidi } from '@/components/ui/bidi';
 import { fetchPageBySlug } from '@/lib/api/payload';
@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import { RichText } from '@/components/RichText';
 import type { Page } from '@payload-types';
 import type { Metadata } from 'next';
-import { plainText, OPEN_GRAPH_DEFAULTS } from '@/lib/seo';
+import { plainText, openGraphDefaults } from '@/lib/seo';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -27,7 +27,7 @@ export async function generateMetadata({
     ...(description ? { description } : {}),
     alternates: { canonical: path },
     openGraph: {
-      ...OPEN_GRAPH_DEFAULTS,
+      ...(await openGraphDefaults()),
       url: path,
       title: page.title,
     },

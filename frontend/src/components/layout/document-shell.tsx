@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 import { NONCE_HEADER } from '@/lib/security-headers';
 import { LOCALE_INFO, type Locale } from '@/i18n/config';
+import { messagesFor } from '@/i18n/catalog';
 import { I18nProvider } from '@/i18n/client';
 import { localeSettings } from '@/i18n/settings';
 
@@ -44,6 +45,7 @@ export async function DocumentShell({
           locale={locale}
           enabledLocales={localeSettings().enabledLocales}
           timeZone={localeSettings().timeZone}
+          messages={messagesFor(locale)}
         >
           <Providers nonce={nonce}>{children}</Providers>
         </I18nProvider>

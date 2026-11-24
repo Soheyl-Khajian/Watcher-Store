@@ -1,6 +1,7 @@
-// src/components/layout/user-nav.tsx
+// frontend/src/components/layout/user-nav.tsx
 'use client';
 
+import { useT } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
 import { useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -22,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 export function UserNav() {
   const { user, clear } = useAuthStore();
   const pathname = usePathname();
+  const t = useT();
   // Back to this page after logging in or registering.
   const next =
     pathname && !['/login', '/register'].includes(pathname)
@@ -46,7 +48,7 @@ export function UserNav() {
           <Button
             variant="ghost"
             className="relative h-8 w-8 cursor-pointer rounded-full"
-            aria-label="حساب کاربری"
+            aria-label={t('account.menu')}
           >
             <Avatar className="h-8 w-8">
               <AvatarImage src="" alt={user.email} />
@@ -61,21 +63,22 @@ export function UserNav() {
         >
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm leading-none font-medium">کاربر</p>
+              <p className="text-sm leading-none font-medium">
+                {t('account.user')}
+              </p>
               <p className="text-muted-foreground text-xs leading-none">
                 <Bidi ltr>{user.email}</Bidi>
               </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {/* این آیتم اضافه شده است */}
           <DropdownMenuItem asChild>
             <Link href="/profile" className="cursor-pointer">
-              پروفایل من
+              {t('account.profile')}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
-            خروج
+            {t('account.logout')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -85,10 +88,10 @@ export function UserNav() {
   return (
     <div className="flex items-center gap-2">
       <Button asChild variant="ghost">
-        <Link href={`/login${next}`}>ورود</Link>
+        <Link href={`/login${next}`}>{t('account.login')}</Link>
       </Button>
       <Button asChild>
-        <Link href={`/register${next}`}>ثبت‌نام</Link>
+        <Link href={`/register${next}`}>{t('account.register')}</Link>
       </Button>
     </div>
   );

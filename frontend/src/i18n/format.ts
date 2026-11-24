@@ -24,6 +24,8 @@ export interface Formatter {
   date(value: string | Date): string;
   // A day and time: "Nov 24, 2026, 6:30 PM"
   dateTime(value: string | Date): string;
+  // The year in the page's calendar: 2026 or ۱۴۰۵
+  year(value: string | Date): string;
 }
 
 export function createFormatter(locale: Locale, timeZone: string): Formatter {
@@ -41,6 +43,7 @@ export function createFormatter(locale: Locale, timeZone: string): Formatter {
     timeStyle: 'short',
     timeZone,
   });
+  const yearOnly = new Intl.DateTimeFormat(tag, { year: 'numeric', timeZone });
   // An unparseable date shows as it came rather than as "Invalid Date".
   const asDate = (value: string | Date, format: Intl.DateTimeFormat) => {
     const date = value instanceof Date ? value : new Date(value);
@@ -54,5 +57,6 @@ export function createFormatter(locale: Locale, timeZone: string): Formatter {
     tomanUnit: TOMAN[locale],
     date: (value) => asDate(value, day),
     dateTime: (value) => asDate(value, moment),
+    year: (value) => asDate(value, yearOnly),
   };
 }

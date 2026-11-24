@@ -1,4 +1,6 @@
-// مسیر فایل: src/components/layout/header.tsx
+// frontend/src/components/layout/header.tsx
+import type { MessageKey } from '@/i18n/messages';
+import { getT } from '@/i18n/server';
 import { Link } from '@/i18n/navigation';
 import { Menu } from 'lucide-react';
 
@@ -19,41 +21,45 @@ import { MobileNav } from './mobile-nav';
 import { fetchCategoryTree } from '@/lib/api/payload';
 import { LogoMark } from '@/components/brand/logo';
 
-const otherNavLinks = [
-  { href: '/products', label: 'همه محصولات' },
-  { href: '/products?onSale=true', label: 'فروش ویژه' },
-  { href: '/blog', label: 'وبلاگ' },
-  { href: '/about-us', label: 'درباره ما' },
-  { href: '/contact-us', label: 'تماس با ما' },
+const NAV_LINKS: { href: string; label: MessageKey }[] = [
+  { href: '/products', label: 'nav.allProducts' },
+  { href: '/products?onSale=true', label: 'nav.specials' },
+  { href: '/blog', label: 'nav.blog' },
+  { href: '/about-us', label: 'nav.about' },
+  { href: '/contact-us', label: 'nav.contact' },
 ];
 
 export async function Header() {
   // Without Payload the page still renders, without the category menu.
-  const categoryTree = await fetchCategoryTree().catch(() => []);
+  const [categoryTree, t] = await Promise.all([
+    fetchCategoryTree().catch(() => []),
+    getT(),
+  ]);
+  const navLinks = NAV_LINKS.map(({ href, label }) => ({
+    href,
+    label: t(label),
+  }));
 
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
       <div className="container flex h-16 items-center px-2">
-        {/* بخش لوگوی سایت با لینک به صفحه اصلی */}
         <div className="ms-4 me-10 hidden md:flex">
           <Link href="/" className="ms-6 flex items-center gap-2">
             <LogoMark className="h-7 w-7" />
             <span className="hidden font-bold sm:inline-block">
-              فروشگاه واچر
+              {t('site.shortName')}
             </span>
           </Link>
         </div>
 
-        {/* منوی اصلی برای دسکتاپ */}
+        {/* Main menu, from tablets up. */}
         <nav
-          aria-label="منوی اصلی"
+          aria-label={t('nav.main')}
           className="hidden items-center gap-6 text-sm font-medium md:flex"
         >
-          {/* کامپوننت منوی داینامیک */}
           <MegaMenu categories={categoryTree} />
 
-          {/* بقیه لینک‌های ثابت */}
-          {otherNavLinks.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -64,29 +70,29 @@ export async function Header() {
           ))}
         </nav>
 
-        {/* منوی همبرگری برای موبایل */}
+        {/* The menu sheet on phones. */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">باز کردن منو</span>
+                <span className="sr-only">{t('nav.openMenu')}</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="overflow-y-auto">
-              {/* عنوان و توضیحات را اضافه می‌کنیم اما با کلاس فقط صفحه خوان آنها را مخفی می‌کنیم */}
+              {/* A title and description for screen readers only. */}
               <SheetHeader>
-                <SheetTitle className="sr-only">منو</SheetTitle>
+                <SheetTitle className="sr-only">{t('nav.menu')}</SheetTitle>
                 <SheetDescription className="sr-only">
-                  ناوبری اصلی سایت
+                  {t('nav.menuDescription')}
                 </SheetDescription>
               </SheetHeader>
-              <MobileNav categories={categoryTree} links={otherNavLinks} />
+              <MobileNav categories={categoryTree} links={navLinks} />
             </SheetContent>
           </Sheet>
         </div>
 
-        {/* دکمه تغییر تم و بخش کاربر در سمت چپ */}
+        {/* Theme, account and cart, at the end of the bar. */}
         <div className="flex flex-1 items-center justify-end space-x-4">
           <ModeToggle />
           <UserNav />

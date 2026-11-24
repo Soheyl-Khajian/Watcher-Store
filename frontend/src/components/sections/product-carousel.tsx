@@ -1,6 +1,7 @@
 // frontend/src/components/sections/product-carousel.tsx
 'use client';
 
+import { useT } from '@/i18n/client';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
 import {
@@ -24,6 +25,7 @@ export function ProductCarousel({
   products,
   viewAllLink,
 }: ProductCarouselProps) {
+  const t = useT();
   if (!products || products.length === 0) {
     return null;
   }
@@ -52,7 +54,7 @@ export function ProductCarousel({
               href={viewAllLink}
               className="text-primary flex items-center gap-2 text-sm font-semibold hover:underline"
             >
-              مشاهده همه
+              {t('common.viewAll')}
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
             </Link>
             <CarouselPrevious className={arrowClass} />

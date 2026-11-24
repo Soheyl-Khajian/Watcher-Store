@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { inPersian } from '@/test/i18n';
 import { validateRegistration } from './registration';
 
 const valid = {
@@ -31,7 +32,7 @@ describe('validateRegistration', () => {
       password: 'short',
       confirmPassword: 'short',
     });
-    expect(errors.password).toContain('۸');
+    expect(inPersian(errors.password)).toContain('۸');
   });
 
   it('rejects absurdly long passwords', () => {

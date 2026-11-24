@@ -1,5 +1,6 @@
-// مسیر فایل: src/components/layout/footer.tsx
+// frontend/src/components/layout/footer.tsx
 
+import { getFormatter, getT } from '@/i18n/server';
 import { Link } from '@/i18n/navigation';
 import { Instagram, Linkedin, Send } from 'lucide-react';
 import { fetchFooter } from '@/lib/api/payload';
@@ -14,7 +15,15 @@ const iconMap = {
 
 export async function Footer() {
   // Without Payload the page still renders, with an empty footer.
-  const footerData: FooterType | null = await fetchFooter().catch(() => null);
+  const [footerData, t, format]: [
+    FooterType | null,
+    Awaited<ReturnType<typeof getT>>,
+    Awaited<ReturnType<typeof getFormatter>>,
+  ] = await Promise.all([
+    fetchFooter().catch(() => null),
+    getT(),
+    getFormatter(),
+  ]);
   const { description, linkColumns, socialLinks } = footerData || {};
 
   return (
@@ -22,10 +31,9 @@ export async function Footer() {
       <div className="container mx-auto px-2 py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="md:col-span-1">
-            <h4 className="mb-4 text-lg font-bold">فروشگاه واچر</h4>
+            <h4 className="mb-4 text-lg font-bold">{t('site.shortName')}</h4>
             <p className="text-muted-foreground text-sm">{description}</p>
             <div className="mt-6 flex gap-4">
-              {/* ۱. اضافه کردن ?? [] برای socialLinks */}
               {(socialLinks ?? []).map((link) => {
                 const href = safeUrl(link.url);
                 // A social icon without a usable address is left out.
@@ -83,10 +91,7 @@ export async function Footer() {
         </div>
 
         <div className="text-muted-foreground mt-10 border-t pt-6 text-center text-sm">
-          <p>
-            &copy; {new Date().getFullYear()} فروشگاه امنیتی واچر. تمامی حقوق
-            محفوظ است.
-          </p>
+          <p>{t('site.copyright', { year: format.year(new Date()) })}</p>
         </div>
       </div>
     </footer>

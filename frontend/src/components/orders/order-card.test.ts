@@ -1,7 +1,6 @@
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { I18nProvider } from '@/i18n/client';
+import { renderIn } from '@/test/i18n';
 import { expectIsolated } from '@/test/expect-isolated';
 import type { Order } from '@/types';
 import { OrderCard } from './order-card';
@@ -38,21 +37,17 @@ const order: Order = {
 };
 
 const render = () =>
-  renderToStaticMarkup(
-    createElement(
-      I18nProvider,
-      { locale: 'fa', enabledLocales: ['fa'] },
-      createElement(OrderCard, {
-        order,
-        productNames: new Map([
-          ['11', 'Galaxy Watch 6'],
-          ['12', 'ساعت هوشمند'],
-        ]),
-        busy: false,
-        onPay: () => {},
-        onCancel: () => {},
-      }),
-    ),
+  renderIn(
+    createElement(OrderCard, {
+      order,
+      productNames: new Map([
+        ['11', 'Galaxy Watch 6'],
+        ['12', 'ساعت هوشمند'],
+      ]),
+      busy: false,
+      onPay: () => {},
+      onCancel: () => {},
+    }),
   );
 
 describe('OrderCard with mixed-direction text', () => {

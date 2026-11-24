@@ -1,4 +1,5 @@
-// مسیر فایل: src/app/(main)/layout.tsx
+// frontend/src/app/[locale]/(main)/layout.tsx
+import { getT } from '@/i18n/server';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 
@@ -8,11 +9,12 @@ import { Footer } from '@/components/layout/footer';
 // cached briefly in the data cache (lib/api/payload.ts).
 export const dynamic = 'force-dynamic';
 
-export default function MainLayout({
+export default async function MainLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const t = await getT();
   return (
     <div className="flex min-h-screen flex-col">
       {/* First stop for the keyboard: past the header to the content. */}
@@ -20,7 +22,7 @@ export default function MainLayout({
         href="#main"
         className="bg-background focus:ring-ring sr-only z-[60] rounded-md px-4 py-2 font-medium focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:ring-2"
       >
-        رفتن به محتوای اصلی
+        {t('common.skipToContent')}
       </a>
       <Header />
       <main id="main" tabIndex={-1} className="flex-grow outline-none">

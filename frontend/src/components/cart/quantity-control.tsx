@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useFormatter } from '@/i18n/client';
+import { useFormatter, useT } from '@/i18n/client';
 import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -25,18 +25,19 @@ export function QuantityControl({
   onChange: (quantity: number) => void;
 }) {
   const format = useFormatter();
+  const t = useT();
   return (
     <div
       className="flex items-center gap-1"
       role="group"
-      aria-label={`تعداد ${productName}`}
+      aria-label={t('cart.quantityOf', { name: productName })}
     >
       <Button
         type="button"
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        aria-label={`یکی بیشتر از ${productName}`}
+        aria-label={t('cart.increase', { name: productName })}
         disabled={busy || quantity >= max}
         onClick={() => onChange(quantity + 1)}
       >
@@ -50,7 +51,7 @@ export function QuantityControl({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        aria-label={`یکی کمتر از ${productName}`}
+        aria-label={t('cart.decrease', { name: productName })}
         disabled={busy || quantity <= 1}
         onClick={() => onChange(quantity - 1)}
       >

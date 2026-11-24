@@ -1,8 +1,8 @@
-// src/components/layout/cart-sheet.tsx
+// frontend/src/components/layout/cart-sheet.tsx
 'use client';
 
-import { useFormatter } from '@/i18n/client';
-import { useState } from 'react'; // ۱. useState را وارد کنید
+import { useFormatter, useT } from '@/i18n/client';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ShoppingCart } from 'lucide-react';
@@ -14,13 +14,13 @@ export function CartSheet() {
   const { cart } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const format = useFormatter();
+  const t = useT();
 
   const totalQuantity = useMemo(() => {
     return cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
   }, [cart]);
 
   return (
-    // ۳. وضعیت باز/بسته بودن را به Sheet متصل کنید
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative cursor-pointer">
@@ -35,13 +35,12 @@ export function CartSheet() {
           <ShoppingCart className="h-5 w-5" aria-hidden="true" />
           <span className="sr-only">
             {totalQuantity > 0
-              ? `باز کردن سبد خرید، ${format.number(totalQuantity)} کالا`
-              : 'باز کردن سبد خرید'}
+              ? t('cart.openWithCount', { count: totalQuantity })
+              : t('cart.open')}
           </span>
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col p-4 sm:p-6">
-        {/* ۴. تابع بستن را به عنوان پراپ ارسال کنید */}
         <CartContent onClose={() => setIsOpen(false)} />
       </SheetContent>
     </Sheet>

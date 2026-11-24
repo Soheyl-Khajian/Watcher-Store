@@ -1,3 +1,6 @@
+'use client';
+
+import { useT } from '@/i18n/client';
 import * as React from 'react';
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
@@ -56,6 +59,7 @@ function Carousel({
     },
     plugins,
   );
+  const t = useT();
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(false);
 
@@ -124,7 +128,7 @@ function Carousel({
         onKeyDownCapture={handleKeyDown}
         className={cn('relative', className)}
         role="region"
-        aria-roledescription="اسلایدر"
+        aria-roledescription={t('carousel.region')}
         data-slot="carousel"
         {...props}
       >
@@ -157,11 +161,12 @@ function CarouselContent({ className, ...props }: React.ComponentProps<'div'>) {
 
 function CarouselItem({ className, ...props }: React.ComponentProps<'div'>) {
   const { orientation } = useCarousel();
+  const t = useT();
 
   return (
     <div
       role="group"
-      aria-roledescription="اسلاید"
+      aria-roledescription={t('carousel.slide')}
       data-slot="carousel-item"
       className={cn(
         'min-w-0 shrink-0 grow-0 basis-full',
@@ -180,6 +185,7 @@ function CarouselPrevious({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { orientation, scrollPrev, canScrollPrev, opts } = useCarousel();
+  const t = useT();
   // Points back toward the start: right in a right-to-left carousel.
   const Icon = opts?.direction === 'rtl' ? ArrowRight : ArrowLeft;
 
@@ -200,7 +206,7 @@ function CarouselPrevious({
       {...props}
     >
       <Icon />
-      <span className="sr-only">اسلاید قبلی</span>
+      <span className="sr-only">{t('carousel.previous')}</span>
     </Button>
   );
 }
@@ -212,6 +218,7 @@ function CarouselNext({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { orientation, scrollNext, canScrollNext, opts } = useCarousel();
+  const t = useT();
   const Icon = opts?.direction === 'rtl' ? ArrowLeft : ArrowRight;
 
   return (
@@ -231,7 +238,7 @@ function CarouselNext({
       {...props}
     >
       <Icon />
-      <span className="sr-only">اسلاید بعدی</span>
+      <span className="sr-only">{t('carousel.next')}</span>
     </Button>
   );
 }

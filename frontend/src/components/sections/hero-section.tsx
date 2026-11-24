@@ -1,20 +1,20 @@
-// مسیر فایل: src/components/sections/hero-section.tsx
+// frontend/src/components/sections/hero-section.tsx
 
+import { getT } from '@/i18n/server';
 import { ProductSearchForm } from '@/components/search/product-search-form';
 
-export function HeroSection() {
+export async function HeroSection() {
+  const t = await getT();
   return (
-    // از تگ <section> برای جداسازی معنایی بخش ها استفاده می کنیم
     <section className="py-20 text-center">
       <div className="px-2">
-        {/* ۱. مهم‌ترین تگ سئو در صفحه اصلی */}
+        {/* The home page's main heading. */}
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-          امنیت هوشمند، آسایش پایدار
+          {t('home.heroTitle')}
         </h1>
 
         <p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-xl">
-          بهترین تجهیزات امنیتی و هوشمندسازی ساختمان را با مشاوره تخصصی و ضمانت
-          اصالت از واچر بخواهید.
+          {t('home.heroText')}
         </p>
 
         <ProductSearchForm className="mx-auto mt-8 max-w-md" />

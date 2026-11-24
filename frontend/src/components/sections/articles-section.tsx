@@ -1,5 +1,6 @@
 // frontend/src/components/sections/articles-section.tsx
 
+import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { Link } from '@/i18n/navigation';
@@ -11,7 +12,8 @@ interface ArticlesSectionProps {
   posts: Post[];
 }
 
-export function ArticlesSection({ posts }: ArticlesSectionProps) {
+export async function ArticlesSection({ posts }: ArticlesSectionProps) {
+  const t = await getT();
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
@@ -49,7 +51,7 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
                       <Bidi>{post.excerpt || ''}</Bidi>
                     </p>
                     <div className="text-primary mt-4 text-sm font-bold transition-transform duration-300 group-hover:translate-x-[-4px]">
-                      ادامه مطلب &larr;
+                      {t('common.readMore')} &larr;
                     </div>
                   </CardContent>
                 </Card>

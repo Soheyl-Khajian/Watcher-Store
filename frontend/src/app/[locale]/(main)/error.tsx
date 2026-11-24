@@ -1,4 +1,4 @@
-// frontend/src/app/(main)/error.tsx
+// frontend/src/app/[locale]/(main)/error.tsx
 //
 // Shown inside the shop's header and footer when a storefront page could
 // not be rendered, usually because Payload could not be reached. Offers a
@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useT } from '@/i18n/client';
 import { useEffect, useTransition } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export default function StorefrontError({
   reset: () => void;
 }) {
   const router = useRouter();
+  const t = useT();
   const [isRetrying, startRetry] = useTransition();
 
   useEffect(() => {
@@ -37,13 +39,12 @@ export default function StorefrontError({
       role="alert"
       className="container mx-auto flex flex-col items-center justify-center px-4 py-24 text-center"
     >
-      <h1 className="text-2xl font-bold">بارگذاری این صفحه ممکن نشد</h1>
+      <h1 className="text-2xl font-bold">{t('errors.pageFailedTitle')}</h1>
       <p className="text-muted-foreground mt-2 max-w-md">
-        در دریافت اطلاعات فروشگاه مشکلی پیش آمد. لطفاً چند لحظه بعد دوباره تلاش
-        کنید.
+        {t('errors.pageFailedText')}
       </p>
       <Button className="mt-8" onClick={retry} disabled={isRetrying}>
-        {isRetrying ? 'در حال تلاش...' : 'تلاش دوباره'}
+        {isRetrying ? t('common.retrying') : t('common.retry')}
       </Button>
       {error.digest ? (
         // Matches the server's log entry for this failure.

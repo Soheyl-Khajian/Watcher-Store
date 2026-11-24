@@ -1,6 +1,6 @@
-// frontend/app/(main)/blog/[slug]/page.tsx
+// frontend/src/app/[locale]/(main)/blog/[slug]/page.tsx
 
-import { getFormatter } from '@/i18n/server';
+import { getFormatter, getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { fetchPostBySlug } from '@/lib/api/payload';
@@ -8,9 +8,8 @@ import { RichText } from '@/components/RichText';
 import Image from 'next/image';
 import { mediaSrc } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
-import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
 import type { Metadata } from 'next';
-import { mediaImage, plainText, OPEN_GRAPH_DEFAULTS } from '@/lib/seo';
+import { mediaImage, plainText, openGraphDefaults } from '@/lib/seo';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -32,13 +31,15 @@ export async function generateMetadata({
     description,
     alternates: { canonical: path },
     openGraph: {
-      ...OPEN_GRAPH_DEFAULTS,
+      ...(await openGraphDefaults()),
       type: 'article',
       url: path,
       title: post.title,
       description,
       publishedTime: post.publishedDate,
-      authors: [post.authorName?.trim() || DEFAULT_AUTHOR_NAME],
+      authors: [
+        post.authorName?.trim() || (await getT())('site.defaultAuthor'),
+      ],
       ...(image ? { images: [image] } : {}),
     },
   };
@@ -53,7 +54,8 @@ export default async function PostPage({ params }: PageProps) {
     return notFound();
   }
 
-  const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
+  const t = await getT();
+  const authorName = post.authorName?.trim() || t('site.defaultAuthor');
 
   const imageUrl = post.thumbnail?.url
     ? mediaSrc(post.thumbnail.url)
@@ -70,7 +72,7 @@ export default async function PostPage({ params }: PageProps) {
         </h1>
         <div className="text-muted-foreground mt-4 flex items-center gap-4">
           <span>
-            توسط <Bidi>{authorName}</Bidi>
+            {t.rich('common.byAuthor', { name: <Bidi>{authorName}</Bidi> })}
           </span>
           <time dateTime={post.publishedDate}>{publishedDate}</time>
         </div>

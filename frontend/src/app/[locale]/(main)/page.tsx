@@ -1,4 +1,5 @@
-// frontend/src/app/(main)/page.tsx
+// frontend/src/app/[locale]/(main)/page.tsx
+import { getT } from '@/i18n/server';
 import { HeroSection } from '@/components/sections/hero-section';
 import { CategoryGrid } from '@/components/sections/category-grid';
 import { ArticlesSection } from '@/components/sections/articles-section';
@@ -21,6 +22,7 @@ const importantCategorySlugs = [
 ];
 
 export default async function HomePage() {
+  const t = await getT();
   // Independent requests, made at the same time.
   const [allProducts, featuredProducts, posts, importantCategories] =
     await Promise.all([
@@ -36,7 +38,7 @@ export default async function HomePage() {
 
       {/* featured products page */}
       <ProductCarousel
-        title="فروش ویژه"
+        title={t('nav.specials')}
         products={featuredProducts}
         viewAllLink="/products?onSale=true"
       />
@@ -45,7 +47,7 @@ export default async function HomePage() {
 
       {/* all products page */}
       <ProductCarousel
-        title="همه محصولات"
+        title={t('nav.allProducts')}
         products={allProducts}
         viewAllLink="/products"
       />

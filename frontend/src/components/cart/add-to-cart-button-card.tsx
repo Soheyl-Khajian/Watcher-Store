@@ -2,6 +2,7 @@
 
 'use client';
 
+import { useT } from '@/i18n/client';
 import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAddToCart } from '@/lib/hooks/use-add-to-cart';
@@ -19,6 +20,7 @@ export function AddToCartButtonCard({
   inStock = true,
 }: AddToCartButtonCardProps) {
   const { add, isAdding } = useAddToCart(productId, productName);
+  const t = useT();
 
   return (
     <Button
@@ -29,10 +31,10 @@ export function AddToCartButtonCard({
     >
       <span>
         {!inStock
-          ? 'ناموجود'
+          ? t('stock.out')
           : isAdding
-            ? 'در حال افزودن...'
-            : 'افزودن به سبد خرید'}
+            ? t('cart.adding')
+            : t('cart.add')}
       </span>
       <ShoppingCart className="h-5 w-5" aria-hidden="true" />
     </Button>
