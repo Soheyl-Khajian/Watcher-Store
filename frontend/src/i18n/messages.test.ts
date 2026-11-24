@@ -25,6 +25,10 @@ describe('messages', () => {
     );
   });
 
+  it('leaves numbers without letters as they are', () => {
+    expect(t('orders.title', { number: '۱۲' })).toBe('سفارش #۱۲');
+  });
+
   it('puts other messages in by reference', () => {
     expect(
       t('validation.required', { field: { key: 'validation.fields.city' } }),

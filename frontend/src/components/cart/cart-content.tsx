@@ -223,7 +223,7 @@ export function CartContent({ onClose }: CartContentProps) {
                     className="cursor-pointer"
                     variant="ghost"
                     size="icon"
-                    aria-label={t('cart.remove', { name: product.name })}
+                    aria-label={t.plain('cart.remove', { name: product.name })}
                     disabled={busyProductId !== null}
                     onClick={() => handleRemoveItem(String(item.productId))}
                   >

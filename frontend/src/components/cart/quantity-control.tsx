@@ -30,14 +30,14 @@ export function QuantityControl({
     <div
       className="flex items-center gap-1"
       role="group"
-      aria-label={t('cart.quantityOf', { name: productName })}
+      aria-label={t.plain('cart.quantityOf', { name: productName })}
     >
       <Button
         type="button"
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        aria-label={t('cart.increase', { name: productName })}
+        aria-label={t.plain('cart.increase', { name: productName })}
         disabled={busy || quantity >= max}
         onClick={() => onChange(quantity + 1)}
       >
@@ -51,7 +51,7 @@ export function QuantityControl({
         variant="outline"
         size="icon"
         className="h-7 w-7"
-        aria-label={t('cart.decrease', { name: productName })}
+        aria-label={t.plain('cart.decrease', { name: productName })}
         disabled={busy || quantity <= 1}
         onClick={() => onChange(quantity - 1)}
       >

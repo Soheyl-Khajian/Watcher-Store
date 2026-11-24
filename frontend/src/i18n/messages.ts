@@ -8,7 +8,8 @@
 // A message may hold {placeholders}:
 // - numbers are written in the page's language (۱۲ or 12);
 // - text from data (a product name, a search) is isolated, so it can't
-//   scramble a sentence in the other direction (lib/bidi.ts);
+//   scramble a sentence in the other direction (lib/bidi.ts); attributes
+//   that are never displayed, such as aria-label, use t.plain;
 // - { key } puts another message in, such as a field's name.
 // A message that changes with a count has "one" and "other" forms, chosen
 // by the language's plural rules from the "count" value.
@@ -140,7 +141,12 @@ export function createTranslator(
       return wrap(value);
     });
 
-  const t = ((key, values) => fill(key, values, isolate)) as Translate;
+  // Only text with letters can pull a sentence's marks and numbers the
+  // wrong way; numbers alone (an order number, a price) stay as they are.
+  const isolateText = (text: string) =>
+    /\p{L}/u.test(text) ? isolate(text) : text;
+
+  const t = ((key, values) => fill(key, values, isolateText)) as Translate;
   t.plain = (key, values) => fill(key, values, (text) => text);
 
   t.error = (error, fallback) => {
