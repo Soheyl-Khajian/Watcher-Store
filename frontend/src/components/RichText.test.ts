@@ -54,7 +54,7 @@ const paragraph = (...children: RichTextNode[]): RichTextNode => ({
 describe('RichText elements', () => {
   it.each(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])('renders %s', (type) => {
     expect(render([{ type, children: [{ text: 'Title' }] }])).toBe(
-      `<${type}>Title</${type}>`,
+      `<${type} dir="auto">Title</${type}>`,
     );
   });
 
@@ -70,7 +70,7 @@ describe('RichText elements', () => {
       { type: 'blockquote', children: [{ text: 'quoted' }] },
     ]);
     expect(html).toBe(
-      '<ol><li>one</li><li>two</li></ol><blockquote>quoted</blockquote>',
+      '<ol dir="auto"><li>one</li><li>two</li></ol><blockquote dir="auto">quoted</blockquote>',
     );
   });
 
@@ -85,13 +85,15 @@ describe('RichText elements', () => {
       ),
     ]);
     expect(html).toBe(
-      '<p><strong>b</strong><em>i</em><u>u</u><s>s</s><code>c</code></p>',
+      '<p dir="auto"><strong>b</strong><em>i</em><u>u</u><s>s</s><code>c</code></p>',
     );
   });
 
   it('keeps line breaks and renders text as text, never as HTML', () => {
     const html = render([paragraph({ text: 'line one\n<script>x</script>' })]);
-    expect(html).toBe('<p>line one<br/>&lt;script&gt;x&lt;/script&gt;</p>');
+    expect(html).toBe(
+      '<p dir="auto">line one<br/>&lt;script&gt;x&lt;/script&gt;</p>',
+    );
   });
 
   it('shows uploaded images with their alt text', () => {
@@ -128,7 +130,7 @@ describe('RichText elements', () => {
         { type: 'mention', children: [{ text: 'x' }] },
       ),
     ]);
-    expect(html).toBe('<p>before x</p>');
+    expect(html).toBe('<p dir="auto">before x</p>');
   });
 
   it('renders nothing for empty content', () => {

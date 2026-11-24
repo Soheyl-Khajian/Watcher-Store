@@ -173,7 +173,10 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 >
                   <Bidi>{parent.name}</Bidi>
                   {hasChildren(parent) && (
-                    <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+                    <ChevronLeft
+                      aria-hidden="true"
+                      className="h-4 w-4 ltr:-scale-x-100"
+                    />
                   )}
                 </Link>
               );
@@ -209,7 +212,10 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 >
                   <Bidi>{child.name}</Bidi>
                   {hasChildren(child) && (
-                    <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+                    <ChevronLeft
+                      aria-hidden="true"
+                      className="h-4 w-4 ltr:-scale-x-100"
+                    />
                   )}
                 </Link>
               );

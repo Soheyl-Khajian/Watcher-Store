@@ -12,6 +12,9 @@
 //   content (an English title ending in "(2024)" or "." otherwise shows
 //   the bracket or dot on the wrong side), and the element keeps the
 //   page's alignment;
+// - long-form content from the CMS (rich-text paragraphs, headings,
+//   lists): dir="auto" on each block, so a Persian article reads right to
+//   left on an English page too (components/RichText.tsx);
 // - text from data in a plain string, such as a toast: isolate();
 // - always-left-to-right values (emails, codes, phone numbers): <Bidi ltr>.
 //   Inputs keep the page's direction: dir="auto" on an empty input falls

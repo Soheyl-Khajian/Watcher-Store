@@ -8,6 +8,8 @@
 import { useEffect } from 'react';
 import { messagesFor } from '@/i18n/catalog';
 import { LOCALE_INFO } from '@/i18n/config';
+import { createFormatter } from '@/i18n/format';
+import { createTranslator } from '@/i18n/messages';
 import { splitLocale } from '@/i18n/paths';
 
 export default function GlobalError({
@@ -27,7 +29,11 @@ export default function GlobalError({
     (typeof window !== 'undefined' &&
       splitLocale(window.location.pathname).locale) ||
     'fa';
-  const { errors, common } = messagesFor(locale);
+  const t = createTranslator(
+    locale,
+    messagesFor(locale),
+    createFormatter(locale, 'UTC'),
+  );
   const { tag, dir } = LOCALE_INFO[locale];
 
   return (
@@ -45,14 +51,14 @@ export default function GlobalError({
         }}
       >
         <div role="alert">
-          <h1>{errors.unexpectedTitle}</h1>
-          <p>{errors.unexpectedText}</p>
+          <h1>{t('errors.unexpectedTitle')}</h1>
+          <p>{t('errors.unexpectedText')}</p>
           <button
             type="button"
             onClick={reset}
             style={{ padding: '0.5rem 1.5rem', cursor: 'pointer' }}
           >
-            {common.retry}
+            {t('common.retry')}
           </button>
         </div>
       </body>

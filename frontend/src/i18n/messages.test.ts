@@ -2,20 +2,12 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { createFormatter } from './format';
-import { createTranslator, type MessageKey, type Messages } from './messages';
+import { createTranslator, type MessageKey } from './messages';
+import english from './messages/en.json';
 import fa from './messages/fa.json';
 
 const t = createTranslator('fa', fa, createFormatter('fa', 'Asia/Tehran'));
 
-// A stand-in English file with plural forms, to test plural choice before
-// the real one exists.
-const english = {
-  ...fa,
-  cart: {
-    ...fa.cart,
-    itemCount: { one: '{count} item', other: '{count} items' },
-  },
-} as unknown as Messages;
 const en = createTranslator('en', english, createFormatter('en', 'UTC'));
 
 describe('messages', () => {
@@ -41,8 +33,8 @@ describe('messages', () => {
   });
 
   it('chooses plural forms by count', () => {
-    expect(en('cart.itemCount', { count: 1 })).toBe('1 item');
-    expect(en('cart.itemCount', { count: 3 })).toBe('3 items');
+    expect(en('cart.itemCount', { count: 1 })).toBe('1 item in your cart.');
+    expect(en('cart.itemCount', { count: 3 })).toBe('3 items in your cart.');
   });
 
   it('places elements inside a sentence', () => {

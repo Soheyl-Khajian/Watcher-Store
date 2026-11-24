@@ -114,7 +114,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                   <li key={item.id} className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-500" />
                     <span className="text-muted-foreground">
-                      {item.feature}
+                      <Bidi>{item.feature}</Bidi>
                     </span>
                   </li>
                 ))}
@@ -143,9 +143,11 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                   {(product.specifications || []).map((spec) => (
                     <tr key={spec.id} className="border-b">
                       <th className="bg-muted/50 w-1/3 p-4 font-semibold">
-                        {spec.specName}
+                        <Bidi>{spec.specName}</Bidi>
                       </th>
-                      <td className="p-4">{spec.specValue}</td>
+                      <td className="p-4">
+                        <Bidi>{spec.specValue}</Bidi>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

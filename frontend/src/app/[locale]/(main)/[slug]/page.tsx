@@ -52,7 +52,6 @@ export default async function StaticPage({ params }: PageProps) {
         <Bidi>{page.title}</Bidi>
       </h1>
 
-      {/* ۳. از کامپوننت RichText برای نمایش محتوا استفاده می‌کنیم */}
       <div className="prose prose-lg dark:prose-invert max-w-none">
         <RichText content={page.content ?? []} />
       </div>

@@ -47,13 +47,19 @@ export function Pager({
         <li>
           {current > 1 ? (
             <Link href={hrefFor(current - 1)} rel="prev" className={stepClass}>
-              {/* Right-to-left: "previous" points right. */}
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              {/* Previous points back: right in right-to-left pages. */}
+              <ChevronRight
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
               {t('pager.previous')}
             </Link>
           ) : (
             <span aria-disabled="true" className={disabledClass}>
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              <ChevronRight
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
               {t('pager.previous')}
             </span>
           )}
@@ -93,12 +99,18 @@ export function Pager({
           {current < totalPages ? (
             <Link href={hrefFor(current + 1)} rel="next" className={stepClass}>
               {t('pager.next')}
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <ChevronLeft
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
             </Link>
           ) : (
             <span aria-disabled="true" className={disabledClass}>
               {t('pager.next')}
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <ChevronLeft
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
             </span>
           )}
         </li>

@@ -20,11 +20,17 @@ import type { Formatter } from './format';
 // The Persian file defines the keys; only its type is used here.
 import type fa from './messages/fa.json';
 
-export type Messages = typeof fa;
-
 // A message is text, or its plural forms.
 type Plural = { one?: string; other: string };
 type Leaf = string | Plural;
+
+// Every language's file has the Persian file's keys; a message may be
+// text or plural forms. A key missing from a language fails type-checking.
+type Catalog<T> = {
+  [K in keyof T]: T[K] extends string ? Leaf : Catalog<T[K]>;
+};
+
+export type Messages = Catalog<typeof fa>;
 
 // "cart.title", "orders.status.pending", ...
 type Keys<T, Prefix extends string = ''> = {
@@ -33,7 +39,7 @@ type Keys<T, Prefix extends string = ''> = {
     : Keys<T[K], `${Prefix}${K}.`>;
 }[keyof T & string];
 
-export type MessageKey = Keys<Messages>;
+export type MessageKey = Keys<typeof fa>;
 
 // A message to show later, in whatever language the page has: library
 // code returns these instead of text.

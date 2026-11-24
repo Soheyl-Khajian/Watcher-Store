@@ -1,5 +1,6 @@
 // frontend/src/components/layout/footer.tsx
 
+import { Bidi } from '@/components/ui/bidi';
 import { getFormatter, getT } from '@/i18n/server';
 import { Link } from '@/i18n/navigation';
 import { Instagram, Linkedin, Send } from 'lucide-react';
@@ -32,7 +33,10 @@ export async function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="md:col-span-1">
             <h4 className="mb-4 text-lg font-bold">{t('site.shortName')}</h4>
-            <p className="text-muted-foreground text-sm">{description}</p>
+            {/* A paragraph from the CMS keeps its own direction. */}
+            <p dir="auto" className="text-muted-foreground text-sm">
+              {description}
+            </p>
             <div className="mt-6 flex gap-4">
               {(socialLinks ?? []).map((link) => {
                 const href = safeUrl(link.url);
@@ -54,12 +58,12 @@ export async function Footer() {
             </div>
           </div>
 
-          {/* ۲. اضافه کردن ?? [] برای linkColumns */}
           {(linkColumns ?? []).map((column) => (
             <div key={column.id}>
-              <h4 className="mb-4 text-lg font-bold">{column.title}</h4>
+              <h4 className="mb-4 text-lg font-bold">
+                <Bidi>{column.title}</Bidi>
+              </h4>
               <ul className="space-y-3">
-                {/* ۳. اضافه کردن ?? [] برای ستون لینک‌های داخلی */}
                 {(column.links ?? []).map((link) => {
                   const href = safeUrl(link.url);
                   const className =
@@ -67,7 +71,9 @@ export async function Footer() {
                   return (
                     <li key={link.id}>
                       {!href ? (
-                        <span className={className}>{link.label}</span>
+                        <span className={className}>
+                          <Bidi>{link.label}</Bidi>
+                        </span>
                       ) : isExternalUrl(href) ? (
                         <a
                           href={href}
@@ -75,11 +81,11 @@ export async function Footer() {
                           rel="noopener noreferrer"
                           className={className}
                         >
-                          {link.label}
+                          <Bidi>{link.label}</Bidi>
                         </a>
                       ) : (
                         <Link href={href} className={className}>
-                          {link.label}
+                          <Bidi>{link.label}</Bidi>
                         </Link>
                       )}
                     </li>

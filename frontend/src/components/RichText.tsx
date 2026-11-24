@@ -103,20 +103,38 @@ function serialize(nodes: RichTextNode[]): ReactNode {
 
     const children = serialize(node.children ?? []);
 
+    // Blocks take the direction of their own text: content is written in
+    // the store's language, which needn't be the page's (lib/bidi.ts).
     if (isHeading(node.type)) {
       const Tag = node.type;
-      return <Tag key={i}>{children}</Tag>;
+      return (
+        <Tag key={i} dir="auto">
+          {children}
+        </Tag>
+      );
     }
 
     switch (node.type) {
       case 'ul':
-        return <ul key={i}>{children}</ul>;
+        return (
+          <ul key={i} dir="auto">
+            {children}
+          </ul>
+        );
       case 'ol':
-        return <ol key={i}>{children}</ol>;
+        return (
+          <ol key={i} dir="auto">
+            {children}
+          </ol>
+        );
       case 'li':
         return <li key={i}>{children}</li>;
       case 'blockquote':
-        return <blockquote key={i}>{children}</blockquote>;
+        return (
+          <blockquote key={i} dir="auto">
+            {children}
+          </blockquote>
+        );
       case 'link':
         return renderLink(node, i);
       case 'upload':
@@ -130,7 +148,11 @@ function serialize(nodes: RichTextNode[]): ReactNode {
       case undefined:
       case 'p':
       case 'paragraph':
-        return <p key={i}>{children}</p>;
+        return (
+          <p key={i} dir="auto">
+            {children}
+          </p>
+        );
       default:
         // An element this storefront does not know (for example a new
         // editor feature): keep its content, without guessing at markup

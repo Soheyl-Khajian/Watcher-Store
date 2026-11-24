@@ -1,0 +1,292 @@
+{
+  "site": {
+    "name": "Watcher Security Store",
+    "shortName": "Watcher Store",
+    "tagline": "Smart home and CCTV equipment",
+    "description": "Shop CCTV cameras, solar panels, smart home devices and access control systems online, at fair prices and with genuine-product guarantees, from Watcher.",
+    "keywords": "CCTV cameras,smart home,solar panels,security equipment,Watcher",
+    "defaultAuthor": "The Watcher team",
+    "copyright": "© {year} Watcher Security Store. All rights reserved."
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "retrying": "Trying again…",
+    "optional": "(optional)",
+    "total": "Total",
+    "byAuthor": "By {name}",
+    "skipToContent": "Skip to main content",
+    "close": "Close",
+    "viewAll": "View all",
+    "readMore": "Read more",
+    "listSeparator": ", "
+  },
+  "nav": {
+    "main": "Main menu",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "menuDescription": "The site's main navigation",
+    "categories": "Categories",
+    "allProducts": "All products",
+    "specials": "Special offers",
+    "blog": "Blog",
+    "about": "About us",
+    "contact": "Contact us",
+    "home": "Home",
+    "allInCategory": "All {name}",
+    "language": "Language"
+  },
+  "theme": {
+    "toggle": "Change theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "account": {
+    "menu": "Your account",
+    "user": "Signed in as",
+    "profile": "My account",
+    "logout": "Log out",
+    "login": "Log in",
+    "register": "Sign up"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "loginTitle": "Log in to your account",
+    "loginSubmit": "Log in",
+    "loggingIn": "Logging in…",
+    "loggedIn": "You're logged in.",
+    "noAccount": "Don't have an account?",
+    "toRegister": "Sign up",
+    "registerTitle": "Create an account",
+    "registerSubmit": "Sign up",
+    "registering": "Creating your account…",
+    "registered": "Your account is ready. Welcome!",
+    "registeredPleaseLogin": "Your account is ready. Please log in.",
+    "haveAccount": "Already have an account?",
+    "toLogin": "Log in",
+    "emailInvalid": "Enter a valid email address.",
+    "passwordTooShort": "Your password needs at least {min} characters.",
+    "passwordTooLong": "Your password can be at most {max} characters.",
+    "passwordMismatch": "The passwords don't match."
+  },
+  "search": {
+    "label": "Search products",
+    "placeholder": "What are you looking for?",
+    "submit": "Search"
+  },
+  "home": {
+    "heroTitle": "Smart security, lasting peace of mind",
+    "heroText": "Get the right security and smart building equipment from Watcher, with expert advice and genuine-product guarantees.",
+    "shopByCategory": "Shop by category"
+  },
+  "products": {
+    "searchTitle": "Product search",
+    "allTitle": "All products",
+    "specialsTitle": "Special offers",
+    "specialsHeading": "Products on special offer",
+    "searchHeading": "Results for “{query}”",
+    "found": {
+      "one": "{count} product found",
+      "other": "{count} products found"
+    },
+    "noMatch": "No products match “{query}”.",
+    "viewAll": "View all products",
+    "none": "There are no products to show.",
+    "metaDescription": "Buy {name} from {site}",
+    "keyFeatures": "Key features",
+    "specifications": "Specifications",
+    "review": "Review",
+    "noImage": "No image available",
+    "imageAlt": "{name}, image {index}",
+    "showImage": "Show image {index} of {total}"
+  },
+  "category": {
+    "heading": "{name}",
+    "metaDescription": "Shop {name} at {site}",
+    "empty": "There are no products in this category or its subcategories."
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Articles and guides on security and smart home equipment from Watcher.",
+    "empty": "There are no articles yet."
+  },
+  "stock": {
+    "out": "Out of stock",
+    "low": "Only {count} left in stock",
+    "in": "{count} in stock",
+    "gone": "This item is no longer available; remove it from your cart.",
+    "tooMany": "Only {count} available; lower the quantity."
+  },
+  "cart": {
+    "add": "Add to cart",
+    "adding": "Adding…",
+    "added": "{name} was added to your cart.",
+    "addFailed": "The product couldn't be added to your cart.",
+    "loginToAdd": "Log in to add products to your cart.",
+    "loginAction": "Log in",
+    "title": "Your cart",
+    "itemCount": {
+      "one": "{count} item in your cart.",
+      "other": "{count} items in your cart."
+    },
+    "isEmpty": "Your cart is empty.",
+    "emptyNow": "Your cart is empty right now.",
+    "productsFailed": "The product details couldn't be loaded. Please try again in a moment.",
+    "remove": "Remove {name} from your cart",
+    "removed": "The product was removed from your cart.",
+    "removeFailed": "The product couldn't be removed.",
+    "removeUnavailableFirst": "To continue, remove the unavailable products from your cart.",
+    "toCheckout": "Continue to checkout",
+    "open": "Open cart",
+    "openWithCount": {
+      "one": "Open cart, {count} item",
+      "other": "Open cart, {count} items"
+    },
+    "quantityOf": "Quantity of {name}",
+    "increase": "One more {name}",
+    "decrease": "One less {name}",
+    "unavailableTitle": "This product is no longer available",
+    "unavailableText": "Remove it from your cart to continue.",
+    "removeUnavailable": "Remove the unavailable product"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "shipping": "Delivery details",
+    "recipientName": "Recipient's full name",
+    "phone": "Mobile number",
+    "province": "Province",
+    "city": "City",
+    "address": "Full address",
+    "postalCode": "Postal code",
+    "unit": "Unit",
+    "floor": "Floor",
+    "deliveryNotes": "Delivery notes",
+    "phoneHint": "11 digits, starting with 09.",
+    "postalCodeHint": "10 digits, no dashes.",
+    "summary": "Order summary",
+    "removeUnavailableFirst": "To place your order, first remove the unavailable products from your cart.",
+    "productsFailed": "The product details couldn't be loaded. Please reload the page.",
+    "shippingCost": "We'll arrange the delivery cost with you after you place your order.",
+    "submit": "Place order and pay",
+    "processing": "Processing…",
+    "loading": "Loading your order…",
+    "placedTitle": "Your order has been placed",
+    "orderNumber": "Order number:",
+    "gatewayUnreachable": "We couldn't reach the payment gateway. Your order is saved, and you can try paying again.",
+    "retryPayment": "Try paying again",
+    "connecting": "Connecting…",
+    "backToShop": "Back to the shop",
+    "placed": "Order placed. Taking you to the payment gateway…",
+    "gatewayError": "We couldn't reach the payment gateway.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "productGone": "A product in your cart is no longer available. Please reload the page.",
+    "invalid": "Your delivery details or cart aren't valid. Please check the form.",
+    "failed": "Your order couldn't be placed. Please try again."
+  },
+  "validation": {
+    "required": "Enter the {field}.",
+    "length": "The {field} must be {min} to {max} characters.",
+    "tooLong": "The {field} can be at most {max} characters.",
+    "phoneRequired": "Enter your mobile number.",
+    "phoneInvalid": "Enter a valid mobile number, such as 09123456789.",
+    "postalCodeRequired": "Enter the postal code.",
+    "postalCodeInvalid": "The postal code must have 10 digits.",
+    "fields": {
+      "recipientName": "recipient's name",
+      "province": "province",
+      "city": "city",
+      "address": "address",
+      "unit": "unit",
+      "floor": "floor",
+      "deliveryNotes": "delivery notes"
+    }
+  },
+  "orders": {
+    "status": {
+      "pending": "Awaiting payment",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "cancelReason": {
+      "customer_request": "Cancelled at your request.",
+      "admin": "Cancelled by the shop.",
+      "expired": "Cancelled because it wasn't paid in time.",
+      "payment_failed": "Cancelled because the payment failed."
+    },
+    "refund": {
+      "required": "Your payment will be refunded.",
+      "refunded": "Your payment has been refunded."
+    },
+    "title": "Order #{number}",
+    "placedAt": "Placed: {date}",
+    "total": "Total: {amount}",
+    "trackingCode": "Tracking code:",
+    "pay": "Pay",
+    "cancel": "Cancel order",
+    "details": "Order details",
+    "items": "Items",
+    "unknownProduct": "Product {id}",
+    "shipTo": "Deliver to",
+    "unit": "Unit {value}",
+    "floor": "Floor {value}",
+    "postalCode": "Postal code:",
+    "timeline": "Order history",
+    "events": {
+      "placed": "Placed",
+      "paid": "Paid",
+      "shipped": "Shipped",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "profile": {
+    "title": "My account",
+    "history": "Order history",
+    "loading": "Loading your orders…",
+    "failed": "Your orders couldn't be loaded.",
+    "none": "You haven't placed any orders yet.",
+    "confirmCancel": "Cancel order #{number}?",
+    "cancelled": "The order was cancelled.",
+    "gatewayFailed": "We couldn't reach the payment gateway. Please try again."
+  },
+  "payment": {
+    "title": "Payment result",
+    "checking": "Checking your payment…",
+    "paidTitle": "Payment successful",
+    "paidText": "The payment for order {number} is confirmed.",
+    "failedTitle": "Payment failed",
+    "failedText": "The payment didn't go through, and the order was cancelled.",
+    "pendingTitle": "Payment awaiting confirmation",
+    "pendingChecking": "Waiting for confirmation from the payment gateway…",
+    "pendingLater": "The payment gateway hasn't confirmed the payment yet. Check the order's status in your account in a few minutes.",
+    "notFoundTitle": "Payment not found",
+    "notFoundText": "We couldn't find this payment.",
+    "viewOrders": "View your orders"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundHeading": "We couldn't find that page",
+    "notFoundText": "The address may be mistyped, or the page or product may no longer be available.",
+    "pageFailedTitle": "This page couldn't be loaded",
+    "pageFailedText": "Something went wrong while loading the shop's information. Please try again in a moment.",
+    "unexpectedTitle": "Something went wrong",
+    "unexpectedText": "Please reload the page."
+  },
+  "pager": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {number}"
+  },
+  "carousel": {
+    "region": "carousel",
+    "slide": "slide",
+    "previous": "Previous slide",
+    "next": "Next slide"
+  }
+}

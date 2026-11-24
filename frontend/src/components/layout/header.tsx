@@ -1,6 +1,8 @@
 // frontend/src/components/layout/header.tsx
 import type { MessageKey } from '@/i18n/messages';
-import { getT } from '@/i18n/server';
+import { LOCALE_INFO } from '@/i18n/config';
+import { getLocale, getT } from '@/i18n/server';
+import { LanguageSwitcher } from './language-switcher';
 import { Link } from '@/i18n/navigation';
 import { Menu } from 'lucide-react';
 
@@ -31,10 +33,13 @@ const NAV_LINKS: { href: string; label: MessageKey }[] = [
 
 export async function Header() {
   // Without Payload the page still renders, without the category menu.
-  const [categoryTree, t] = await Promise.all([
+  const [categoryTree, t, locale] = await Promise.all([
     fetchCategoryTree().catch(() => []),
     getT(),
+    getLocale(),
   ]);
+  // The menu sheet opens from the side the menu button is on: the start.
+  const menuSide = LOCALE_INFO[locale].dir === 'rtl' ? 'right' : 'left';
   const navLinks = NAV_LINKS.map(({ href, label }) => ({
     href,
     label: t(label),
@@ -79,7 +84,7 @@ export async function Header() {
                 <span className="sr-only">{t('nav.openMenu')}</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="overflow-y-auto">
+            <SheetContent side={menuSide} className="overflow-y-auto">
               {/* A title and description for screen readers only. */}
               <SheetHeader>
                 <SheetTitle className="sr-only">{t('nav.menu')}</SheetTitle>
@@ -93,7 +98,8 @@ export async function Header() {
         </div>
 
         {/* Theme, account and cart, at the end of the bar. */}
-        <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="flex flex-1 items-center justify-end gap-4">
+          <LanguageSwitcher />
           <ModeToggle />
           <UserNav />
           <CartSheet />
