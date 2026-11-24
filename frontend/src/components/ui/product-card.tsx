@@ -12,6 +12,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { AddToCartButtonCard } from '../cart/add-to-cart-button-card';
+import { StockNote } from './stock-note';
+import { stockOf } from '@/lib/stock';
 
 interface ProductCardProps {
   product: Product;
@@ -83,11 +85,13 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
           </div>
+          <StockNote stock={stockOf(product)} className="text-xs" />
           {/* Above the stretched link, so it stays clickable. */}
           <div className="relative z-10 w-full">
             <AddToCartButtonCard
               productId={product.id}
               productName={product.name}
+              inStock={stockOf(product) > 0}
             />
           </div>
         </CardFooter>

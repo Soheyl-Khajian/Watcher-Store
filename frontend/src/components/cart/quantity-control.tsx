@@ -1,7 +1,8 @@
 // frontend/src/components/cart/quantity-control.tsx
 //
-// − [n] + for a cart line. The server checks stock; when it refuses, the
-// customer sees its message. Lowering below one is the remove button's job.
+// − [n] + for a cart line. + stops at the stock shown on the line; the
+// server checks again, and when it refuses the customer sees its message.
+// Lowering below one is the remove button's job.
 
 'use client';
 
@@ -11,11 +12,14 @@ import { Button } from '@/components/ui/button';
 export function QuantityControl({
   quantity,
   productName,
+  max,
   busy,
   onChange,
 }: {
   quantity: number;
   productName: string;
+  // Units in stock: + is disabled at this count.
+  max: number;
   busy: boolean;
   onChange: (quantity: number) => void;
 }) {
@@ -31,7 +35,7 @@ export function QuantityControl({
         size="icon"
         className="h-7 w-7"
         aria-label={`یکی بیشتر از ${productName}`}
-        disabled={busy}
+        disabled={busy || quantity >= max}
         onClick={() => onChange(quantity + 1)}
       >
         <Plus className="h-3 w-3" aria-hidden="true" />

@@ -20,6 +20,8 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UnavailableCartItem } from '@/components/cart/unavailable-cart-item';
+import { StockNote } from '@/components/ui/stock-note';
+import { overStockLabel, stockOf } from '@/lib/stock';
 import { toast } from 'sonner';
 
 interface CartContentProps {
@@ -197,11 +199,19 @@ export function CartContent({ onClose }: CartContentProps) {
                     <QuantityControl
                       quantity={item.quantity}
                       productName={product.name}
+                      max={stockOf(product)}
                       busy={busyProductId !== null}
                       onChange={(quantity) =>
                         handleQuantity(String(item.productId), quantity)
                       }
                     />
+                    {item.quantity > stockOf(product) ? (
+                      <p className="text-destructive text-sm" role="alert">
+                        {overStockLabel(stockOf(product))}
+                      </p>
+                    ) : (
+                      <StockNote stock={stockOf(product)} className="text-xs" />
+                    )}
                   </div>
                   <p className="font-semibold">
                     {formatPrice(pricePerItem * item.quantity)}

@@ -5,6 +5,8 @@ import { RichText } from '@/components/RichText';
 import { Check } from 'lucide-react';
 import type { Product } from '@payload-types';
 import { AddToCartButton } from '@/components/cart/add-to-cart-button';
+import { StockNote } from '@/components/ui/stock-note';
+import { stockOf } from '@/lib/stock';
 import type { Metadata } from 'next';
 import {
   jsonLdString,
@@ -114,10 +116,12 @@ export default async function ProductDetailsPage({ params }: PageProps) {
               </ul>
             </div>
           )}
-          <div className="mt-8">
+          <div className="mt-8 space-y-3">
+            <StockNote stock={stockOf(product)} />
             <AddToCartButton
               productId={product.id}
               productName={product.name}
+              inStock={stockOf(product) > 0}
             />
           </div>
         </div>
