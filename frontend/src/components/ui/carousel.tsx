@@ -73,17 +73,21 @@ function Carousel({
     api?.scrollNext();
   }, [api]);
 
+  // In a right-to-left carousel the next slide is to the left.
+  const rtl = opts?.direction === 'rtl';
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'ArrowLeft') {
+      const towardStart = rtl ? 'ArrowRight' : 'ArrowLeft';
+      const towardEnd = rtl ? 'ArrowLeft' : 'ArrowRight';
+      if (event.key === towardStart) {
         event.preventDefault();
         scrollPrev();
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === towardEnd) {
         event.preventDefault();
         scrollNext();
       }
     },
-    [scrollPrev, scrollNext],
+    [rtl, scrollPrev, scrollNext],
   );
 
   React.useEffect(() => {
@@ -120,7 +124,7 @@ function Carousel({
         onKeyDownCapture={handleKeyDown}
         className={cn('relative', className)}
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription="اسلایدر"
         data-slot="carousel"
         {...props}
       >
@@ -142,7 +146,7 @@ function CarouselContent({ className, ...props }: React.ComponentProps<'div'>) {
       <div
         className={cn(
           'flex',
-          orientation === 'horizontal' ? '-ml-4' : '-mt-4 flex-col',
+          orientation === 'horizontal' ? '-ms-4' : '-mt-4 flex-col',
           className,
         )}
         {...props}
@@ -157,11 +161,11 @@ function CarouselItem({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       role="group"
-      aria-roledescription="slide"
+      aria-roledescription="اسلاید"
       data-slot="carousel-item"
       className={cn(
         'min-w-0 shrink-0 grow-0 basis-full',
-        orientation === 'horizontal' ? 'pl-4' : 'pt-4',
+        orientation === 'horizontal' ? 'ps-4' : 'pt-4',
         className,
       )}
       {...props}
@@ -175,7 +179,9 @@ function CarouselPrevious({
   size = 'icon',
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { orientation, scrollPrev, canScrollPrev } = useCarousel();
+  const { orientation, scrollPrev, canScrollPrev, opts } = useCarousel();
+  // Points back toward the start: right in a right-to-left carousel.
+  const Icon = opts?.direction === 'rtl' ? ArrowRight : ArrowLeft;
 
   return (
     <Button
@@ -185,7 +191,7 @@ function CarouselPrevious({
       className={cn(
         'absolute size-8 rounded-full',
         orientation === 'horizontal'
-          ? 'top-1/2 -left-12 -translate-y-1/2'
+          ? '-start-12 top-1/2 -translate-y-1/2'
           : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
         className,
       )}
@@ -193,8 +199,8 @@ function CarouselPrevious({
       onClick={scrollPrev}
       {...props}
     >
-      <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
+      <Icon />
+      <span className="sr-only">اسلاید قبلی</span>
     </Button>
   );
 }
@@ -205,7 +211,8 @@ function CarouselNext({
   size = 'icon',
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { orientation, scrollNext, canScrollNext } = useCarousel();
+  const { orientation, scrollNext, canScrollNext, opts } = useCarousel();
+  const Icon = opts?.direction === 'rtl' ? ArrowLeft : ArrowRight;
 
   return (
     <Button
@@ -215,7 +222,7 @@ function CarouselNext({
       className={cn(
         'absolute size-8 rounded-full',
         orientation === 'horizontal'
-          ? 'top-1/2 -right-12 -translate-y-1/2'
+          ? '-end-12 top-1/2 -translate-y-1/2'
           : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
         className,
       )}
@@ -223,8 +230,8 @@ function CarouselNext({
       onClick={scrollNext}
       {...props}
     >
-      <ArrowRight />
-      <span className="sr-only">Next slide</span>
+      <Icon />
+      <span className="sr-only">اسلاید بعدی</span>
     </Button>
   );
 }

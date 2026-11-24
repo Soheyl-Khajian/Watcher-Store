@@ -20,6 +20,8 @@ import { fetchCategoryTree } from '@/lib/api/payload';
 import { LogoMark } from '@/components/brand/logo';
 
 const otherNavLinks = [
+  { href: '/products', label: 'همه محصولات' },
+  { href: '/products?onSale=true', label: 'فروش ویژه' },
   { href: '/blog', label: 'وبلاگ' },
   { href: '/about-us', label: 'درباره ما' },
   { href: '/contact-us', label: 'تماس با ما' },
@@ -43,7 +45,10 @@ export async function Header() {
         </div>
 
         {/* منوی اصلی برای دسکتاپ */}
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+        <nav
+          aria-label="منوی اصلی"
+          className="hidden items-center gap-6 text-sm font-medium md:flex"
+        >
           {/* کامپوننت منوی داینامیک */}
           <MegaMenu categories={categoryTree} />
 
@@ -68,7 +73,7 @@ export async function Header() {
                 <span className="sr-only">باز کردن منو</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="overflow-y-auto">
               {/* عنوان و توضیحات را اضافه می‌کنیم اما با کلاس فقط صفحه خوان آنها را مخفی می‌کنیم */}
               <SheetHeader>
                 <SheetTitle className="sr-only">منو</SheetTitle>
@@ -76,7 +81,7 @@ export async function Header() {
                   ناوبری اصلی سایت
                 </SheetDescription>
               </SheetHeader>
-              <MobileNav categories={categoryTree} otherLinks={otherNavLinks} />
+              <MobileNav categories={categoryTree} links={otherNavLinks} />
             </SheetContent>
           </Sheet>
         </div>

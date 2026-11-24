@@ -6,6 +6,7 @@
 'use client';
 
 import { isolate } from '@/lib/bidi';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { addToCart } from '../api/nestjs';
@@ -15,11 +16,22 @@ export function useAddToCart(productId: string | number, productName: string) {
   const status = useAuthStore((state) => state.status);
   const setCart = useAuthStore((state) => state.setCart);
   const [isAdding, setIsAdding] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const add = async () => {
     if (isAdding) return;
     if (status !== 'signed-in') {
-      toast.error('برای افزودن محصول به سبد خرید، لطفاً ابتدا وارد شوید.');
+      // Logging in brings the customer back to this page.
+      toast.info('برای افزودن محصول به سبد خرید، ابتدا وارد حساب خود شوید.', {
+        // Long enough to reach for the button.
+        duration: 8000,
+        action: {
+          label: 'ورود',
+          onClick: () =>
+            router.push(`/login?next=${encodeURIComponent(pathname)}`),
+        },
+      });
       return;
     }
 

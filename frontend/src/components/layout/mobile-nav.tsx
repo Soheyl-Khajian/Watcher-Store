@@ -1,4 +1,8 @@
-// مسیر فایل: src/components/layout/mobile-nav.tsx
+// frontend/src/components/layout/mobile-nav.tsx
+//
+// The menu sheet on small screens: the category tree at any depth (a
+// category with subcategories opens like an accordion and starts with a
+// link to all of its products), then the shop's other pages.
 
 'use client';
 
@@ -12,79 +16,96 @@ import {
 } from '@/components/ui/accordion';
 import type { Category } from '@/types';
 import { SheetClose } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 interface MobileNavProps {
   categories: Category[];
-  otherLinks: { href: string; label: string }[];
+  links: { href: string; label: string }[];
 }
 
-export function MobileNav({ categories, otherLinks }: MobileNavProps) {
+const categoryHref = (category: Category) =>
+  `/categories/${encodeURIComponent(category.slug ?? '')}`;
+
+function CategoryList({
+  categories,
+  depth,
+}: {
+  categories: Category[];
+  depth: number;
+}) {
+  const top = depth === 0;
+
   return (
-    <div className="flex flex-col gap-4 px-3 py-12">
+    <Accordion type="single" collapsible className="w-full">
+      {categories.map((category) =>
+        category.children && category.children.length > 0 ? (
+          <AccordionItem
+            value={String(category.id)}
+            key={category.id}
+            className={cn(!top && 'border-b-0')}
+          >
+            <AccordionTrigger
+              className={cn(
+                top ? 'text-lg' : 'text-muted-foreground py-2 text-base',
+              )}
+            >
+              <Bidi>{category.name}</Bidi>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-col ps-4">
+                <SheetClose asChild>
+                  <Link
+                    href={categoryHref(category)}
+                    className="text-muted-foreground py-2"
+                  >
+                    همه محصولات <Bidi>{category.name}</Bidi>
+                  </Link>
+                </SheetClose>
+                <CategoryList
+                  categories={category.children}
+                  depth={depth + 1}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ) : (
+          <SheetClose asChild key={category.id}>
+            <Link
+              href={categoryHref(category)}
+              className={cn(
+                'block',
+                top ? 'border-b py-4 text-lg' : 'text-muted-foreground py-2',
+              )}
+            >
+              <Bidi>{category.name}</Bidi>
+            </Link>
+          </SheetClose>
+        ),
+      )}
+    </Accordion>
+  );
+}
+
+export function MobileNav({ categories, links }: MobileNavProps) {
+  return (
+    <nav aria-label="منوی اصلی" className="flex flex-col gap-4 px-3 py-12">
       <SheetClose asChild>
         <Link href="/" className="mb-4 font-bold">
           فروشگاه واچر
         </Link>
       </SheetClose>
 
-      {/* بخش دسته‌بندی‌ها به صورت آکاردیونی */}
-      <Accordion type="single" collapsible className="w-full">
-        {categories.map((category) =>
-          category.children && category.children.length > 0 ? (
-            // اگر فرزند داشت، یک آیتم آکاردیونی بساز
-            <AccordionItem value={String(category.id)} key={category.id}>
-              <AccordionTrigger className="text-lg">
-                <Bidi>{category.name}</Bidi>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="flex flex-col space-y-2 ps-4">
-                  {/* لینک به خود دسته مادر */}
-                  <SheetClose asChild>
-                    <Link
-                      href={`/categories/${category.slug}`}
-                      className="text-muted-foreground py-2"
-                    >
-                      همه محصولات <Bidi>{category.name}</Bidi>
-                    </Link>
-                  </SheetClose>
-                  {/* لیست فرزندان */}
-                  {category.children.map((child) => (
-                    <SheetClose asChild key={child.id}>
-                      <Link
-                        href={`/categories/${child.slug}`}
-                        className="text-muted-foreground py-2"
-                      >
-                        <Bidi>{child.name}</Bidi>
-                      </Link>
-                    </SheetClose>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ) : (
-            // اگر فرزند نداشت، یک لینک ساده بساز
-            <SheetClose asChild key={category.id}>
-              <Link
-                href={`/categories/${category.slug}`}
-                className="block border-b py-4 text-lg"
-              >
-                <Bidi>{category.name}</Bidi>
-              </Link>
-            </SheetClose>
-          ),
-        )}
-      </Accordion>
+      <CategoryList categories={categories} depth={0} />
 
       <hr className="my-2" />
 
-      {/* بخش لینک‌های دیگر */}
-      {otherLinks.map((link) => (
+      {links.map((link) => (
         <SheetClose asChild key={link.href}>
           <Link href={link.href} className="text-lg">
             {link.label}
           </Link>
         </SheetClose>
       ))}
-    </div>
+    </nav>
   );
 }

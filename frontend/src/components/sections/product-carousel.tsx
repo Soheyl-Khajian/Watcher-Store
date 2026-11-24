@@ -1,4 +1,4 @@
-// مسیر فایل: src/components/sections/product-carousel.tsx
+// frontend/src/components/sections/product-carousel.tsx
 'use client';
 
 import Link from 'next/link';
@@ -28,49 +28,51 @@ export function ProductCarousel({
     return null;
   }
 
+  const arrowClass =
+    'static size-10 translate-y-0 cursor-pointer disabled:opacity-30';
+
   return (
     <section className="py-12">
-      <div className="container mx-auto px-4">
-        <div className="mb-8 flex items-center justify-between">
+      <Carousel
+        opts={{
+          align: 'start',
+          direction: 'rtl',
+          // Loop only when there are enough products to scroll through.
+          loop: products.length > 5,
+        }}
+        aria-label={title}
+        className="container mx-auto px-4"
+      >
+        {/* The arrows sit in the header, so at no width do they cover the
+            cards; on touch screens the cards also swipe. */}
+        <div className="mb-8 flex items-center justify-between gap-4">
           <h2 className="text-3xl font-bold">{title}</h2>
-          <Link
-            href={viewAllLink}
-            className="text-primary flex items-center gap-2 text-sm font-semibold hover:underline"
-          >
-            مشاهده همه
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={viewAllLink}
+              className="text-primary flex items-center gap-2 text-sm font-semibold hover:underline"
+            >
+              مشاهده همه
+              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            </Link>
+            <CarouselPrevious className={arrowClass} />
+            <CarouselNext className={arrowClass} />
+          </div>
         </div>
 
-        <div className="relative">
-          <Carousel
-            opts={{
-              align: 'start',
-              direction: 'rtl',
-              // اگر تعداد محصولات برای اسکرول کافی نبود، چرخش بی‌نهایت را غیرفعال می‌کنیم
-              loop: products.length > 5,
-            }}
-            className="w-full"
-          >
-            {/* ۱. استفاده از مارجین منفی استاندارد shadcn/ui */}
-            <CarouselContent className="-mr-2 md:-mr-4">
-              {products.map((product) => (
-                // ۲. تعریف اندازه پایه برای موبایل (basis-1/2) و پدینگ متناسب
-                <CarouselItem
-                  key={product.id}
-                  className="basis-1/2 pr-4 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
-                >
-                  <div className="h-full">
-                    <ProductCard product={product} />
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="bg-background/50 absolute top-1/2 -left-3 z-10 h-12 w-12 -translate-y-1/2 cursor-pointer border-2 backdrop-blur disabled:opacity-30 md:-left-4 lg:-left-6" />
-            <CarouselNext className="bg-background/50 absolute top-1/2 -right-3 z-10 h-12 w-12 -translate-y-1/2 cursor-pointer border-2 backdrop-blur disabled:opacity-30 md:-right-4 lg:-right-6" />
-          </Carousel>
-        </div>
-      </div>
+        <CarouselContent>
+          {products.map((product) => (
+            <CarouselItem
+              key={product.id}
+              className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
+            >
+              <div className="h-full">
+                <ProductCard product={product} />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </section>
   );
 }
