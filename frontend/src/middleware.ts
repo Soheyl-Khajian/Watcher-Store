@@ -67,12 +67,18 @@ export function middleware(request: NextRequest): NextResponse {
   }
 
   if (route.kind === 'page') {
+    // Not a security boundary: the API checks the session on every request,
+    // and a forged cookie gets nobody anything. This only spares a visitor
+    // without a session an account page that would send them to log in
+    // anyway.
     const { name } = sessionCookieFor(frontendOrigin);
-    if (requiresSession(route.path) && !request.cookies.get(name)?.value) {
-      return redirectTo(
-        localizeHref(route.locale, loginPathFor(route.path + search)),
-        307,
-      );
+    const loginPage = localizeHref(
+      route.locale,
+      loginPathFor(route.path + search),
+    );
+    const signedOut = !request.cookies.get(name)?.value;
+    if (signedOut && requiresSession(route.path)) {
+      return redirectTo(loginPage, 307);
     }
   }
 
