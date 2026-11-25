@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { expectApiError } from '../../test/expect-api-error';
 import { OrderStatus } from './entities/order.entity';
 import {
   ORDER_TRANSITIONS,
@@ -29,7 +29,9 @@ describe('order state machine', () => {
 
   it.each(allowed)('allows %s -> %s', (from, to) => {
     expect(canTransition(from, to)).toBe(true);
-    expect(() => assertTransition(from, to, 'not allowed')).not.toThrow();
+    expect(() =>
+      assertTransition(from, to, 'ORDER_NOT_CANCELLABLE'),
+    ).not.toThrow();
   });
 
   const forbidden = allStatuses.flatMap((from) =>
@@ -40,8 +42,10 @@ describe('order state machine', () => {
 
   it.each(forbidden)('forbids %s -> %s', (from, to) => {
     expect(canTransition(from, to)).toBe(false);
-    expect(() => assertTransition(from, to, 'not allowed')).toThrow(
-      ConflictException,
+    expectApiError(
+      () => assertTransition(from, to, 'ORDER_NOT_CANCELLABLE'),
+      409,
+      'ORDER_NOT_CANCELLABLE',
     );
   });
 
@@ -49,9 +53,11 @@ describe('order state machine', () => {
     expect(ORDER_TRANSITIONS[status]).toEqual([]);
   });
 
-  it('reports the caller message on a forbidden transition', () => {
-    expect(() => assertTransition(SHIPPED, CANCELLED, 'cannot cancel')).toThrow(
-      'cannot cancel',
+  it("reports the caller's code on a forbidden transition", () => {
+    expectApiError(
+      () => assertTransition(SHIPPED, CANCELLED, 'ORDER_NOT_SHIPPABLE'),
+      409,
+      'ORDER_NOT_SHIPPABLE',
     );
   });
 });

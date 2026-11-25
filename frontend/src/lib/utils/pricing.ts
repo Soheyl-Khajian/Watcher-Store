@@ -1,4 +1,4 @@
-// مسیر فایل: frontend/lib/utils/pricing.ts
+// frontend/src/lib/utils/pricing.ts
 import type { Product } from '@/types';
 
 export function getCurrentPrice(product: Product): number {

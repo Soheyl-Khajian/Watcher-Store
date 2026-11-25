@@ -7,6 +7,11 @@ Playwright tests of the production stack, with a mock Zarinpal gateway
   out, pay at the gateway, see the order paid; the administrator ships it
   in Payload's Orders view; the customer sees it shipped with its tracking
   code.
+- **languages**: the same purchase in English, from sign-up to a paid
+  order, with English messages throughout and the gateway returning the
+  customer to the English page; bare addresses opening in the default
+  language; the language switcher keeping the page and its search; the
+  hreflang links between languages.
 - **site**: the 404 page, the storefront's and the admin's security
   headers (every script carries the CSP nonce), the login redirect for
   account pages, the image credits page.

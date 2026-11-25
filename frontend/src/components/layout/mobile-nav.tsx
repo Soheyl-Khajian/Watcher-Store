@@ -6,8 +6,9 @@
 
 'use client';
 
+import { useT } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import {
   Accordion,
   AccordionContent,
@@ -33,6 +34,7 @@ function CategoryList({
   categories: Category[];
   depth: number;
 }) {
+  const t = useT();
   const top = depth === 0;
 
   return (
@@ -58,7 +60,9 @@ function CategoryList({
                     href={categoryHref(category)}
                     className="text-muted-foreground py-2"
                   >
-                    همه محصولات <Bidi>{category.name}</Bidi>
+                    {t.rich('nav.allInCategory', {
+                      name: <Bidi>{category.name}</Bidi>,
+                    })}
                   </Link>
                 </SheetClose>
                 <CategoryList
@@ -87,11 +91,12 @@ function CategoryList({
 }
 
 export function MobileNav({ categories, links }: MobileNavProps) {
+  const t = useT();
   return (
-    <nav aria-label="منوی اصلی" className="flex flex-col gap-4 px-3 py-12">
+    <nav aria-label={t('nav.main')} className="flex flex-col gap-4 px-3 py-12">
       <SheetClose asChild>
         <Link href="/" className="mb-4 font-bold">
-          فروشگاه واچر
+          {t('site.shortName')}
         </Link>
       </SheetClose>
 

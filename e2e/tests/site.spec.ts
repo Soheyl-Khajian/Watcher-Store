@@ -42,7 +42,7 @@ test('the storefront sends its security headers', async ({ page }) => {
 
 test('account pages send visitors to the login page', async ({ page }) => {
   await page.goto('/profile');
-  await expect(page).toHaveURL(/\/login\?next=%2Fprofile$/);
+  await expect(page).toHaveURL(/\/fa\/login\?next=%2Fprofile$/);
 });
 
 test('the admin panel sends its security headers', async ({ request }) => {

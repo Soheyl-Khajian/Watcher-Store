@@ -1,8 +1,10 @@
 // frontend/src/components/sections/articles-section.tsx
 
+import { ArrowLeft } from 'lucide-react';
+import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { mediaSrc } from '@/lib/utils/media';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +13,8 @@ interface ArticlesSectionProps {
   posts: Post[];
 }
 
-export function ArticlesSection({ posts }: ArticlesSectionProps) {
+export async function ArticlesSection({ posts }: ArticlesSectionProps) {
+  const t = await getT();
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
@@ -48,8 +51,12 @@ export function ArticlesSection({ posts }: ArticlesSectionProps) {
                     <p className="text-muted-foreground flex-grow">
                       <Bidi>{post.excerpt || ''}</Bidi>
                     </p>
-                    <div className="text-primary mt-4 text-sm font-bold transition-transform duration-300 group-hover:translate-x-[-4px]">
-                      ادامه مطلب &larr;
+                    <div className="text-primary mt-4 flex items-center gap-1 text-sm font-bold transition-transform duration-300 group-hover:-translate-x-1 ltr:group-hover:translate-x-1">
+                      {t('common.readMore')}
+                      <ArrowLeft
+                        aria-hidden="true"
+                        className="h-4 w-4 ltr:-scale-x-100"
+                      />
                     </div>
                   </CardContent>
                 </Card>

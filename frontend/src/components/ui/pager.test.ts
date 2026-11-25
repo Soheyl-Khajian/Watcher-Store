@@ -1,14 +1,14 @@
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { renderIn } from '@/test/i18n';
 import { Pager } from './pager';
 
 const render = (page: number, totalPages: number) =>
-  renderToStaticMarkup(
+  renderIn(
     createElement(Pager, {
       page,
       totalPages,
-      hrefFor: (p: number) => `/products?page=${p}`,
+      href: '/products',
     }),
   );
 
@@ -37,16 +37,16 @@ describe('Pager', () => {
   it('marks the current page and links the others, in Persian digits', () => {
     const html = render(2, 3);
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain('href="/products?page=1"');
-    expect(html).toContain('href="/products?page=3"');
+    expect(html).toContain('href="/fa/products?page=1"');
+    expect(html).toContain('href="/fa/products?page=3"');
     expect(html).toContain('aria-label="صفحه ۳"');
-    expect(html).not.toContain('href="/products?page=2"');
+    expect(html).not.toContain('href="/fa/products?page=2"');
   });
 
   it('shows gaps instead of every page of a long list', () => {
     const html = render(10, 20);
     expect(html).toContain('…');
-    expect(html).toContain('href="/products?page=20"');
-    expect(html).not.toContain('href="/products?page=15"');
+    expect(html).toContain('href="/fa/products?page=20"');
+    expect(html).not.toContain('href="/fa/products?page=15"');
   });
 });

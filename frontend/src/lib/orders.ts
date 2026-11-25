@@ -2,20 +2,25 @@
 //
 // How the storefront describes an order to its customer, and what they may
 // do with it. The API enforces the same rules; these only decide which
-// buttons to show.
+// buttons to show. Descriptions are messages (orders.* in the message
+// files), worded in the page's language where they are shown.
 
+import type { MessageRef } from '@/i18n/messages';
 import type { Order, OrderStatus } from '@/types';
 
-export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'در انتظار پرداخت',
-  processing: 'در حال پردازش',
-  shipped: 'ارسال‌شده',
-  completed: 'تکمیل‌شده',
-  cancelled: 'لغوشده',
-};
+const STATUSES: OrderStatus[] = [
+  'pending',
+  'processing',
+  'shipped',
+  'completed',
+  'cancelled',
+];
 
-export function orderStatusLabel(status: string): string {
-  return ORDER_STATUS_LABELS[status as OrderStatus] ?? status;
+// A status the storefront doesn't know shows as the API sent it.
+export function orderStatusLabel(status: string): MessageRef | string {
+  return STATUSES.includes(status as OrderStatus)
+    ? { key: `orders.status.${status as OrderStatus}` }
+    : status;
 }
 
 // Badge styles: a cancelled order stands out, finished ones recede.
@@ -34,25 +39,24 @@ export function orderStatusVariant(
   }
 }
 
-const CANCEL_REASONS: Record<NonNullable<Order['cancelReason']>, string> = {
-  customer_request: 'به درخواست شما لغو شد.',
-  admin: 'توسط فروشگاه لغو شد.',
-  expired: 'به دلیل پرداخت نشدن در مهلت مقرر لغو شد.',
-  payment_failed: 'به دلیل ناموفق بودن پرداخت لغو شد.',
-};
+const CANCEL_REASONS = [
+  'customer_request',
+  'admin',
+  'expired',
+  'payment_failed',
+] as const;
 
-export function cancelReasonText(order: Order): string | null {
-  return order.cancelReason
-    ? (CANCEL_REASONS[order.cancelReason] ?? null)
-    : null;
+export function cancelReasonText(order: Order): MessageRef | null {
+  const reason = CANCEL_REASONS.find((known) => known === order.cancelReason);
+  return reason ? { key: `orders.cancelReason.${reason}` } : null;
 }
 
-export function refundText(order: Order): string | null {
+export function refundText(order: Order): MessageRef | null {
   switch (order.refundStatus) {
     case 'required':
-      return 'مبلغ پرداختی به شما بازگردانده می‌شود.';
+      return { key: 'orders.refund.required' };
     case 'refunded':
-      return 'مبلغ پرداختی به شما بازگردانده شد.';
+      return { key: 'orders.refund.refunded' };
     default:
       return null;
   }

@@ -1,4 +1,4 @@
-// مسیر فایل: frontend/src/components/ui/icon.tsx
+// frontend/src/components/ui/icon.tsx
 
 import {
   Camera,
@@ -26,7 +26,7 @@ import {
   Sun,
   BatteryCharging,
   Battery,
-  HelpCircle, // آیکون پیش‌فرض
+  HelpCircle, // the fallback icon
   type LucideProps,
 } from 'lucide-react';
 

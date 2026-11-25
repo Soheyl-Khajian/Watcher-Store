@@ -26,8 +26,6 @@ describe('Payments without a gateway (e2e)', () => {
       .set(headers)
       .send({ orderId: 1 })
       .expect(503);
-    expect(response.body.message).toBe(
-      'پرداخت آنلاین در حال حاضر در دسترس نیست.',
-    );
+    expect(response.body.code).toBe('PAYMENT_UNAVAILABLE');
   });
 });

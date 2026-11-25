@@ -3,14 +3,14 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class LoginUserDto {
-  @IsEmail({}, { message: 'ایمیل وارد شده معتبر نیست.' })
+  @IsEmail({}, { message: 'email must be a valid email address' })
   @IsNotEmpty()
   email!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(8, {
-    message: 'رمز عبور باید حداقل ۸ کاراکتر باشد.',
+    message: 'password must be at least 8 characters',
   })
   password!: string;
 }

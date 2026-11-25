@@ -1,0 +1,509 @@
+// frontend/src/app/[locale]/(main)/checkout/page.tsx
+
+'use client';
+
+import { useFormatter, useT } from '@/i18n/client';
+import type { MessageKey, MessageRef } from '@/i18n/messages';
+import { Bidi } from '@/components/ui/bidi';
+import { Link } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/lib/store/auth';
+import { useRequireSession } from '@/lib/hooks/use-require-session';
+import type { Product, CartItem } from '@/types';
+import { fetchProductsByIds } from '@/lib/api/payload';
+import {
+  createOrder,
+  initiatePayment,
+  removeFromCart,
+  type ApiFailure,
+} from '@/lib/api/nestjs';
+import { findUnavailableItems } from '@/lib/utils/cart';
+import { UnavailableCartItem } from '@/components/cart/unavailable-cart-item';
+import {
+  EMPTY_SHIPPING_FORM,
+  SHIPPING_FIELD_ORDER,
+  SHIPPING_MAX_LENGTH,
+  validateShipping,
+  type ShippingErrors,
+  type ShippingField,
+  type ShippingFormValues,
+} from '@/lib/validation/shipping';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { getCurrentPrice } from '@/lib/utils/pricing';
+import { cn } from '@/lib/utils';
+
+// What checkout says about a failed order when the API's code is a general
+// one; a specific code (such as too little stock) says it better.
+function orderErrorFallback(error: ApiFailure): MessageKey {
+  switch (error.status) {
+    case 401:
+      return 'checkout.sessionExpired';
+    case 404:
+      return 'checkout.productGone';
+    case 400:
+      return 'checkout.invalid';
+    default:
+      return 'checkout.failed';
+  }
+}
+
+// Format hints, shown under the field and read with it.
+const HINTS: Partial<Record<ShippingField, MessageKey>> = {
+  phone: 'checkout.phoneHint',
+  postalCode: 'checkout.postalCodeHint',
+};
+
+function FormField({
+  id,
+  label,
+  required,
+  hint,
+  error,
+  className,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  hint?: MessageKey;
+  error?: MessageRef;
+  className?: string;
+  children: ReactNode;
+}) {
+  const t = useT();
+  return (
+    <div className={cn('space-y-2', className)}>
+      <Label htmlFor={id}>
+        {label}
+        {required ? (
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+        ) : (
+          <span className="text-muted-foreground font-normal">
+            {t('common.optional')}
+          </span>
+        )}
+      </Label>
+      {children}
+      {hint ? (
+        <p id={`${id}-hint`} className="text-muted-foreground text-sm">
+          {t(hint)}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={`${id}-error`} className="text-destructive text-sm">
+          {t.ref(error)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export default function CheckoutPage() {
+  // The cart is null until the session check has loaded it.
+  const { cart, setCart } = useAuthStore();
+  const status = useRequireSession();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [form, setForm] = useState<ShippingFormValues>(EMPTY_SHIPPING_FORM);
+  const [productsFailed, setProductsFailed] = useState(false);
+  const [errors, setErrors] = useState<ShippingErrors>({});
+  // Set once the order exists on the server. From then on the page only
+  // retries payment for this order and never creates another one.
+  const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
+
+  const checkoutKeyRef = useRef<string | null>(null);
+
+  const router = useRouter();
+  const format = useFormatter();
+  const t = useT();
+
+  useEffect(() => {
+    if (isProcessing || placedOrderId !== null) return;
+    // Nothing to check out: back to the shop.
+    if (status === 'signed-in' && cart !== null && cart.items.length === 0) {
+      router.push('/');
+    }
+  }, [status, cart, router, isProcessing, placedOrderId]);
+
+  useEffect(() => {
+    const getProducts = async () => {
+      if (!cart) return;
+      if (cart.items.length > 0) {
+        const productIds = cart.items.map((item: CartItem) => item.productId);
+        const fetchedProducts = await fetchProductsByIds(productIds);
+        setProducts(fetchedProducts ?? []);
+        setProductsFailed(fetchedProducts === null);
+      }
+      setIsLoading(false);
+    };
+    getProducts();
+  }, [cart]);
+
+  const unavailableItems = useMemo(() => {
+    if (isLoading || productsFailed || !cart) return [];
+    return findUnavailableItems(cart.items, products);
+  }, [isLoading, productsFailed, cart, products]);
+
+  const checkoutBlocked = productsFailed || unavailableItems.length > 0;
+
+  const handleRemoveUnavailable = async (productId: string) => {
+    if (status !== 'signed-in' || isProcessing) return;
+
+    const updatedCart = await removeFromCart(String(productId));
+
+    if (updatedCart) {
+      setCart(updatedCart);
+      toast.success(t('cart.removed'));
+    } else {
+      toast.error(t('cart.removeFailed'));
+    }
+  };
+
+  const handleChange = (field: ShippingField, value: string) => {
+    setForm((previous) => ({ ...previous, [field]: value }));
+    setErrors((previous) => {
+      if (!previous[field]) return previous;
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const fieldProps = (field: ShippingField) => ({
+    id: `shipping-${field}`,
+    name: field,
+    value: form[field],
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      handleChange(field, event.target.value),
+    disabled: isProcessing,
+    maxLength: SHIPPING_MAX_LENGTH[field],
+    'aria-invalid': errors[field] ? true : undefined,
+    'aria-describedby':
+      [
+        HINTS[field] && `shipping-${field}-hint`,
+        errors[field] && `shipping-${field}-error`,
+      ]
+        .filter(Boolean)
+        .join(' ') || undefined,
+  });
+
+  const startPayment = async (orderId: number) => {
+    setIsProcessing(true);
+
+    const paymentData = await initiatePayment(orderId);
+
+    if (paymentData && paymentData.paymentUrl) {
+      window.location.href = paymentData.paymentUrl;
+      return;
+    }
+
+    toast.error(t('checkout.gatewayError'));
+    setIsProcessing(false);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (status !== 'signed-in' || isProcessing || checkoutBlocked) return;
+
+    const result = validateShipping(form);
+
+    if (!result.ok) {
+      setErrors(result.errors);
+      const firstInvalid = SHIPPING_FIELD_ORDER.find(
+        (field) => result.errors[field],
+      );
+      if (firstInvalid) {
+        document.getElementById(`shipping-${firstInvalid}`)?.focus();
+      }
+      return;
+    }
+
+    setErrors({});
+    setIsProcessing(true);
+
+    const checkoutKey = checkoutKeyRef.current ?? crypto.randomUUID();
+    checkoutKeyRef.current = checkoutKey;
+
+    const created = await createOrder(checkoutKey, result.payload);
+
+    if (!created.ok) {
+      toast.error(t.error(created.error, orderErrorFallback(created.error)));
+      setIsProcessing(false);
+      return;
+    }
+
+    // The server emptied the cart when it created the order.
+    setPlacedOrderId(created.order.id);
+    setCart(null);
+    toast.success(t('checkout.placed'));
+
+    await startPayment(created.order.id);
+  };
+
+  const cartTotal = useMemo(() => {
+    if (!cart?.items || products.length === 0) return 0;
+    return cart.items.reduce((total, item) => {
+      const product = products.find(
+        (p: Product) => String(p.id) === String(item.productId),
+      );
+      if (!product) return total;
+      const price = getCurrentPrice(product);
+      return total + price * item.quantity;
+    }, 0);
+  }, [cart, products]);
+
+  const formatPrice = format.toman;
+
+  if (placedOrderId !== null) {
+    return (
+      <div className="container mx-auto max-w-2xl py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('checkout.placedTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p>
+              {t('checkout.orderNumber')}{' '}
+              <span className="font-semibold">
+                {format.digits(placedOrderId)}
+              </span>
+            </p>
+            <p className="text-muted-foreground text-sm">
+              {t('checkout.gatewayUnreachable')}
+            </p>
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button
+              className="cursor-pointer"
+              onClick={() => startPayment(placedOrderId)}
+              disabled={isProcessing}
+            >
+              {isProcessing
+                ? t('checkout.connecting')
+                : t('checkout.retryPayment')}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/">{t('checkout.backToShop')}</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading || !cart) {
+    return <div role="status">{t('checkout.loading')}</div>;
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="container mx-auto max-w-2xl space-y-6 px-4 py-12"
+    >
+      <h1 className="text-3xl font-bold">{t('checkout.title')}</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('checkout.shipping')}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            id="shipping-recipientName"
+            label={t('checkout.recipientName')}
+            required
+            error={errors.recipientName}
+          >
+            <Input {...fieldProps('recipientName')} autoComplete="name" />
+          </FormField>
+
+          <FormField
+            id="shipping-phone"
+            label={t('checkout.phone')}
+            required
+            hint={HINTS.phone}
+            error={errors.phone}
+          >
+            <Input
+              {...fieldProps('phone')}
+              dir="ltr"
+              inputMode="tel"
+              autoComplete="tel"
+            />
+          </FormField>
+
+          <FormField
+            id="shipping-province"
+            label={t('checkout.province')}
+            required
+            error={errors.province}
+          >
+            <Input {...fieldProps('province')} autoComplete="address-level1" />
+          </FormField>
+
+          <FormField
+            id="shipping-city"
+            label={t('checkout.city')}
+            required
+            error={errors.city}
+          >
+            <Input {...fieldProps('city')} autoComplete="address-level2" />
+          </FormField>
+
+          <FormField
+            id="shipping-address"
+            label={t('checkout.address')}
+            required
+            error={errors.address}
+            className="sm:col-span-2"
+          >
+            <Textarea
+              {...fieldProps('address')}
+              rows={3}
+              autoComplete="street-address"
+            />
+          </FormField>
+
+          <FormField
+            id="shipping-postalCode"
+            label={t('checkout.postalCode')}
+            required
+            hint={HINTS.postalCode}
+            error={errors.postalCode}
+          >
+            <Input
+              {...fieldProps('postalCode')}
+              dir="ltr"
+              inputMode="numeric"
+              autoComplete="postal-code"
+            />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              id="shipping-unit"
+              label={t('checkout.unit')}
+              error={errors.unit}
+            >
+              <Input {...fieldProps('unit')} dir="ltr" />
+            </FormField>
+            <FormField
+              id="shipping-floor"
+              label={t('checkout.floor')}
+              error={errors.floor}
+            >
+              <Input {...fieldProps('floor')} dir="ltr" />
+            </FormField>
+          </div>
+
+          <FormField
+            id="shipping-deliveryNotes"
+            label={t('checkout.deliveryNotes')}
+            error={errors.deliveryNotes}
+            className="sm:col-span-2"
+          >
+            <Textarea {...fieldProps('deliveryNotes')} rows={2} />
+          </FormField>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('checkout.summary')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-4">
+            {cart.items.map((item: CartItem) => {
+              const product = products.find(
+                (p: Product) => String(p.id) === String(item.productId),
+              );
+              if (!product) return null;
+
+              const currentPrice = getCurrentPrice(product);
+
+              return (
+                <li key={item.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">
+                      <Bidi>{product.name}</Bidi>
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      <Bidi>{format.number(item.quantity)}</Bidi> ×{' '}
+                      <Bidi>{formatPrice(currentPrice)}</Bidi>
+                    </p>
+                  </div>
+                  <p className="font-semibold">
+                    {formatPrice(currentPrice * item.quantity)}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+          {unavailableItems.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <ul className="space-y-4">
+                {unavailableItems.map((item: CartItem) => (
+                  <UnavailableCartItem
+                    key={item.id}
+                    disabled={isProcessing}
+                    onRemove={() =>
+                      handleRemoveUnavailable(String(item.productId))
+                    }
+                  />
+                ))}
+              </ul>
+              <p className="text-destructive text-sm">
+                {t('checkout.removeUnavailableFirst')}
+              </p>
+            </div>
+          )}
+          {productsFailed && (
+            <p className="text-destructive mt-4 text-sm">
+              {t('checkout.productsFailed')}
+            </p>
+          )}
+          <Separator className="my-4" />
+          <div className="flex justify-between text-lg font-bold">
+            <p>{t('common.total')}</p>
+            <p>{formatPrice(cartTotal)}</p>
+          </div>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {t('checkout.shippingCost')}
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            disabled={isProcessing || checkoutBlocked}
+          >
+            {isProcessing ? t('checkout.processing') : t('checkout.submit')}
+          </Button>
+        </CardFooter>
+      </Card>
+    </form>
+  );
+}

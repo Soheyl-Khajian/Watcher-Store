@@ -1,16 +1,12 @@
 // backend/nest-api/src/products/products.service.ts
 
 import type { EntityManager } from 'typeorm';
-import {
-  BadGatewayException,
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { isTomanAmount } from '../common/money/toman';
 import { env } from '../env';
 import { PayloadClient } from '../payload/payload-client';
 import { ProductDto } from './dto/product.dto';
+import { ApiError } from '../common/http/api-error';
 
 @Injectable()
 export class ProductsService {
@@ -30,7 +26,11 @@ export class ProductsService {
         : product.price;
 
     if (!isTomanAmount(currentPrice) || currentPrice === 0) {
-      throw new BadGatewayException('قیمت یکی از محصولات نامعتبر است.');
+      throw new ApiError(
+        HttpStatus.BAD_GATEWAY,
+        'PRODUCT_DATA_INVALID',
+        'A product has an invalid price.',
+      );
     }
 
     return currentPrice;
@@ -38,8 +38,10 @@ export class ProductsService {
 
   getAvailableStock(product: ProductDto): number {
     if (product.status !== 'published') {
-      throw new NotFoundException(
-        'محصول مورد نظر یافت نشد یا دیگر در دسترس نیست.',
+      throw new ApiError(
+        HttpStatus.NOT_FOUND,
+        'PRODUCT_NOT_FOUND',
+        'The product was not found or is not published.',
       );
     }
 
@@ -48,7 +50,11 @@ export class ProductsService {
       !Number.isSafeInteger(product.stock) ||
       product.stock < 0
     ) {
-      throw new BadGatewayException('موجودی یکی از محصولات نامعتبر است.');
+      throw new ApiError(
+        HttpStatus.BAD_GATEWAY,
+        'PRODUCT_DATA_INVALID',
+        'A product has an invalid stock count.',
+      );
     }
 
     return product.stock;
@@ -67,8 +73,10 @@ export class ProductsService {
       !Number.isSafeInteger(quantity) ||
       quantity < 1
     ) {
-      throw new InternalServerErrorException(
-        'اطلاعات محصول سفارش نامعتبر است.',
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'PRODUCT_DATA_INVALID',
+        'An ordered product has invalid data.',
       );
     }
 
@@ -109,8 +117,10 @@ export class ProductsService {
       !Number.isSafeInteger(quantity) ||
       quantity < 1
     ) {
-      throw new InternalServerErrorException(
-        'اطلاعات محصول سفارش نامعتبر است.',
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'PRODUCT_DATA_INVALID',
+        'An ordered product has invalid data.',
       );
     }
 

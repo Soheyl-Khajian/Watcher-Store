@@ -14,7 +14,7 @@ import {
   rejectCrossSite,
   relay,
   serverEnv,
-  UNAVAILABLE_MESSAGE,
+  unavailableResponse,
 } from '@/lib/server/bff';
 
 const ID = '[A-Za-z0-9_-]{1,64}';
@@ -34,9 +34,6 @@ const ALLOWED: ReadonlyArray<readonly [string, RegExp]> = [
 // Request headers Nest needs besides the token.
 const PASSED_HEADERS = ['content-type', 'idempotency-key'];
 
-const NOT_FOUND_MESSAGE = 'مورد درخواستی یافت نشد.';
-const SIGNED_OUT_MESSAGE = 'برای ادامه وارد حساب کاربری خود شوید.';
-
 type Context = { params: Promise<{ path: string[] }> };
 
 async function proxy(
@@ -55,12 +52,12 @@ async function proxy(
       ([method, pattern]) => method === request.method && pattern.test(joined),
     )
   ) {
-    return errorResponse(404, NOT_FOUND_MESSAGE);
+    return errorResponse(404, 'NOT_FOUND', 'No such API route.');
   }
 
   const token = readSession(request);
   if (!token) {
-    return errorResponse(401, SIGNED_OUT_MESSAGE);
+    return errorResponse(401, 'UNAUTHORIZED', 'Not logged in.');
   }
 
   const headers: Record<string, string> = {
@@ -84,7 +81,7 @@ async function proxy(
     },
   );
   if (!upstream) {
-    return errorResponse(503, UNAVAILABLE_MESSAGE);
+    return unavailableResponse();
   }
 
   const response = relay(upstream);

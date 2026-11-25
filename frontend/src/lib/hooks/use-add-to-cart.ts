@@ -5,8 +5,8 @@
 
 'use client';
 
-import { isolate } from '@/lib/bidi';
-import { usePathname, useRouter } from 'next/navigation';
+import { useT } from '@/i18n/client';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { addToCart } from '../api/nestjs';
@@ -17,17 +17,18 @@ export function useAddToCart(productId: string | number, productName: string) {
   const setCart = useAuthStore((state) => state.setCart);
   const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
+  const t = useT();
   const pathname = usePathname();
 
   const add = async () => {
     if (isAdding) return;
     if (status !== 'signed-in') {
       // Logging in brings the customer back to this page.
-      toast.info('برای افزودن محصول به سبد خرید، ابتدا وارد حساب خود شوید.', {
+      toast.info(t('cart.loginToAdd'), {
         // Long enough to reach for the button.
         duration: 8000,
         action: {
-          label: 'ورود',
+          label: t('cart.loginAction'),
           onClick: () =>
             router.push(`/login?next=${encodeURIComponent(pathname)}`),
         },
@@ -40,9 +41,9 @@ export function useAddToCart(productId: string | number, productName: string) {
       const updatedCart = await addToCart(String(productId), 1);
       if (updatedCart) {
         setCart(updatedCart);
-        toast.success(`${isolate(productName)} به سبد خرید اضافه شد.`);
+        toast.success(t('cart.added', { name: productName }));
       } else {
-        toast.error('خطا در افزودن محصول به سبد خرید.');
+        toast.error(t('cart.addFailed'));
       }
     } finally {
       setIsAdding(false);

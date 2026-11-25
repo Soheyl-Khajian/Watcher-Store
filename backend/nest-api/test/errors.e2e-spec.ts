@@ -2,9 +2,10 @@ import { randomUUID } from 'crypto';
 import type { FixtureUser } from './e2e/payload-fixture';
 import { createTestApp, TestApp } from './e2e/harness';
 
-// Every error answers { statusCode, error, message, details? }, where message
-// is a Persian sentence for people and details lists field problems.
-const PERSIAN = /[؀-ۿ]/;
+// Every error answers { statusCode, error, code, message, details? }: code
+// for the storefront to word in its page's language, message in English for
+// developers, details listing field problems.
+const CODE = /^[A-Z_]+$/;
 
 describe('Error responses (e2e)', () => {
   let t: TestApp;
@@ -27,20 +28,22 @@ describe('Error responses (e2e)', () => {
     error: string,
   ) => {
     expect(body).toMatchObject({ statusCode, error });
+    expect(body.code).toMatch(CODE);
     expect(typeof body.message).toBe('string');
-    expect(body.message).toMatch(PERSIAN);
   };
 
-  it('answers an unknown route in Persian', async () => {
+  it('answers an unknown route with a code', async () => {
     const response = await t.http().get('/no-such-route').expect(404);
 
     expectShape(response.body, 404, 'Not Found');
+    expect(response.body.code).toBe('NOT_FOUND');
     expect(JSON.stringify(response.body)).not.toContain('Cannot GET');
   });
 
-  it('answers a missing login in Persian', async () => {
+  it('answers a missing login with a code', async () => {
     const response = await t.http().get('/cart').expect(401);
     expectShape(response.body, 401, 'Unauthorized');
+    expect(response.body.code).toBe('UNAUTHORIZED');
   });
 
   it('summarises validation errors and lists the details', async () => {
@@ -55,7 +58,7 @@ describe('Error responses (e2e)', () => {
     expect(response.body.details.length).toBeGreaterThan(0);
   });
 
-  it('answers malformed JSON in Persian', async () => {
+  it('answers malformed JSON with a code', async () => {
     const response = await t
       .http()
       .post('/auth/login')
@@ -66,18 +69,28 @@ describe('Error responses (e2e)', () => {
     expectShape(response.body, 400, 'Bad Request');
   });
 
-  it('explains a missing Idempotency-Key in Persian', async () => {
+  it('explains a missing Idempotency-Key', async () => {
     const response = await t
       .http()
       .post('/orders')
       .set(auth)
-      .send({ shipping: {} })
+      .send({
+        shipping: {
+          recipientName: 'Test Customer',
+          phone: '09121234567',
+          province: 'Tehran',
+          city: 'Tehran',
+          address: 'Test street 1',
+          postalCode: '1234567890',
+        },
+      })
       .expect(400);
 
     expectShape(response.body, 400, 'Bad Request');
+    expect(response.body.code).toBe('IDEMPOTENCY_KEY_INVALID');
   });
 
-  it('gives Persian details for invalid shipping fields', async () => {
+  it('lists invalid shipping fields as details', async () => {
     const productId = await t.createProduct({ price: 100_000 });
     await t
       .http()
@@ -103,9 +116,10 @@ describe('Error responses (e2e)', () => {
       })
       .expect(400);
 
+    expect(response.body.code).toBe('VALIDATION_FAILED');
     const details = (response.body.details as string[]).join(' ');
-    expect(details).toMatch(PERSIAN);
-    expect(details).not.toMatch(/must be an Iranian mobile|exactly 10 digits/);
+    expect(details).toContain('phone must be a mobile number');
+    expect(details).toContain('postalCode must have 10 digits');
   });
 
   it('does not reveal internal product ids', async () => {

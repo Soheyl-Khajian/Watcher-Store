@@ -4,10 +4,12 @@
 
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Label } from '@/components/ui/label';
+import { useT } from '@/i18n/client';
+import type { MessageRef } from '@/i18n/messages';
 import { safeNextPath } from '@/lib/utils/safe-next';
 
 // A link to the other auth page that keeps ?next=, so the customer still
@@ -39,16 +41,17 @@ export function AuthField({
 }: {
   id: string;
   label: string;
-  error?: string;
+  error?: MessageRef;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
       {error ? (
         <p id={`${id}-error`} className="text-destructive text-sm">
-          {error}
+          {t.ref(error)}
         </p>
       ) : null}
     </div>
@@ -72,7 +75,7 @@ export function AuthAlert({ message }: { message: string | null }) {
 }
 
 // Props for an input whose field may carry an error.
-export function fieldA11y(id: string, error?: string) {
+export function fieldA11y(id: string, error?: unknown) {
   return {
     id,
     'aria-invalid': error ? true : undefined,

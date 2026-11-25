@@ -13,10 +13,8 @@ import {
   serverEnv,
   setSession,
   tokenLifetimeSeconds,
-  UNAVAILABLE_MESSAGE,
+  unavailableResponse,
 } from '@/lib/server/bff';
-
-const BAD_REQUEST_MESSAGE = 'ایمیل و رمز عبور را وارد کنید.';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const refused = rejectCrossSite(request);
@@ -28,11 +26,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = (await request.json()) as Record<string, unknown> | null;
     if (typeof body?.email !== 'string' || typeof body.password !== 'string') {
-      return errorResponse(400, BAD_REQUEST_MESSAGE);
+      return errorResponse(
+        400,
+        'CREDENTIALS_REQUIRED',
+        'Send an email and a password.',
+      );
     }
     credentials = { email: body.email, password: body.password };
   } catch {
-    return errorResponse(400, BAD_REQUEST_MESSAGE);
+    return errorResponse(
+      400,
+      'CREDENTIALS_REQUIRED',
+      'Send an email and a password.',
+    );
   }
 
   const { nestUrl } = serverEnv();
@@ -44,7 +50,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     body: JSON.stringify(credentials),
   });
   if (!login) {
-    return errorResponse(503, UNAVAILABLE_MESSAGE);
+    return unavailableResponse();
   }
   // Wrong password (401), too many attempts (429), Nest or Payload down
   // (503): Nest's own answer and Persian message.
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       : null;
 
   if (!profile || profile.status !== 200 || lifetime === null) {
-    return errorResponse(503, UNAVAILABLE_MESSAGE);
+    return unavailableResponse();
   }
 
   const response = NextResponse.json({ user: profile.json });

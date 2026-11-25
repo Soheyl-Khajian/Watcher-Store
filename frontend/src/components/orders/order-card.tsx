@@ -7,6 +7,8 @@
 'use client';
 
 import { isolate } from '@/lib/bidi';
+import { useFormatter, useT } from '@/i18n/client';
+import type { MessageKey } from '@/i18n/messages';
 import { Bidi } from '@/components/ui/bidi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,16 +21,6 @@ import {
   refundText,
 } from '@/lib/orders';
 import type { Order } from '@/types';
-
-const formatPrice = (price: number) =>
-  `${new Intl.NumberFormat('fa-IR').format(price)} تومان`;
-
-const formatDate = (value: string) =>
-  new Date(value).toLocaleString('fa-IR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Tehran',
-  });
 
 export function OrderCard({
   order,
@@ -44,54 +36,64 @@ export function OrderCard({
   onPay: (order: Order) => void;
   onCancel: (order: Order) => void;
 }) {
+  const format = useFormatter();
+  const t = useT();
+  const formatPrice = format.toman;
+  const formatDate = format.dateTime;
   const notes = [cancelReasonText(order), refundText(order)].filter(Boolean);
-  const timeline = [
-    ['ثبت سفارش', order.createdAt],
-    ['پرداخت', order.paidAt],
-    ['ارسال', order.shippedAt],
-    ['تکمیل', order.completedAt],
-    ['لغو', order.cancelledAt],
-  ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+  const events: [MessageKey, string | null][] = [
+    ['orders.events.placed', order.createdAt],
+    ['orders.events.paid', order.paidAt],
+    ['orders.events.shipped', order.shippedAt],
+    ['orders.events.completed', order.completedAt],
+    ['orders.events.cancelled', order.cancelledAt],
+  ];
+  const timeline = events.filter((entry): entry is [MessageKey, string] =>
+    Boolean(entry[1]),
+  );
+  const status = orderStatusLabel(order.status);
   const shipping = order.shipping;
 
   return (
     <li className="rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">
-          سفارش #{order.id.toLocaleString('fa-IR', { useGrouping: false })}
+          {t('orders.title', { number: format.digits(order.id) })}
         </h2>
         <Badge variant={orderStatusVariant(order.status)}>
-          {orderStatusLabel(order.status)}
+          {typeof status === 'string' ? status : t.ref(status)}
         </Badge>
       </div>
 
       <p className="text-muted-foreground mt-1 text-sm">
-        تاریخ ثبت: {formatDate(order.createdAt)}
+        {t('orders.placedAt', { date: formatDate(order.createdAt) })}
       </p>
       <p className="mt-2 text-lg font-bold">
-        مبلغ کل: {formatPrice(order.total)}
+        {t('orders.total', { amount: formatPrice(order.total) })}
       </p>
 
       {order.trackingCode ? (
         <p className="mt-1 text-sm">
-          کد رهگیری مرسوله:{' '}
+          {t('orders.trackingCode')}{' '}
           <span dir="ltr" className="font-mono">
             {order.trackingCode}
           </span>
         </p>
       ) : null}
 
-      {notes.map((note) => (
-        <p key={note} className="text-muted-foreground mt-1 text-sm">
-          {note}
-        </p>
-      ))}
+      {notes.map((note) =>
+        note ? (
+          <p key={note.key} className="text-muted-foreground mt-1 text-sm">
+            {t.ref(note)}
+          </p>
+        ) : null,
+      )}
 
       {canPay(order) || canCancel(order) ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {canPay(order) ? (
             <Button onClick={() => onPay(order)} disabled={busy}>
-              پرداخت
+              {t('orders.pay')}
             </Button>
           ) : null}
           {canCancel(order) ? (
@@ -100,7 +102,7 @@ export function OrderCard({
               onClick={() => onCancel(order)}
               disabled={busy}
             >
-              لغو سفارش
+              {t('orders.cancel')}
             </Button>
           ) : null}
         </div>
@@ -108,20 +110,22 @@ export function OrderCard({
 
       <details className="mt-4">
         <summary className="text-primary cursor-pointer text-sm font-medium">
-          جزئیات سفارش
+          {t('orders.details')}
         </summary>
         <div className="mt-3 space-y-4 text-sm">
           <section>
-            <h3 className="mb-1 font-semibold">اقلام</h3>
+            <h3 className="mb-1 font-semibold">{t('orders.items')}</h3>
             <ul className="space-y-1">
               {order.items.map((item) => (
                 <li key={item.id} className="flex justify-between gap-4">
                   <span>
                     <Bidi>
                       {productNames.get(String(item.productId)) ??
-                        `محصول ${item.productId}`}
+                        t.plain('orders.unknownProduct', {
+                          id: item.productId,
+                        })}
                     </Bidi>{' '}
-                    × <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi>
+                    × <Bidi>{format.number(item.quantity)}</Bidi>
                   </span>
                   <span>{formatPrice(item.price * item.quantity)}</span>
                 </li>
@@ -131,39 +135,40 @@ export function OrderCard({
 
           {shipping?.recipientName ? (
             <section>
-              <h3 className="mb-1 font-semibold">ارسال به</h3>
+              <h3 className="mb-1 font-semibold">{t('orders.shipTo')}</h3>
               <p>
                 <Bidi>{shipping.recipientName}</Bidi>
               </p>
-              <p dir="ltr" className="text-end">
-                {shipping.phone}
+              <p>
+                <Bidi ltr>{shipping.phone}</Bidi>
               </p>
               <p>
                 {[
-                  shipping.province,
-                  shipping.city,
-                  shipping.address,
-                  shipping.unit ? `واحد ${isolate(shipping.unit)}` : null,
-                  shipping.floor ? `طبقه ${isolate(shipping.floor)}` : null,
+                  shipping.province && isolate(shipping.province),
+                  shipping.city && isolate(shipping.city),
+                  shipping.address && isolate(shipping.address),
+                  shipping.unit && t('orders.unit', { value: shipping.unit }),
+                  shipping.floor &&
+                    t('orders.floor', { value: shipping.floor }),
                 ]
                   .filter(Boolean)
-                  .map((part) => isolate(part as string))
-                  .join('، ')}
+                  .join(t('common.listSeparator'))}
               </p>
               {shipping.postalCode ? (
                 <p>
-                  کد پستی: <Bidi ltr>{shipping.postalCode}</Bidi>
+                  {t('orders.postalCode')}{' '}
+                  <Bidi ltr>{shipping.postalCode}</Bidi>
                 </p>
               ) : null}
             </section>
           ) : null}
 
           <section>
-            <h3 className="mb-1 font-semibold">روند سفارش</h3>
+            <h3 className="mb-1 font-semibold">{t('orders.timeline')}</h3>
             <ul className="space-y-1">
               {timeline.map(([label, at]) => (
                 <li key={label} className="flex justify-between gap-4">
-                  <span>{label}</span>
+                  <span>{t(label)}</span>
                   <span className="text-muted-foreground">
                     {formatDate(at)}
                   </span>

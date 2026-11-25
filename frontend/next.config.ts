@@ -39,12 +39,17 @@ const nextConfig: NextConfig = {
   },
   // The payment result page used to live at /payment/verify. Payments that
   // were already in flight still come back there; the query (orderId) is
-  // kept.
+  // kept. Unprefixed addresses get their language prefix in middleware.ts.
   async redirects() {
     return [
       {
         source: '/payment/verify',
         destination: '/payment/result',
+        permanent: true,
+      },
+      {
+        source: '/:locale(fa|en)/payment/verify',
+        destination: '/:locale/payment/result',
         permanent: true,
       },
     ];

@@ -6,9 +6,9 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpStatus,
   Post,
   Request,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -16,6 +16,7 @@ import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { Throttle } from '@nestjs/throttler';
 import { env } from '../env';
+import { ApiError } from '../common/http/api-error';
 
 @Controller('auth')
 export class AuthController {
@@ -38,7 +39,11 @@ export class AuthController {
     const user = await this.authService.validateUser(loginDto);
 
     if (!user) {
-      throw new UnauthorizedException('ایمیل یا رمز عبور اشتباه است.');
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'INVALID_CREDENTIALS',
+        'Wrong email or password.',
+      );
     }
 
     return this.authService.login(user);

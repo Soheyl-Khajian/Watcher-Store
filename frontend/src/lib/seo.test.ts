@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { absoluteUrl, jsonLdString, plainText, productJsonLd } from './seo';
+import {
+  absoluteUrl,
+  jsonLdString,
+  languageAlternates,
+  plainText,
+  productJsonLd,
+} from './seo';
 
 describe('plainText', () => {
   it('flattens rich text without running words together', () => {
@@ -42,17 +48,17 @@ describe('productJsonLd', () => {
   };
 
   it('describes the product with its price in rial', () => {
-    expect(productJsonLd(product)).toEqual({
+    expect(productJsonLd(product, 'fa')).toEqual({
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: 'دوربین دام',
-      url: 'https://shop.example.test/products/dome-camera',
+      url: 'https://shop.example.test/fa/products/dome-camera',
       sku: 'CAM-1',
       image: ['https://shop.example.test/uploads/cam.png'],
       description: 'دوربین با دید در شب',
       offers: {
         '@type': 'Offer',
-        url: 'https://shop.example.test/products/dome-camera',
+        url: 'https://shop.example.test/fa/products/dome-camera',
         price: 15_000_000,
         priceCurrency: 'IRR',
         availability: 'https://schema.org/InStock',
@@ -61,12 +67,15 @@ describe('productJsonLd', () => {
   });
 
   it('uses the sale price and reports sold-out stock', () => {
-    const data = productJsonLd({
-      ...product,
-      isOnSale: true,
-      salePrice: 1_200_000,
-      stock: 0,
-    });
+    const data = productJsonLd(
+      {
+        ...product,
+        isOnSale: true,
+        salePrice: 1_200_000,
+        stock: 0,
+      },
+      'en',
+    );
     expect(data.offers.price).toBe(12_000_000);
     expect(data.offers.availability).toBe('https://schema.org/OutOfStock');
   });
@@ -83,5 +92,36 @@ describe('jsonLdString', () => {
 describe('absoluteUrl', () => {
   it('builds on the storefront address', () => {
     expect(absoluteUrl('/blog/x')).toBe('https://shop.example.test/blog/x');
+  });
+});
+
+describe('languageAlternates', () => {
+  const settings = {
+    defaultLocale: 'fa' as const,
+    enabledLocales: ['fa' as const, 'en' as const],
+    timeZone: 'Asia/Tehran',
+  };
+
+  it('links a page to itself in every offered language', () => {
+    expect(languageAlternates('/products/x', 'en', settings)).toEqual({
+      canonical: '/en/products/x',
+      languages: {
+        fa: '/fa/products/x',
+        en: '/en/products/x',
+        'x-default': '/fa/products/x',
+      },
+    });
+  });
+
+  it('offers only the languages the deployment has', () => {
+    expect(
+      languageAlternates('/blog', 'fa', {
+        ...settings,
+        enabledLocales: ['fa'],
+      }),
+    ).toEqual({
+      canonical: '/fa/blog',
+      languages: { fa: '/fa/blog', 'x-default': '/fa/blog' },
+    });
   });
 });

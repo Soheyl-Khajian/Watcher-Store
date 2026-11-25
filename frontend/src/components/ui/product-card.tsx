@@ -1,9 +1,12 @@
 // frontend/src/components/ui/product-card.tsx
 
+'use client';
+
+import { useFormatter } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
 import type { Product } from '@/types';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { mediaSrc } from '@/lib/utils/media';
 import {
   Card,
@@ -20,11 +23,9 @@ interface ProductCardProps {
   product: Product;
 }
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price);
-};
-
 export function ProductCard({ product }: ProductCardProps) {
+  const format = useFormatter();
+  const formatPrice = format.number;
   const mainImage =
     typeof product.gallery?.[0]?.image === 'object'
       ? product.gallery[0].image
@@ -73,7 +74,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <>
                 <span className="text-primary text-base sm:text-lg md:text-xl lg:text-2xl">
                   {formatPrice(product.salePrice)}
-                  <span className="text-xs"> تومان</span>
+                  <span className="text-xs"> {format.tomanUnit}</span>
                 </span>
                 <span className="text-muted-foreground text-base line-through sm:text-lg">
                   {formatPrice(product.price)}
@@ -82,7 +83,7 @@ export function ProductCard({ product }: ProductCardProps) {
             ) : (
               <span className="text-primary text-base sm:text-lg md:text-xl lg:text-2xl">
                 {formatPrice(product.price)}
-                <span className="text-xs"> تومان</span>
+                <span className="text-xs"> {format.tomanUnit}</span>
               </span>
             )}
           </div>

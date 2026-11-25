@@ -1,6 +1,7 @@
 // frontend/src/components/layout/cart-content.tsx
 'use client';
 
+import { useFormatter, useT } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
@@ -9,7 +10,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 import { fetchCart, removeFromCart, setCartQuantity } from '@/lib/api/nestjs';
 import { QuantityControl } from '@/components/cart/quantity-control';
@@ -32,6 +33,8 @@ interface CartContentProps {
 export function CartContent({ onClose }: CartContentProps) {
   const { status, cart, setCart } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
+  const format = useFormatter();
+  const t = useT();
   const [productsFailed, setProductsFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // The cart line being changed; its controls are busy meanwhile.
@@ -103,9 +106,9 @@ export function CartContent({ onClose }: CartContentProps) {
 
     if (updatedCart) {
       setCart(updatedCart);
-      toast.success('محصول از سبد خرید حذف شد.');
+      toast.success(t('cart.removed'));
     } else {
-      toast.error('خطا در حذف محصول.');
+      toast.error(t('cart.removeFailed'));
     }
   };
 
@@ -120,7 +123,7 @@ export function CartContent({ onClose }: CartContentProps) {
       setCart(result.cart);
     } else {
       // For example: not enough in stock.
-      toast.error(result.message);
+      toast.error(t.error(result.error, 'cart.quantityFailed'));
     }
   };
 
@@ -137,7 +140,7 @@ export function CartContent({ onClose }: CartContentProps) {
   }, [cart, products]);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
+    return format.toman(price);
   };
 
   const itemCount = cart?.items?.length ?? 0;
@@ -151,25 +154,22 @@ export function CartContent({ onClose }: CartContentProps) {
   return (
     <>
       <SheetHeader>
-        <SheetTitle>سبد خرید شما</SheetTitle>
+        <SheetTitle>{t('cart.title')}</SheetTitle>
         <SheetDescription>
           {itemCount > 0
-            ? `${itemCount.toLocaleString('fa-IR')} قلم کالا در سبد شماست.`
-            : 'سبد خرید شما خالی است.'}
+            ? t('cart.itemCount', { count: itemCount })
+            : t('cart.isEmpty')}
         </SheetDescription>
       </SheetHeader>
       <div className="flex-1 overflow-y-auto py-4">
         {itemCount === 0 ? (
           <p className="text-muted-foreground flex h-full items-center justify-center">
-            سبد خرید شما در حال حاضر خالی است.
+            {t('cart.emptyNow')}
           </p>
         ) : !isResolved ? (
-          <p role="status">در حال بارگذاری...</p>
+          <p role="status">{t('common.loading')}</p>
         ) : productsFailed ? (
-          <p className="text-destructive">
-            امکان دریافت اطلاعات محصولات وجود ندارد. چند لحظه بعد دوباره تلاش
-            کنید.
-          </p>
+          <p className="text-destructive">{t('cart.productsFailed')}</p>
         ) : (
           <ul className="space-y-4">
             {cart?.items.map((item: CartItem) => {
@@ -196,7 +196,7 @@ export function CartContent({ onClose }: CartContentProps) {
                       <Bidi>{product.name}</Bidi>
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      <Bidi>{item.quantity.toLocaleString('fa-IR')}</Bidi> ×{' '}
+                      <Bidi>{format.number(item.quantity)}</Bidi> ×{' '}
                       <Bidi>{formatPrice(pricePerItem)}</Bidi>
                     </p>
                     <QuantityControl
@@ -210,7 +210,7 @@ export function CartContent({ onClose }: CartContentProps) {
                     />
                     {item.quantity > stockOf(product) ? (
                       <p className="text-destructive text-sm" role="alert">
-                        {overStockLabel(stockOf(product))}
+                        {t.ref(overStockLabel(stockOf(product)))}
                       </p>
                     ) : (
                       <StockNote stock={stockOf(product)} className="text-xs" />
@@ -223,7 +223,7 @@ export function CartContent({ onClose }: CartContentProps) {
                     className="cursor-pointer"
                     variant="ghost"
                     size="icon"
-                    aria-label={`حذف ${product.name} از سبد خرید`}
+                    aria-label={t.plain('cart.remove', { name: product.name })}
                     disabled={busyProductId !== null}
                     onClick={() => handleRemoveItem(String(item.productId))}
                   >
@@ -240,21 +240,21 @@ export function CartContent({ onClose }: CartContentProps) {
           <div className="w-full space-y-4">
             <Separator />
             <div className="flex justify-between text-lg font-semibold">
-              <p>جمع کل</p>
+              <p>{t('common.total')}</p>
               <p>{formatPrice(cartTotal)}</p>
             </div>
             {unavailableCount > 0 && (
               <p className="text-destructive text-sm">
-                برای ادامه، محصولات ناموجود را از سبد حذف کنید.
+                {t('cart.removeUnavailableFirst')}
               </p>
             )}
             {checkoutBlocked ? (
               <Button className="mt-6 w-full" disabled>
-                ادامه و تسویه حساب
+                {t('cart.toCheckout')}
               </Button>
             ) : (
               <Button asChild className="mt-6 w-full" onClick={onClose}>
-                <Link href="/checkout">ادامه و تسویه حساب</Link>
+                <Link href="/checkout">{t('cart.toCheckout')}</Link>
               </Button>
             )}
           </div>

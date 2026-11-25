@@ -1,8 +1,9 @@
 // frontend/src/components/ui/post-card.tsx
 
+import { getFormatter, getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { mediaSrc } from '@/lib/utils/media';
 import {
@@ -11,27 +12,20 @@ import {
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
-import { DEFAULT_AUTHOR_NAME } from '@/lib/content';
 
 interface PostCardProps {
   post: Post;
 }
 
-export function PostCard({ post }: PostCardProps) {
-  const authorName = post.authorName?.trim() || DEFAULT_AUTHOR_NAME;
+export async function PostCard({ post }: PostCardProps) {
+  const t = await getT();
+  const authorName = post.authorName?.trim() || t('site.defaultAuthor');
 
   const imageUrl = post.thumbnail?.url
     ? mediaSrc(post.thumbnail.url)
     : '/images/placeholder.png';
 
-  const publishedDate = new Date(post.publishedDate).toLocaleDateString(
-    'fa-IR',
-    {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    },
-  );
+  const publishedDate = (await getFormatter()).date(post.publishedDate);
 
   return (
     <Link href={`/blog/${post.slug}`} className="group block">
@@ -56,7 +50,7 @@ export function PostCard({ post }: PostCardProps) {
 
         <CardFooter className="text-muted-foreground p-4 pt-0 text-sm">
           <span className="me-1">
-            توسط <Bidi>{authorName}</Bidi>
+            {t.rich('common.byAuthor', { name: <Bidi>{authorName}</Bidi> })}
           </span>
           <span>{publishedDate}</span>
         </CardFooter>

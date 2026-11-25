@@ -1,25 +1,27 @@
-// مسیر فایل: src/components/sections/category-grid.tsx
+// frontend/src/components/sections/category-grid.tsx
 
+import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import type { Category } from '@/types';
 import { Icon } from '@/components/ui/icon';
-import { cn } from '@/lib/utils'; // cn را برای کلاس‌های شرطی وارد می‌کنیم
+import { cn } from '@/lib/utils';
 
 interface CategoryGridProps {
   categories: Category[];
 }
 
-export function CategoryGrid({ categories }: CategoryGridProps) {
+export async function CategoryGrid({ categories }: CategoryGridProps) {
   if (!categories || categories.length === 0) {
     return null;
   }
+  const t = await getT();
 
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
         <h2 className="mb-8 text-center text-3xl font-bold">
-          خرید بر اساس دسته‌بندی
+          {t('home.shopByCategory')}
         </h2>
         {/* ۱. گرید رسپانسیو: ۲ ستون در موبایل، ۴ ستون در تبلت، ۶ ستون در دسکتاپ */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
@@ -30,7 +32,8 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
               // ۲. دو آیتم آخر در حالت تبلت (sm) مخفی می‌شوند
               className={cn(
                 'group hover:bg-accent hover:text-accent-foreground flex flex-col items-center gap-3 rounded-lg border p-4 text-center transition-all',
-                index >= 4 && 'hidden sm:flex', // <-- این کلاس جادویی است
+                // Six on large screens, four below.
+                index >= 4 && 'hidden sm:flex',
               )}
             >
               <div className="bg-muted group-hover:bg-primary/10 rounded-full p-3 transition-colors">

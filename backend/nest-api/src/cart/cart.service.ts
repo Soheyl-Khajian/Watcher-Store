@@ -1,17 +1,13 @@
 // backend/nest-api/src/cart/cart.service.ts
 
-import {
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { ProductsService } from '../products/products.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
+import { ApiError } from '../common/http/api-error';
 
 @Injectable()
 export class CartService {
@@ -51,8 +47,10 @@ export class CartService {
     });
 
     if (!cart) {
-      throw new InternalServerErrorException(
-        'امکان بارگذاری سبد خرید وجود ندارد.',
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'CART_LOAD_FAILED',
+        'The cart could not be loaded.',
       );
     }
 
@@ -85,11 +83,18 @@ export class CartService {
       const requestedQuantity = (item?.quantity ?? 0) + addToCartDto.quantity;
 
       if (requestedQuantity > availableStock) {
-        throw new ConflictException(
-          availableStock === 0
-            ? 'این محصول در حال حاضر موجود نیست.'
-            : `حداکثر ${availableStock} عدد از این محصول قابل سفارش است.`,
-        );
+        throw availableStock === 0
+          ? new ApiError(
+              HttpStatus.CONFLICT,
+              'OUT_OF_STOCK',
+              'The product is out of stock.',
+            )
+          : new ApiError(
+              HttpStatus.CONFLICT,
+              'STOCK_LIMIT',
+              `Only ${availableStock} can be ordered.`,
+              { available: availableStock },
+            );
       }
 
       if (item) {
@@ -110,8 +115,10 @@ export class CartService {
       });
 
       if (!updatedCart) {
-        throw new InternalServerErrorException(
-          'امکان بارگذاری سبد خرید وجود ندارد.',
+        throw new ApiError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'CART_LOAD_FAILED',
+          'The cart could not be loaded.',
         );
       }
 
@@ -131,11 +138,18 @@ export class CartService {
     const availableStock = this.productsService.getAvailableStock(product);
 
     if (quantity > availableStock) {
-      throw new ConflictException(
-        availableStock === 0
-          ? 'این محصول در حال حاضر موجود نیست.'
-          : `حداکثر ${availableStock} عدد از این محصول قابل سفارش است.`,
-      );
+      throw availableStock === 0
+        ? new ApiError(
+            HttpStatus.CONFLICT,
+            'OUT_OF_STOCK',
+            'The product is out of stock.',
+          )
+        : new ApiError(
+            HttpStatus.CONFLICT,
+            'STOCK_LIMIT',
+            `Only ${availableStock} can be ordered.`,
+            { available: availableStock },
+          );
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -148,7 +162,11 @@ export class CartService {
       });
 
       if (!item) {
-        throw new NotFoundException('آیتم مورد نظر در سبد خرید یافت نشد.');
+        throw new ApiError(
+          HttpStatus.NOT_FOUND,
+          'CART_ITEM_NOT_FOUND',
+          'The item is not in the cart.',
+        );
       }
 
       item.quantity = quantity;
@@ -160,8 +178,10 @@ export class CartService {
       });
 
       if (!updatedCart) {
-        throw new InternalServerErrorException(
-          'امکان بارگذاری سبد خرید وجود ندارد.',
+        throw new ApiError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'CART_LOAD_FAILED',
+          'The cart could not be loaded.',
         );
       }
 
@@ -178,8 +198,10 @@ export class CartService {
     });
 
     if (!cart) {
-      throw new InternalServerErrorException(
-        'امکان بارگذاری سبد خرید وجود ندارد.',
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'CART_LOAD_FAILED',
+        'The cart could not be loaded.',
       );
     }
 
@@ -202,7 +224,11 @@ export class CartService {
       });
 
       if (!itemToRemove) {
-        throw new NotFoundException('آیتم مورد نظر در سبد خرید یافت نشد.');
+        throw new ApiError(
+          HttpStatus.NOT_FOUND,
+          'CART_ITEM_NOT_FOUND',
+          'The item is not in the cart.',
+        );
       }
 
       await cartItemRepository.remove(itemToRemove);
@@ -213,8 +239,10 @@ export class CartService {
       });
 
       if (!updatedCart) {
-        throw new InternalServerErrorException(
-          'امکان بارگذاری سبد خرید وجود ندارد.',
+        throw new ApiError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'CART_LOAD_FAILED',
+          'The cart could not be loaded.',
         );
       }
 

@@ -11,30 +11,30 @@ import {
   forwardedHeaders,
   readSession,
   serverEnv,
-  UNAVAILABLE_MESSAGE,
+  unavailableResponse,
 } from '@/lib/server/bff';
 
-const SIGNED_OUT_MESSAGE = 'برای ادامه وارد حساب کاربری خود شوید.';
+const signedOut = () => errorResponse(401, 'UNAUTHORIZED', 'Not logged in.');
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = readSession(request);
   if (!token) {
-    return errorResponse(401, SIGNED_OUT_MESSAGE);
+    return signedOut();
   }
 
   const profile = await callUpstream(`${serverEnv().nestUrl}/auth/profile`, {
     headers: { ...forwardedHeaders(request), Authorization: `Bearer ${token}` },
   });
   if (!profile) {
-    return errorResponse(503, UNAVAILABLE_MESSAGE);
+    return unavailableResponse();
   }
   if (profile.status === 401) {
-    const response = errorResponse(401, SIGNED_OUT_MESSAGE);
+    const response = signedOut();
     clearSession(response);
     return response;
   }
   if (profile.status !== 200) {
-    return errorResponse(503, UNAVAILABLE_MESSAGE);
+    return unavailableResponse();
   }
 
   return NextResponse.json({ user: profile.json });

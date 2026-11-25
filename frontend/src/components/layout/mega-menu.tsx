@@ -12,8 +12,9 @@
 
 'use client';
 
+import { useT } from '@/i18n/client';
 import * as React from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import {
   Popover,
   PopoverContent,
@@ -78,6 +79,7 @@ function moveFocus(event: React.KeyboardEvent<HTMLElement>) {
 }
 
 export function MegaMenu({ categories }: MegaMenuProps) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const [activeParent, setActiveParent] = React.useState<Category | null>(null);
   const [activeChild, setActiveChild] = React.useState<Category | null>(null);
@@ -123,7 +125,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" className="cursor-pointer gap-1">
-          <span>دسته‌بندی‌ها</span>
+          <span>{t('nav.categories')}</span>
           <ChevronDown
             aria-hidden="true"
             className={cn(
@@ -171,7 +173,10 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 >
                   <Bidi>{parent.name}</Bidi>
                   {hasChildren(parent) && (
-                    <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+                    <ChevronLeft
+                      aria-hidden="true"
+                      className="h-4 w-4 ltr:-scale-x-100"
+                    />
                   )}
                 </Link>
               );
@@ -207,7 +212,10 @@ export function MegaMenu({ categories }: MegaMenuProps) {
                 >
                   <Bidi>{child.name}</Bidi>
                   {hasChildren(child) && (
-                    <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+                    <ChevronLeft
+                      aria-hidden="true"
+                      className="h-4 w-4 ltr:-scale-x-100"
+                    />
                   )}
                 </Link>
               );

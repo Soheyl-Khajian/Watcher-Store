@@ -1,4 +1,4 @@
-// src/components/providers.tsx
+// frontend/src/components/providers.tsx
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
@@ -16,7 +16,7 @@ export function Providers({
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="dark" // تم پیش‌فرض شما
+      defaultTheme="dark"
       enableSystem
       disableTransitionOnChange
       nonce={nonce}

@@ -39,14 +39,21 @@ Zarinpal gateway, in a pnpm workspace on one PostgreSQL database.
 **Storefront** (Next.js 15, React 19, Tailwind CSS 4)
 
 - Category tree, product pages with gallery, specifications and sale
-  prices, product search, blog and CMS pages; all in Persian, right to left,
-  with Persian digits.
+  prices, product search, blog and CMS pages.
+- Persian (right to left) and English, each at its own address (`/fa/…`,
+  `/en/…`), with a language switcher. Each deployment chooses the
+  languages it offers and its default. Every language's text is written by
+  hand in its own file; nothing is translated automatically, and products
+  and posts show as entered in the CMS. Numbers, dates (Persian or
+  Gregorian calendar) and prices (toman) follow the page's language, and
+  mixed Persian and English text stays readable in either direction.
 - Cart with quantity controls checked against stock; checkout with an
   Iranian address and phone validation; payment through Zarinpal.
 - Order history with details, tracking codes, cancel and pay-again for
   unpaid orders; a payment result page that reads the order's real status.
 - SEO: per-page metadata and Open Graph images, product JSON-LD (price and
-  availability), sitemap and robots.txt.
+  availability), hreflang links between languages, a sitemap of every page
+  in every language, and robots.txt.
 - Error and not-found pages that answer with the right status codes, and a
   readiness endpoint that checks the services behind it.
 
@@ -306,21 +313,36 @@ file hands each service only the settings it uses.
 | `NEXT_PUBLIC_PAYLOAD_URL` / `NEXT_PUBLIC_FRONTEND_URL`        | Storefront      | Public addresses, built into the browser bundle                       |
 | `PAYLOAD_INTERNAL_URL` / `NEST_INTERNAL_URL`                  | Storefront, CMS | Server-to-server addresses                                            |
 | `TRUSTED_PROXY_HOPS`                                          | Storefront      | Reverse proxies in front of the storefront (0 or 1)                   |
+| `DEFAULT_LOCALE` / `ENABLED_LOCALES`                          | Storefront      | The languages offered (`fa`, `en`) and the one bare addresses open in |
+| `STORE_TIME_ZONE`                                             | Storefront      | The time zone order and post times are shown in                       |
 | `REVALIDATE_SECRET` / `STOREFRONT_INTERNAL_URL`               | CMS, Storefront | Instant cache refresh after content edits                             |
 | `S3_*`                                                        | Payload         | Media in an S3-compatible bucket instead of a volume                  |
 | `ADMIN_*` / `DEMO_*` / `ALLOW_DEMO_SEED`                      | seed scripts    | The administrator, and the demo data                                  |
 | `LOG_LEVEL`                                                   | Nest            | Log verbosity (JSON in production)                                    |
 
+### Languages
+
+The storefront's text lives in `frontend/src/i18n/messages/<locale>.json`,
+one hand-written file per language with the same keys; a test checks that
+every file has every key and placeholder, and the types check the keys
+used in code. The APIs speak no customer's language: Nest and the
+storefront's `/api` routes answer errors with a code (such as
+`STOCK_LIMIT`), which each language's file words (`apiErrors.*`).
+
+To add a language: add it to `LOCALES` and `LOCALE_INFO` in
+`frontend/src/i18n/config.ts` (its direction and language tag), write its
+message file, and list it in `ENABLED_LOCALES`.
+
 ---
 
 ## Testing
 
-| Suite                  | Command                        | What it covers                                                                                                     |
-| ---------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Unit and integration   | `pnpm test`                    | Storefront (Vitest), Payload against a real PostgreSQL (Vitest), Nest units (Jest)                                 |
-| API end-to-end         | `pnpm test:e2e`                | Nest against PostgreSQL with stub Payload and Zarinpal servers: auth, carts, orders, payments, concurrency, limits |
-| Browser end-to-end     | `pnpm test:stack`              | The production stack in a browser: a whole purchase and the admin shipping it ([e2e/README.md](e2e/README.md))     |
-| Production smoke check | `node scripts/smoke-check.mjs` | Every service answers and works with the others                                                                    |
+| Suite                  | Command                        | What it covers                                                                                                         |
+| ---------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Unit and integration   | `pnpm test`                    | Storefront (Vitest), Payload against a real PostgreSQL (Vitest), Nest units (Jest)                                     |
+| API end-to-end         | `pnpm test:e2e`                | Nest against PostgreSQL with stub Payload and Zarinpal servers: auth, carts, orders, payments, concurrency, limits     |
+| Browser end-to-end     | `pnpm test:stack`              | The production stack in a browser: a purchase in each language, the admin shipping it ([e2e/README.md](e2e/README.md)) |
+| Production smoke check | `node scripts/smoke-check.mjs` | Every service answers and works with the others                                                                        |
 
 The integration suites need a PostgreSQL where they may create databases:
 set `TEST_DATABASE_URL` (the Dev Container's database works).

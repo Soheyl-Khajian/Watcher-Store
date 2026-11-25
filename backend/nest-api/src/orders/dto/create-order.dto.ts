@@ -46,7 +46,7 @@ export class ShippingDetailsDto {
   @Transform(trimAndNormalizeDigits)
   @IsString()
   @Matches(/^09\d{9}$/, {
-    message: 'شماره موبایل معتبر نیست. نمونه: 09123456789',
+    message: 'phone must be a mobile number such as 09123456789',
   })
   phone!: string;
 
@@ -68,7 +68,7 @@ export class ShippingDetailsDto {
   @Transform(trimAndNormalizeDigits)
   @IsString()
   @Matches(/^\d{10}$/, {
-    message: 'کد پستی باید ۱۰ رقم باشد.',
+    message: 'postalCode must have 10 digits',
   })
   postalCode!: string;
 

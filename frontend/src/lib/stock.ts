@@ -3,12 +3,12 @@
 // How much of a product is in stock, as shown to customers. The count is
 // public on purpose: the cart's + button stops at it anyway, so it is
 // better stated than discovered. The server checks stock again when the
-// cart changes and when the order is placed.
+// cart changes and when the order is placed. Labels are messages (stock.*).
+
+import type { MessageRef } from '@/i18n/messages';
 
 // At or below this, the count is shown as a warning ("only n left").
 export const LOW_STOCK = 3;
-
-const fa = (n: number) => n.toLocaleString('fa-IR');
 
 // Units available: a missing or negative stock counts as none.
 export function stockOf(product: { stock?: number | null }): number {
@@ -25,20 +25,20 @@ export function stockLevel(stock: number): StockLevel {
   return stock <= LOW_STOCK ? 'low' : 'in';
 }
 
-export function stockLabel(stock: number): string {
+export function stockLabel(stock: number): MessageRef {
   switch (stockLevel(stock)) {
     case 'out':
-      return 'ناموجود';
+      return { key: 'stock.out' };
     case 'low':
-      return `فقط ${fa(stock)} عدد در انبار باقی مانده`;
+      return { key: 'stock.low', values: { count: stock } };
     default:
-      return `${fa(stock)} عدد در انبار`;
+      return { key: 'stock.in', values: { count: stock } };
   }
 }
 
 // For a cart line holding more than is now in stock.
-export function overStockLabel(stock: number): string {
+export function overStockLabel(stock: number): MessageRef {
   return stock <= 0
-    ? 'این کالا دیگر موجود نیست؛ آن را از سبد حذف کنید.'
-    : `فقط ${fa(stock)} عدد موجود است؛ تعداد را کم کنید.`;
+    ? { key: 'stock.gone' }
+    : { key: 'stock.tooMany', values: { count: stock } };
 }

@@ -1,17 +1,17 @@
 // backend/nest-api/src/orders/orders.controller.ts
 
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
   Post,
+  Query,
   Request,
   UseGuards,
-  HttpCode,
-  Param,
-  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { isUUID } from 'class-validator';
@@ -27,6 +27,7 @@ import { OrderIdParamDto } from './dto/order-id-param.dto';
 import { OrdersService } from './orders.service';
 import { Throttle } from '@nestjs/throttler';
 import { env } from '../env';
+import { ApiError } from '../common/http/api-error';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('orders')
@@ -44,8 +45,10 @@ export class OrdersController {
     @Body() body: CreateOrderDto,
   ): Promise<OrderResponseDto> {
     if (!checkoutKey || !isUUID(checkoutKey, '4')) {
-      throw new BadRequestException(
-        'شناسه یکتای درخواست (Idempotency-Key) ارسال نشده یا معتبر نیست.',
+      throw new ApiError(
+        HttpStatus.BAD_REQUEST,
+        'IDEMPOTENCY_KEY_INVALID',
+        'The Idempotency-Key header is missing or not a UUID v4.',
       );
     }
 

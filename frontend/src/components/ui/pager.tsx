@@ -2,26 +2,38 @@
 //
 // Page navigation for product and category listings. Previous/next are
 // real links only when there is somewhere to go (never href="#"), the
-// current page is marked for screen readers, and digits are Persian.
+// current page is marked for screen readers, and numbers are in the page's
+// language. href is the listing's address; the pager adds ?page=.
 
-import Link from 'next/link';
+'use client';
+
+import { useFormatter, useT } from '@/i18n/client';
+import { Link } from '@/i18n/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { pageWindow } from '@/lib/utils/pagination';
 
-const faNumber = (n: number) =>
-  n.toLocaleString('fa-IR', { useGrouping: false });
+function pageHref(href: string, page: number): string {
+  const [path, query = ''] = href.split('?');
+  const params = new URLSearchParams(query);
+  params.set('page', String(page));
+  return `${path}?${params.toString()}`;
+}
 
 export function Pager({
   page,
   totalPages,
-  hrefFor,
+  href,
 }: {
   page: number;
   totalPages: number;
-  hrefFor: (page: number) => string;
+  href: string;
 }) {
+  const format = useFormatter();
+  const t = useT();
+  const faNumber = format.digits;
+  const hrefFor = (p: number) => pageHref(href, p);
   if (totalPages <= 1) {
     return null;
   }
@@ -30,19 +42,25 @@ export function Pager({
   const disabledClass = cn(stepClass, 'pointer-events-none opacity-40');
 
   return (
-    <nav aria-label="صفحه‌بندی" className="mx-auto flex justify-center">
+    <nav aria-label={t('pager.label')} className="mx-auto flex justify-center">
       <ul className="flex flex-wrap items-center justify-center gap-1">
         <li>
           {current > 1 ? (
             <Link href={hrefFor(current - 1)} rel="prev" className={stepClass}>
-              {/* Right-to-left: "previous" points right. */}
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              قبلی
+              {/* Previous points back: right in right-to-left pages. */}
+              <ChevronRight
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
+              {t('pager.previous')}
             </Link>
           ) : (
             <span aria-disabled="true" className={disabledClass}>
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              قبلی
+              <ChevronRight
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
+              {t('pager.previous')}
             </span>
           )}
         </li>
@@ -67,7 +85,7 @@ export function Pager({
               ) : (
                 <Link
                   href={hrefFor(item)}
-                  aria-label={`صفحه ${faNumber(item)}`}
+                  aria-label={t('pager.page', { number: item })}
                   className={buttonVariants({ variant: 'ghost', size: 'icon' })}
                 >
                   {faNumber(item)}
@@ -80,13 +98,19 @@ export function Pager({
         <li>
           {current < totalPages ? (
             <Link href={hrefFor(current + 1)} rel="next" className={stepClass}>
-              بعدی
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              {t('pager.next')}
+              <ChevronLeft
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
             </Link>
           ) : (
             <span aria-disabled="true" className={disabledClass}>
-              بعدی
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              {t('pager.next')}
+              <ChevronLeft
+                className="h-4 w-4 ltr:-scale-x-100"
+                aria-hidden="true"
+              />
             </span>
           )}
         </li>

@@ -1,6 +1,6 @@
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { renderIn } from '@/test/i18n';
 import { expectIsolated } from '@/test/expect-isolated';
 import type { Order } from '@/types';
 import { OrderCard } from './order-card';
@@ -37,7 +37,7 @@ const order: Order = {
 };
 
 const render = () =>
-  renderToStaticMarkup(
+  renderIn(
     createElement(OrderCard, {
       order,
       productNames: new Map([

@@ -318,7 +318,7 @@ describe('POST /api/auth/register', () => {
     expect(response.status).toBe(201);
   });
 
-  it('answers 409 with a clear message for a taken email', async () => {
+  it('answers 409 with its own code for a taken email', async () => {
     upstream({
       [`POST ${PAYLOAD}/users`]: () =>
         json(
@@ -347,9 +347,7 @@ describe('POST /api/auth/register', () => {
       password: 'long-enough',
     });
     expect(response.status).toBe(409);
-    expect((await response.json()).message).toBe(
-      'این ایمیل قبلاً ثبت شده است.',
-    );
+    expect((await response.json()).code).toBe('EMAIL_TAKEN');
   });
 
   it.each([

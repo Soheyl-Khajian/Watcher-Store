@@ -2,22 +2,31 @@
 //
 // What search engines and link previews learn about the shop's pages.
 
+import type { Locale } from '@/i18n/config';
+import { localizeHref } from '@/i18n/paths';
+import { getLocale, getT } from '@/i18n/server';
+import { localeSettings, type LocaleSettings } from '@/i18n/settings';
 import { env } from './env';
 import { mediaSrc } from './utils/media';
 
-export const SITE_NAME = 'فروشگاه امنیتی واچر';
-export const SITE_DESCRIPTION =
-  'خرید آنلاین انواع دوربین مداربسته، پنل خورشیدی، تجهیزات خانه هوشمند و سیستم‌های کنترل تردد با بهترین قیمت و ضمانت اصالت کالا از فروشگاه واچر.';
-
 // The storefront's public address; absolute URLs (canonical links, the
 // sitemap, Open Graph) are built on it.
-// Open Graph fields every page needs. A page's openGraph replaces the
-// layout's entirely (Next.js does not merge it), so pages spread this in.
-export const OPEN_GRAPH_DEFAULTS = {
-  type: 'website',
-  locale: 'fa_IR',
-  siteName: SITE_NAME,
-} as const;
+const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
+  fa: 'fa_IR',
+  en: 'en_US',
+};
+
+// Open Graph fields every page needs, in the page's language. A page's
+// openGraph replaces the layout's entirely (Next.js does not merge it), so
+// pages spread this in.
+export async function openGraphDefaults() {
+  const [locale, t] = await Promise.all([getLocale(), getT()]);
+  return {
+    type: 'website',
+    locale: OPEN_GRAPH_LOCALES[locale],
+    siteName: t('site.name'),
+  } as const;
+}
 
 export function siteUrl(): URL {
   return new URL(env.NEXT_PUBLIC_FRONTEND_URL ?? 'http://localhost:3002');
@@ -25,6 +34,27 @@ export function siteUrl(): URL {
 
 export function absoluteUrl(path: string): string {
   return new URL(path, siteUrl()).toString();
+}
+
+// A page's address in its language (its canonical link) and in every
+// language this deployment offers (hreflang links), with x-default for
+// the language a bare address opens in. path is without a prefix.
+export function languageAlternates(
+  path: string,
+  locale: Locale,
+  settings: LocaleSettings = localeSettings(),
+) {
+  const languages: Record<string, string> = {};
+  for (const other of settings.enabledLocales) {
+    languages[other] = localizeHref(other, path);
+  }
+  languages['x-default'] = localizeHref(settings.defaultLocale, path);
+  return { canonical: localizeHref(locale, path), languages };
+}
+
+// languageAlternates for the page being rendered.
+export async function alternatesFor(path: string) {
+  return languageAlternates(path, await getLocale());
 }
 
 // Plain text of Payload rich text (or a plain string), shortened at a word
@@ -96,7 +126,7 @@ interface ProductForJsonLd {
 // schema.org Product data, which search engines show as price and
 // availability. Prices are in toman; schema.org needs an ISO currency, so
 // they are given in rial (IRR).
-export function productJsonLd(product: ProductForJsonLd) {
+export function productJsonLd(product: ProductForJsonLd, locale: Locale) {
   const price =
     product.isOnSale &&
     typeof product.salePrice === 'number' &&
@@ -104,7 +134,7 @@ export function productJsonLd(product: ProductForJsonLd) {
       ? product.salePrice
       : product.price;
   const url = absoluteUrl(
-    `/products/${encodeURIComponent(product.slug ?? '')}`,
+    localizeHref(locale, `/products/${encodeURIComponent(product.slug ?? '')}`),
   );
   const images = (product.gallery ?? [])
     .map((item) => mediaImage(item.image)?.url)

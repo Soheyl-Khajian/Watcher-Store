@@ -124,12 +124,20 @@ export function clearSession(response: NextResponse): void {
 // Responses
 // ---------------------------------------------------------------------------
 
-export function errorResponse(status: number, message: string): NextResponse {
-  return NextResponse.json({ statusCode: status, message }, { status });
+// The same shape as Nest's errors: a code the page words in its own
+// language (apiErrors.* in the message files) and an English message for
+// developers.
+export function errorResponse(
+  status: number,
+  code: string,
+  message: string,
+): NextResponse {
+  return NextResponse.json({ statusCode: status, code, message }, { status });
 }
 
-export const UNAVAILABLE_MESSAGE =
-  'سرویس فروشگاه موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.';
+export function unavailableResponse(): NextResponse {
+  return errorResponse(503, 'UNAVAILABLE', 'The shop service is unavailable.');
+}
 
 // ---------------------------------------------------------------------------
 // Cross-site request protection
@@ -149,7 +157,7 @@ export function rejectCrossSite(request: NextRequest): NextResponse | null {
     origin !== serverEnv().frontendOrigin ||
     request.headers.get(CSRF_HEADER) !== CSRF_HEADER_VALUE
   ) {
-    return errorResponse(403, 'درخواست از مبدأ نامعتبر رد شد.');
+    return errorResponse(403, 'FORBIDDEN', 'Cross-site request refused.');
   }
   return null;
 }

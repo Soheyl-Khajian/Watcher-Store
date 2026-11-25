@@ -126,14 +126,26 @@ await check('frontend: ready (Payload and Nest reachable)', async () => {
   expectStatus(await request(`${FRONTEND}/api/health/ready`), 200);
 });
 
-await check('frontend: home page renders', async () => {
+// Pages live under their language's prefix (/fa/..., /en/...); a bare
+// address redirects to the default language.
+let home = '/fa';
+await check('frontend: a bare address opens in a language', async () => {
   const result = await request(`${FRONTEND}/`);
+  expectStatus(result, 308);
+  const location = result.headers.get('location') ?? '';
+  const prefix = /^(?:https?:\/\/[^/]+)?(\/[a-z]{2})$/.exec(location);
+  if (!prefix) throw new Error(`unexpected redirect: ${location}`);
+  home = prefix[1];
+});
+
+await check('frontend: home page renders', async () => {
+  const result = await request(`${FRONTEND}${home}`);
   expectStatus(result, 200);
   if (!result.text.includes('<html')) throw new Error('not an HTML page');
 });
 
 await check('frontend: product listing renders', async () => {
-  expectStatus(await request(`${FRONTEND}/products`), 200);
+  expectStatus(await request(`${FRONTEND}${home}/products`), 200);
 });
 
 await check('frontend: static assets are served', async () => {

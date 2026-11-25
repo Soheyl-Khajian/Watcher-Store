@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useAuthStore, type SessionStatus } from '../store/auth';
 import { loginPathFor } from '../utils/safe-next';
 
