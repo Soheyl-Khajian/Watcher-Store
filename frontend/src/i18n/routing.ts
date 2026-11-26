@@ -2,8 +2,9 @@
 //
 // What the middleware does with a request's language prefix:
 // - API routes, media and root files pass untouched;
-// - an address without a prefix redirects (308) to the visitor's last
-//   language if this deployment offers it, otherwise the default one;
+// - an address without a prefix redirects (307, not cached) to the
+//   visitor's last language if this deployment offers it, otherwise the
+//   default one; a prefix in capitals (/EN/...) goes to its lowercase form;
 // - an address with a prefix is a page in that language. A language this
 //   deployment doesn't offer is a 404, which the [locale] layout answers.
 
@@ -29,6 +30,15 @@ export function routeLocale(
   const { locale, path } = splitLocale(pathname);
   if (locale) {
     return { kind: 'page', locale, path };
+  }
+
+  const [, first = '', ...rest] = pathname.split('/');
+  const lower = first.toLowerCase();
+  if (lower !== first && isLocale(lower)) {
+    return {
+      kind: 'redirect',
+      location: `/${lower}${rest.length ? `/${rest.join('/')}` : ''}${search}`,
+    };
   }
 
   const target =

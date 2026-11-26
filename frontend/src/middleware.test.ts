@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { config, middleware } from './middleware';
 
 // vitest.config.mts sets NEXT_PUBLIC_FRONTEND_URL to an https address, so
@@ -16,8 +16,33 @@ const visit = (path: string, cookie?: string) =>
 describe('language middleware', () => {
   it('redirects an address without a language to the default one', () => {
     const response = visit('/products?q=lock');
-    expect(response.status).toBe(308);
+    expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(`${SHOP}/fa/products?q=lock`);
+  });
+
+  // The target depends on the visitor's cookies.
+  it('lets no browser or CDN keep a redirect', () => {
+    for (const response of [visit('/products'), visit('/fa/checkout')]) {
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+      expect(response.headers.get('vary')).toBe('Cookie');
+    }
+  });
+
+  it('serves a page whose slug has a dot in its language', () => {
+    const response = visit('/en/products/omega-3861.1');
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('x-middleware-request-x-watcher-locale')).toBe(
+      'en',
+    );
+    expect(visit('/products/omega-3861.1').headers.get('location')).toBe(
+      `${SHOP}/fa/products/omega-3861.1`,
+    );
+  });
+
+  it('sends a language prefix in capitals to its lowercase form', () => {
+    expect(visit('/EN/products').headers.get('location')).toBe(
+      `${SHOP}/en/products`,
+    );
   });
 
   it("redirects to the last visit's language", () => {
@@ -40,6 +65,13 @@ describe('language middleware', () => {
     const response = visit('/api/auth/me');
     expect(response.headers.get('location')).toBeNull();
     expect(response.headers.get('x-middleware-next')).toBe('1');
+  });
+
+  it('keeps API answers out of every cache', () => {
+    expect(visit('/api/auth/me').headers.get('cache-control')).toBe(
+      'private, no-store',
+    );
+    expect(visit('/fa/products').headers.get('cache-control')).toBeNull();
   });
 });
 
@@ -120,5 +152,24 @@ describe('content security policy middleware', () => {
     expect(matches('/_next/image')).toBe(false);
     expect(matches('/uploads/camera.png')).toBe(false);
     expect(matches('/icon.svg')).toBe(false);
+  });
+});
+
+describe('a language this deployment does not offer', () => {
+  it('is neither the page language nor remembered', async () => {
+    const original = process.env.ENABLED_LOCALES;
+    process.env.ENABLED_LOCALES = 'fa';
+    vi.resetModules();
+    try {
+      const { middleware: persianOnly } = await import('./middleware');
+      const response = persianOnly(new NextRequest(`${SHOP}/en/products`));
+      expect(response.headers.get('set-cookie')).toBeNull();
+      expect(
+        response.headers.get('x-middleware-request-x-watcher-locale'),
+      ).toBeNull();
+    } finally {
+      process.env.ENABLED_LOCALES = original;
+      vi.resetModules();
+    }
   });
 });

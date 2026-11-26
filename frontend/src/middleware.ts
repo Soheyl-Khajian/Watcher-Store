@@ -45,12 +45,15 @@ export function middleware(request: NextRequest): NextResponse {
     payloadOrigin,
     upgradeInsecureRequests: frontendOrigin.startsWith('https://'),
   });
-  const redirectTo = (location: string, status: 307 | 308) => {
-    const redirect = NextResponse.redirect(
-      new URL(location, request.url),
-      status,
-    );
+  // Where these redirects go depends on the visitor's cookies (their last
+  // language, their session), so neither the browser nor a CDN may keep
+  // one: a cached redirect would send the next visit, or the next
+  // visitor, to the wrong place.
+  const redirectTo = (location: string) => {
+    const redirect = NextResponse.redirect(new URL(location, request.url), 307);
     redirect.headers.set(CSP_HEADER, csp);
+    redirect.headers.set('Cache-Control', 'private, no-store');
+    redirect.headers.set('Vary', 'Cookie');
     return redirect;
   };
 
@@ -62,9 +65,15 @@ export function middleware(request: NextRequest): NextResponse {
     request.cookies.get(LOCALE_COOKIE)?.value,
   );
   if (route.kind === 'redirect') {
-    // Permanent: the unprefixed addresses of before keep their links.
-    return redirectTo(route.location, 308);
+    return redirectTo(route.location);
   }
+
+  // A language this deployment does not offer is a 404 (the [locale]
+  // layout), shown in the default language: it is not the page's language
+  // and not one to remember.
+  const settings = localeSettings();
+  const offered =
+    route.kind === 'page' && settings.enabledLocales.includes(route.locale);
 
   if (route.kind === 'page') {
     // Not a security boundary: the API checks the session on every request,
@@ -78,7 +87,7 @@ export function middleware(request: NextRequest): NextResponse {
     );
     const signedOut = !request.cookies.get(name)?.value;
     if (signedOut && requiresSession(route.path)) {
-      return redirectTo(loginPage, 307);
+      return redirectTo(loginPage);
     }
   }
 
@@ -90,14 +99,20 @@ export function middleware(request: NextRequest): NextResponse {
   // The page's language for server components (i18n/server.ts); never
   // taken from the browser.
   requestHeaders.delete(LOCALE_HEADER);
-  if (route.kind === 'page') {
+  if (route.kind === 'page' && offered) {
     requestHeaders.set(LOCALE_HEADER, route.locale);
   }
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set(CSP_HEADER, csp);
+  // API answers are personal (the profile, the cart, orders) or must be
+  // fresh (health): no browser or CDN keeps them.
+  if (/^\/api(?:\/|$)/.test(pathname)) {
+    response.headers.set('Cache-Control', 'private, no-store');
+  }
 
   if (
     route.kind === 'page' &&
+    offered &&
     request.cookies.get(LOCALE_COOKIE)?.value !== route.locale
   ) {
     response.cookies.set(LOCALE_COOKIE, route.locale, {
@@ -115,6 +130,6 @@ export const config = {
   matcher: [
     // Everything except build assets, images (optimized ones and media
     // files) and the icons.
-    '/((?!_next/static|_next/image|uploads/|favicon.ico|icon.svg|apple-icon).*)',
+    '/((?!_next/static|_next/image|uploads/|icon.svg|apple-icon).*)',
   ],
 };

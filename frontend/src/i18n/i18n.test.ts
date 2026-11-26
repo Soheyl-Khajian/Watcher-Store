@@ -115,4 +115,27 @@ describe('routing by language', () => {
       expect(routeLocale(path, '', both)).toEqual({ kind: 'pass' });
     }
   });
+
+  it('treats a dot in a page slug as part of the page', () => {
+    expect(routeLocale('/en/products/v2.0', '', both)).toEqual({
+      kind: 'page',
+      locale: 'en',
+      path: '/products/v2.0',
+    });
+    expect(routeLocale('/products/v2.0', '', both)).toEqual({
+      kind: 'redirect',
+      location: '/fa/products/v2.0',
+    });
+  });
+
+  it('lowercases a language prefix in capitals', () => {
+    expect(routeLocale('/EN/products', '?q=x', both)).toEqual({
+      kind: 'redirect',
+      location: '/en/products?q=x',
+    });
+    expect(routeLocale('/Fa', '', both)).toEqual({
+      kind: 'redirect',
+      location: '/fa',
+    });
+  });
 });
