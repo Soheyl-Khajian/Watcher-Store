@@ -7,15 +7,16 @@
 // copy of it. Server to server only: without REVALIDATE_SECRET configured
 // the endpoint does not exist, and a wrong secret is refused.
 
-import { timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { revalidateTag } from 'next/cache';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isCacheTag } from '@/lib/cache-tags';
 
+// Compares digests, which always have the same length, so neither the
+// answer nor its timing says how long the secret is.
 function secretMatches(given: string, expected: string): boolean {
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  const digest = (value: string) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(given), digest(expected));
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
