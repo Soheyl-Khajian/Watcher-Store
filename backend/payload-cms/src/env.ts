@@ -50,13 +50,11 @@ const envSchema = z
     FRONTEND_URL: z.string().url(),
     // Where browsers reach this CMS (admin panel and media). Used as Payload's
     // serverURL and as the only origin trusted for cookie-authenticated
-    // requests. Reduced to its origin (scheme, host, port).
-    PAYLOAD_PUBLIC_URL: z
-      .string()
-      .url()
-      .default('http://localhost:3000')
-      .transform((value) => new URL(value).origin),
-    PAYLOAD_INTERNAL_URL: z.string().url().optional(),
+    // requests. Required in production (see parseEnv for the default).
+    PAYLOAD_PUBLIC_URL: z.preprocess(
+      emptyToUndefined,
+      z.string().url().optional(),
+    ),
     NEST_INTERNAL_URL: z.string().url().optional(), // Server-side URL of the Nest API, used by the admin Orders view.
     // Where this server reaches the storefront, to tell it about content
     // changes (hooks/revalidateStorefront.ts). Optional, like the secret.
@@ -76,6 +74,18 @@ const envSchema = z
         .min(
           32,
           `REVALIDATE_SECRET must be at least 32 characters. ${GENERATE_SECRET}`,
+        )
+        .optional(),
+    ),
+    // Shared with the storefront, which sends it with each sign-up
+    // (access/registration.ts). Required in production.
+    REGISTRATION_SECRET: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z
+        .string()
+        .min(
+          32,
+          `REGISTRATION_SECRET must be at least 32 characters. ${GENERATE_SECRET}`,
         )
         .optional(),
     ),
@@ -147,15 +157,37 @@ const envSchema = z
       return;
     }
 
-    if (
-      value.REVALIDATE_SECRET &&
-      PLACEHOLDER_SECRET.test(value.REVALIDATE_SECRET)
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['REVALIDATE_SECRET'],
-        message: `REVALIDATE_SECRET is still a placeholder. ${GENERATE_SECRET}`,
-      });
+    // Settings a production CMS cannot do without: its public address
+    // (admin cookies, CSRF and media links depend on it), the secret that
+    // lets the storefront create accounts, and the storefront's address and
+    // secret for refreshing its cache after edits.
+    const required = {
+      PAYLOAD_PUBLIC_URL:
+        'its public https address, such as https://cms.shop.example',
+      REGISTRATION_SECRET: `shared with the storefront. ${GENERATE_SECRET}`,
+      REVALIDATE_SECRET: `shared with the storefront. ${GENERATE_SECRET}`,
+      STOREFRONT_INTERNAL_URL:
+        'where this server reaches the storefront, such as http://frontend:3002',
+    } as const;
+    for (const [key, hint] of Object.entries(required)) {
+      if (!value[key as keyof typeof required]) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: `${key} must be set in production: ${hint}`,
+        });
+      }
+    }
+
+    for (const key of ['REVALIDATE_SECRET', 'REGISTRATION_SECRET'] as const) {
+      const secret = value[key];
+      if (secret && PLACEHOLDER_SECRET.test(secret)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: `${key} is still a placeholder. ${GENERATE_SECRET}`,
+        });
+      }
     }
 
     if (PLACEHOLDER_SECRET.test(value.PAYLOAD_SECRET)) {
@@ -177,11 +209,20 @@ const envSchema = z
     }
   });
 
-export type Env = z.infer<typeof envSchema>;
+export type Env = Omit<z.infer<typeof envSchema>, 'PAYLOAD_PUBLIC_URL'> & {
+  PAYLOAD_PUBLIC_URL: string;
+};
 
 // Exported separately so the rules can be unit-tested.
 export function parseEnv(source: Record<string, string | undefined>): Env {
-  return envSchema.parse(source);
+  const parsed = envSchema.parse(source);
+  return {
+    ...parsed,
+    // Reduced to its origin (scheme, host, port); localhost in development.
+    PAYLOAD_PUBLIC_URL: new URL(
+      parsed.PAYLOAD_PUBLIC_URL ?? 'http://localhost:3000',
+    ).origin,
+  };
 }
 
 export const env = parseEnv(process.env);

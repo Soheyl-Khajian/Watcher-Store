@@ -1,7 +1,9 @@
 // frontend/src/app/api/auth/register/route.ts
 //
 // POST /api/auth/register { email, password } -> 201
-// Creates the customer account in Payload, from this server.
+// Creates the customer account in Payload, from this server. The CMS
+// accepts sign-ups only with REGISTRATION_SECRET, so every account comes
+// through these checks.
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -64,11 +66,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return invalid();
   }
 
-  const created = await callUpstream(`${serverEnv().payloadUrl}/users`, {
+  const env = serverEnv();
+  const created = await callUpstream(`${env.payloadUrl}/users`, {
     method: 'POST',
     headers: {
       ...forwardedHeaders(request),
       'Content-Type': 'application/json',
+      ...(env.registrationSecret
+        ? { 'X-Registration-Secret': env.registrationSecret }
+        : {}),
     },
     body: JSON.stringify(parsed.data),
   });

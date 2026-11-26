@@ -1,6 +1,7 @@
 // backend/payload-cms/src/collections/Products.ts
 
 import type { CollectionConfig } from 'payload';
+import { slugField } from '../fields/slug';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
 import {
@@ -140,14 +141,7 @@ export const Products: CollectionConfig = {
       ],
     },
     // sidebar fields
-    {
-      name: 'slug',
-      label: 'اسلاگ (برای URL)',
-      type: 'text',
-      admin: { position: 'sidebar' },
-      required: true,
-      unique: true,
-    },
+    slugField('name'),
     {
       name: 'status',
       label: 'وضعیت نمایش',

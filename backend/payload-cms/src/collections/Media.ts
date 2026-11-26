@@ -11,20 +11,28 @@ export const Media: CollectionConfig = {
   slug: 'media',
   hooks: {
     beforeDelete: [preventDeletingUsedMedia],
-    afterChange: [revalidateAfterChange('products', 'posts', 'pages')],
-    afterDelete: [revalidateAfterDelete('products', 'posts', 'pages')],
+    // Everything that can show a picture (category images included).
+    afterChange: [
+      revalidateAfterChange('products', 'categories', 'posts', 'pages'),
+    ],
+    afterDelete: [
+      revalidateAfterDelete('products', 'categories', 'posts', 'pages'),
+    ],
   },
   admin: {
     description: 'فایل‌های رسانه‌ای مانند تصاویر محصولات',
   },
   access: {
+    // Files are public, drafts' pictures too: a picture is not secret
+    // before its product or post is published, and the storefront shows
+    // files without checking what uses them.
     read: () => true,
     create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   upload: {
-    // فقط پوشه ذخیره‌سازی را مشخص می‌کنیم. Payload بقیه موارد را مدیریت می‌کند.
+    // Local folder when no bucket is configured (src/storage.ts).
     staticDir: 'media',
     imageSizes: [
       {

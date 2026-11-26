@@ -1,6 +1,7 @@
 // backend/payload-cms/src/collections/Posts.ts
 
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, PayloadRequest } from 'payload';
+import { slugField } from '../fields/slug';
 import type { CollectionBeforeChangeHook } from 'payload';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
@@ -27,18 +28,37 @@ function getRelationshipID(value: unknown): string | number | null {
   return null;
 }
 
-// A post needs an author when it is created. Later the author may be empty
-// only because the writer's account was deleted, and then the post keeps
-// the byline it was published with.
-const requireAuthorOrByline = (
+// A post needs an author when it is created, and authors are
+// administrators (customers' accounts are never bylines). Later the author
+// may be empty only because the writer's account was deleted, and then the
+// post keeps the byline it was published with.
+const requireAuthorOrByline = async (
   value: unknown,
   {
     operation,
     siblingData,
-  }: { operation?: string; siblingData: { authorName?: unknown } },
-): true | string => {
+    req,
+  }: {
+    operation?: string;
+    siblingData: { authorName?: unknown };
+    req: PayloadRequest;
+  },
+): Promise<true | string> => {
   if (value !== null && value !== undefined && value !== '') {
-    return true;
+    const authorID = getRelationshipID(value);
+    const author = authorID
+      ? await req.payload.findByID({
+          collection: 'users',
+          id: authorID,
+          depth: 0,
+          disableErrors: true,
+          overrideAccess: true,
+          req,
+        })
+      : null;
+    return author?.role === 'admin'
+      ? true
+      : 'نویسنده باید یکی از مدیران فروشگاه باشد.';
   }
 
   const hasByline =
@@ -82,6 +102,22 @@ const populateAuthorName: CollectionBeforeChangeHook = async ({
   };
 };
 
+// A post published without a date is dated when it is first published, so
+// the blog can show and sort it.
+const datePublishedPost: CollectionBeforeChangeHook = ({
+  data,
+  originalDoc,
+}) => {
+  if (
+    data.status === 'published' &&
+    !data.publishedDate &&
+    !originalDoc?.publishedDate
+  ) {
+    return { ...data, publishedDate: new Date().toISOString() };
+  }
+  return data;
+};
+
 export const Posts: CollectionConfig = {
   slug: 'posts',
   admin: {
@@ -89,7 +125,7 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['title', 'authorName', 'status', 'publishedDate'],
   },
   hooks: {
-    beforeChange: [populateAuthorName],
+    beforeChange: [populateAuthorName, datePublishedPost],
     afterChange: [revalidateAfterChange('posts')],
     afterDelete: [revalidateAfterDelete('posts')],
   },
@@ -145,6 +181,7 @@ export const Posts: CollectionConfig = {
       type: 'date',
       admin: {
         position: 'sidebar',
+        description: 'اگر خالی بماند، هنگام انتشار تاریخ همان روز ثبت می‌شود.',
       },
     },
     {
@@ -152,6 +189,9 @@ export const Posts: CollectionConfig = {
       label: 'نویسنده',
       type: 'relationship',
       relationTo: 'users',
+      // Only administrators write posts; customers are never offered (and
+      // are refused if sent).
+      filterOptions: { role: { equals: 'admin' } },
       // Not required in the database: when a writer's account is deleted,
       // the link is cleared and the post keeps its byline (authorName). A
       // new post still needs an author.
@@ -182,15 +222,6 @@ export const Posts: CollectionConfig = {
       relationTo: 'media',
       required: true,
     },
-    {
-      name: 'slug',
-      label: 'اسلاگ (برای URL)',
-      type: 'text',
-      required: true,
-      unique: true,
-      admin: {
-        position: 'sidebar',
-      },
-    },
+    slugField('title'),
   ],
 };

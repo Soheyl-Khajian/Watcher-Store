@@ -32,6 +32,13 @@ export function startupProblems(
     );
   }
 
+  // Without it the CMS refuses every sign-up.
+  if (env.NODE_ENV === 'production' && !env.REGISTRATION_SECRET) {
+    problems.push(
+      'REGISTRATION_SECRET must be set in production, the same value as the CMS has. Generate one with: openssl rand -hex 32',
+    );
+  }
+
   // Without it the build falls back to http://localhost:3002: every login
   // and checkout is refused as cross-site, the session cookie is not
   // Secure, and canonical and sitemap addresses point at localhost.

@@ -39,6 +39,11 @@ export interface ApiResponse {
 // marked Secure, as in production).
 export const TEST_SERVER_URL = 'https://cms.example.test';
 export const TEST_FRONTEND_URL = 'https://shop.example.test';
+// What the storefront sends with each sign-up (access/registration.ts).
+export const TEST_REGISTRATION_SECRET = 'registration-'.padEnd(48, 'x');
+export const REGISTRATION_HEADERS = {
+  'X-Registration-Secret': TEST_REGISTRATION_SECRET,
+};
 
 export interface TestPayload {
   payload: Payload;
@@ -96,6 +101,7 @@ export async function createTestPayload(): Promise<TestPayload> {
       PAYLOAD_SECRET: randomBytes(32).toString('hex'),
       FRONTEND_URL: TEST_FRONTEND_URL,
       PAYLOAD_PUBLIC_URL: TEST_SERVER_URL,
+      REGISTRATION_SECRET: TEST_REGISTRATION_SECRET,
     });
 
     config = await (await import('../../src/payload.config')).default;

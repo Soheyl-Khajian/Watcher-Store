@@ -1,7 +1,18 @@
-// مسیر فایل: backend/payload-cms/src/globals/Footer.ts
+// backend/payload-cms/src/globals/Footer.ts
 
 import type { GlobalConfig } from 'payload';
 import { revalidateGlobalAfterChange } from '../hooks/revalidateStorefront';
+
+// Links the storefront can show: web addresses, email and phone links, and
+// addresses on the shop itself (starting with /). Anything else, such as
+// javascript:, is refused here as well as dropped by the storefront.
+export function validateFooterUrl(value: unknown): true | string {
+  const url = typeof value === 'string' ? value.trim() : '';
+  if (/^\/(?!\/)/.test(url) || /^(https?:\/\/|mailto:|tel:)\S+$/i.test(url)) {
+    return true;
+  }
+  return 'نشانی باید با https://، mailto:، tel: یا / شروع شود.';
+}
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
@@ -51,6 +62,7 @@ export const Footer: GlobalConfig = {
               label: 'آدرس (URL)',
               type: 'text',
               required: true,
+              validate: validateFooterUrl,
             },
           ],
         },
@@ -73,6 +85,7 @@ export const Footer: GlobalConfig = {
           label: 'آدرس (URL)',
           type: 'text',
           required: true,
+          validate: validateFooterUrl,
         },
       ],
     },

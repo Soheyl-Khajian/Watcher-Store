@@ -1,9 +1,9 @@
 // backend/payload-cms/src/collections/Pages.ts
 
 import type { CollectionConfig } from 'payload';
+import { slugField } from '../fields/slug';
 import { readPublishedOrAdmin } from '../access/readPublishedOrAdmin';
 import { slateEditor } from '@payloadcms/richtext-slate';
-import { slugify } from '../utils/slugify';
 import {
   revalidateAfterChange,
   revalidateAfterDelete,
@@ -43,31 +43,7 @@ export const Pages: CollectionConfig = {
         },
       }),
     },
-    {
-      name: 'slug',
-      label: 'اسلاگ (برای URL)',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-        description:
-          'این فیلد به صورت خودکار از روی عنوان ساخته می‌شود، اما می‌توانید آن را ویرایش کنید.',
-      },
-      hooks: {
-        beforeValidate: [
-          ({ value, data }) => {
-            if (value) {
-              return slugify(value); // normalize a slug typed by hand
-            }
-            if (data?.title) {
-              return slugify(data.title); // build from title if empty
-            }
-            return value;
-          },
-        ],
-      },
-      unique: true,
-      index: true,
-    },
+    slugField('title'),
     {
       name: 'status',
       label: 'وضعیت',

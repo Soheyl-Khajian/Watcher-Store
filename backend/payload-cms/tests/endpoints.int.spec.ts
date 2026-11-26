@@ -145,7 +145,9 @@ describe('Custom endpoints', () => {
         collection: 'categories',
         data: { name: 'Loop B', slug: 'loop-b', parent: a.id },
       });
-      await t.payload.update({
+      // Saving a loop is refused now (Categories validateParent); data saved
+      // before that check could still hold one, so it is written directly.
+      await t.payload.db.updateOne({
         collection: 'categories',
         id: a.id,
         data: { parent: b.id },

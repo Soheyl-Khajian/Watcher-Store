@@ -37,10 +37,11 @@ x-payload-environment: &payload-environment
   FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
   PAYLOAD_PUBLIC_URL: ${PAYLOAD_PUBLIC_URL:?Set PAYLOAD_PUBLIC_URL in .env}
   NEST_INTERNAL_URL: http://nest-api:3001
-  # Content edits refresh the storefront's cache at once (only when
-  # REVALIDATE_SECRET is set).
+  # Content edits refresh the storefront's cache at once.
   STOREFRONT_INTERNAL_URL: http://frontend:3002
-  REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
+  REVALIDATE_SECRET: ${REVALIDATE_SECRET:?Set REVALIDATE_SECRET in .env}
+  # Sign-ups are accepted only from the storefront, which sends this.
+  REGISTRATION_SECRET: ${REGISTRATION_SECRET:?Set REGISTRATION_SECRET in .env}
   # Media storage: local disk (the payload-media volume) unless S3_BUCKET
   # is set.
   S3_BUCKET: ${S3_BUCKET:-}
@@ -242,7 +243,8 @@ services:
       # The storefront's server calls Nest for the logged-in customer (the
       # /api BFF routes).
       NEST_INTERNAL_URL: http://nest-api:3001
-      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:?Set REVALIDATE_SECRET in .env}
+      REGISTRATION_SECRET: ${REGISTRATION_SECRET:?Set REGISTRATION_SECRET in .env}
       # Reverse proxies in front of the storefront: 1 behind the usual one
       # (it reports the customer's address to Nest's rate limits), 0 when
       # browsers reach port 3002 directly.

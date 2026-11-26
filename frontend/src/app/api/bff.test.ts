@@ -318,6 +318,25 @@ describe('POST /api/auth/register', () => {
       password: 'long-enough',
     });
     expect(response.status).toBe(201);
+    expect(calls[0].headers.get('x-registration-secret')).toBeNull();
+  });
+
+  it('sends the registration secret the CMS asks for', async () => {
+    const secret = 's'.repeat(64);
+    process.env.REGISTRATION_SECRET = secret;
+    onTestFinished(() => {
+      delete process.env.REGISTRATION_SECRET;
+    });
+    upstream({
+      [`POST ${PAYLOAD}/users`]: () => json({ doc: { id: 9 } }, 201),
+    });
+
+    const response = await registration({
+      email: 'new@example.test',
+      password: 'long-enough',
+    });
+    expect(response.status).toBe(201);
+    expect(calls[0].headers.get('x-registration-secret')).toBe(secret);
   });
 
   it('answers 409 with its own code for a taken email', async () => {

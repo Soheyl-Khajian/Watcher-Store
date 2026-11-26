@@ -28,6 +28,10 @@ const serverEnvSchema = z.object({
   // address to X-Forwarded-For (see clientAddress). 0: browsers reach it
   // directly.
   TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+  // Shared with the CMS, which creates accounts only for requests that
+  // carry it (app/api/auth/register). Required in production
+  // (startup-check.ts).
+  REGISTRATION_SECRET: z.string().min(32).optional(),
 });
 
 export interface ServerEnv {
@@ -35,6 +39,7 @@ export interface ServerEnv {
   payloadUrl: string;
   frontendOrigin: string;
   trustedProxyHops: number;
+  registrationSecret: string | undefined;
 }
 
 // Read on every call (cheap), so tests and the runtime see current values.
@@ -44,12 +49,14 @@ export function serverEnv(): ServerEnv {
     PAYLOAD_INTERNAL_URL: process.env.PAYLOAD_INTERNAL_URL || undefined,
     NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || undefined,
     TRUSTED_PROXY_HOPS: process.env.TRUSTED_PROXY_HOPS || undefined,
+    REGISTRATION_SECRET: process.env.REGISTRATION_SECRET || undefined,
   });
   return {
     nestUrl: parsed.NEST_INTERNAL_URL.replace(/\/+$/, ''),
     payloadUrl: parsed.PAYLOAD_INTERNAL_URL.replace(/\/+$/, ''),
     frontendOrigin: new URL(parsed.NEXT_PUBLIC_FRONTEND_URL).origin,
     trustedProxyHops: parsed.TRUSTED_PROXY_HOPS,
+    registrationSecret: parsed.REGISTRATION_SECRET,
   };
 }
 

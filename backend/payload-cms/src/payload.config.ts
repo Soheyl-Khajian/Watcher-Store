@@ -26,6 +26,7 @@ import { Footer } from './globals/Footer';
 import { productsByCategoryEndpoint } from './endpoints/productsByCategory';
 import { orderActionsEndpoint } from './endpoints/orderActions';
 import { mediaStoragePlugins } from './storage';
+import { limitPublicReads } from './hooks/limitPublicReads';
 
 import { en } from '@payloadcms/translations/languages/en';
 import { fa } from '@payloadcms/translations/languages/fa';
@@ -42,6 +43,11 @@ export default buildConfig({
     components: {
       afterNavLinks: ['/components/OrdersNavLink'],
       views: {
+        // Password reset is off; this says so instead of "email sent".
+        forgot: {
+          Component: '/views/PasswordResetOff',
+          path: '/forgot',
+        },
         orders: {
           Component: '/views/OrdersView',
           path: '/orders',
@@ -53,7 +59,19 @@ export default buildConfig({
   i18n: {
     supportedLanguages: { en, fa },
   },
-  collections: [Users, Categories, Products, Posts, Pages, Media],
+  // Every collection bounds the reads of non-administrators.
+  collections: [Users, Categories, Products, Posts, Pages, Media].map(
+    (collection) => ({
+      ...collection,
+      hooks: {
+        ...collection.hooks,
+        beforeOperation: [
+          limitPublicReads,
+          ...(collection.hooks?.beforeOperation ?? []),
+        ],
+      },
+    }),
+  ),
   globals: [Footer],
   endpoints: [productsByCategoryEndpoint, orderActionsEndpoint],
   editor: slateEditor({}),

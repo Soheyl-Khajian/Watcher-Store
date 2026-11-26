@@ -163,8 +163,14 @@ login flow, the payment sequence, and the order and payment state machines.
 - **Fail fast on bad configuration.** Every service validates its
   environment at startup and refuses placeholder secrets, default database
   passwords and half-configured features in production.
-- **Content safety.** CMS links are rendered only with safe URL schemes;
-  uploads accept raster images only (no SVG), up to 5 MB.
+- **Content safety.** CMS links are rendered only with safe URL schemes
+  (and the footer refuses others when saved); uploads accept raster images
+  only (no SVG), up to 5 MB.
+- **A closed CMS API.** Customer accounts are created only through the
+  storefront, which checks the form and proves itself with a shared
+  secret; password reset is off (the CMS sends no email, an administrator
+  sets a new password). Reads by anyone but an administrator are capped at
+  200 documents and two levels of related data per request.
 
 ---
 
@@ -270,8 +276,9 @@ published, on `127.0.0.1`, for a reverse proxy with TLS in front.
 
 ```bash
 cp .env.example .env
-# Set strong values: PAYLOAD_SECRET, JWT_SECRET, POSTGRES_PASSWORD (and in
-# DATABASE_URI), PAYLOAD_DB_PASSWORD, NEST_DB_PASSWORD; and your public URLs.
+# Set strong values: PAYLOAD_SECRET, JWT_SECRET, REVALIDATE_SECRET,
+# REGISTRATION_SECRET, POSTGRES_PASSWORD (and in DATABASE_URI),
+# PAYLOAD_DB_PASSWORD, NEST_DB_PASSWORD; and your public URLs.
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
@@ -317,6 +324,7 @@ file hands each service only the settings it uses.
 | `DEFAULT_LOCALE` / `ENABLED_LOCALES`                          | Storefront      | The languages offered (`fa`, `en`) and the one bare addresses open in |
 | `STORE_TIME_ZONE`                                             | Storefront      | The time zone order and post times are shown in                       |
 | `REVALIDATE_SECRET` / `STOREFRONT_INTERNAL_URL`               | CMS, Storefront | Instant cache refresh after content edits                             |
+| `REGISTRATION_SECRET`                                         | CMS, Storefront | Lets only the storefront create customer accounts                     |
 | `S3_*`                                                        | Payload         | Media in an S3-compatible bucket instead of a volume                  |
 | `ADMIN_*` / `DEMO_*` / `ALLOW_DEMO_SEED`                      | seed scripts    | The administrator, and the demo data                                  |
 | `LOG_LEVEL`                                                   | Nest            | Log verbosity (JSON in production)                                    |
