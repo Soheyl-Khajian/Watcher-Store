@@ -142,6 +142,9 @@ export interface User {
    * این نام در محتوای عمومی مانند مقالات نمایش داده می‌شود. از آدرس ایمیل استفاده نکنید.
    */
   displayName: string;
+  /**
+   * نقش حساب خودتان را فقط مدیر دیگری می‌تواند تغییر دهد، و فروشگاه همیشه دست‌کم یک مدیر دارد.
+   */
   role: 'admin' | 'customer';
   updatedAt: string;
   createdAt: string;
@@ -264,12 +267,14 @@ export interface Product {
   status?: ('published' | 'draft') | null;
   price: number;
   priceAdjustmentBasePrice?: number | null;
+  priceAdjustmentSalePrice?: number | null;
   /**
    * در صورت تخفیف، این فیلد را پر کنید. در غیر این صورت، خالی بگذارید.
    */
   salePrice?: number | null;
   isOnSale?: boolean | null;
   stock?: number | null;
+  stockWhenOpened?: number | null;
   categories?: (number | Category)[] | null;
   updatedAt: string;
   createdAt: string;
@@ -490,9 +495,11 @@ export interface ProductsSelect<T extends boolean = true> {
   status?: T;
   price?: T;
   priceAdjustmentBasePrice?: T;
+  priceAdjustmentSalePrice?: T;
   salePrice?: T;
   isOnSale?: T;
   stock?: T;
+  stockWhenOpened?: T;
   categories?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -13,11 +13,13 @@ import {
   revalidateAfterChange,
   revalidateAfterDelete,
 } from '../hooks/revalidateStorefront';
+import { keepStockFromSales, STOCK_WHEN_OPENED } from '../hooks/stockConflict';
 
 export const Products: CollectionConfig = {
   slug: 'products',
   // Refresh the storefront's cached copy after edits.
   hooks: {
+    beforeChange: [keepStockFromSales],
     afterChange: [revalidateAfterChange('products')],
     afterDelete: [revalidateAfterDelete('products')],
   },
@@ -181,6 +183,21 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      // The sale price the category price tool set, so clearing it leaves a
+      // sale price set by hand alone (endpoints/applyPriceAdjustmentHandler).
+      name: 'priceAdjustmentSalePrice',
+      label: 'قیمت ویژه تغییر گروهی',
+      type: 'number',
+      admin: {
+        hidden: true,
+      },
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin',
+        create: ({ req: { user } }) => user?.role === 'admin',
+        update: ({ req: { user } }) => user?.role === 'admin',
+      },
+    },
+    {
       name: 'salePrice',
       label: 'قیمت فروش ویژه (تومان)',
       type: 'number',
@@ -212,6 +229,19 @@ export const Products: CollectionConfig = {
       min: 0,
       validate: (value: unknown) => validateStock(value),
       admin: { position: 'sidebar' },
+    },
+    {
+      // The stock the form showed; see hooks/stockConflict.ts.
+      name: STOCK_WHEN_OPENED,
+      type: 'number',
+      virtual: true,
+      admin: { hidden: true },
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin',
+      },
+      hooks: {
+        afterRead: [({ siblingData }) => siblingData?.stock],
+      },
     },
     {
       name: 'categories',
