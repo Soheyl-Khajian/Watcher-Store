@@ -61,6 +61,7 @@ describe('productJsonLd', () => {
         url: 'https://shop.example.test/fa/products/dome-camera',
         price: 15_000_000,
         priceCurrency: 'IRR',
+        itemCondition: 'https://schema.org/NewCondition',
         availability: 'https://schema.org/InStock',
       },
     });

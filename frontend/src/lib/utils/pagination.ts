@@ -31,3 +31,13 @@ export function pageWindow(
   });
   return items;
 }
+
+// The page number in an address (?page=), as a whole number from 1 up to
+// MAX_PAGE. Anything else ("2.5", "-1", "abc") is page 1, so odd addresses
+// do not reach the CMS or become pages of their own.
+export const MAX_PAGE = 10_000;
+
+export function parsePage(value: unknown): number {
+  const page = typeof value === 'string' ? Number(value) : NaN;
+  return Number.isInteger(page) && page >= 1 && page <= MAX_PAGE ? page : 1;
+}

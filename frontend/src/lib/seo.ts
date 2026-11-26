@@ -19,13 +19,22 @@ const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
 // Open Graph fields every page needs, in the page's language. A page's
 // openGraph replaces the layout's entirely (Next.js does not merge it), so
 // pages spread this in.
+// The image shown when a page without one of its own is shared
+// (app/share-image.png).
+export const SHARE_IMAGE = {
+  url: '/share-image.png',
+  width: 1200,
+  height: 630,
+};
+
 export async function openGraphDefaults() {
   const [locale, t] = await Promise.all([getLocale(), getT()]);
   return {
-    type: 'website',
+    type: 'website' as const,
     locale: OPEN_GRAPH_LOCALES[locale],
     siteName: t('site.name'),
-  } as const;
+    images: [{ ...SHARE_IMAGE }],
+  };
 }
 
 export function siteUrl(): URL {
@@ -154,6 +163,7 @@ export function productJsonLd(product: ProductForJsonLd, locale: Locale) {
       url,
       price: price * 10,
       priceCurrency: 'IRR',
+      itemCondition: 'https://schema.org/NewCondition',
       availability:
         (product.stock ?? 0) > 0
           ? 'https://schema.org/InStock'

@@ -16,6 +16,21 @@ export const dynamic = 'force-dynamic';
 
 const FIXED_PAGES = ['/', '/products', '/blog'];
 
+// CMS pages live at /<slug>; one named like a storefront route would be
+// hidden behind that route, so it is not listed.
+const ROUTES = new Set([
+  'products',
+  'categories',
+  'blog',
+  'checkout',
+  'profile',
+  'payment',
+  'login',
+  'register',
+  'api',
+  'uploads',
+]);
+
 // One entry per language for a path (without its prefix).
 function entriesFor(
   path: string,
@@ -62,6 +77,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...under('/products/', entries.products),
     ...under('/categories/', entries.categories),
     ...under('/blog/', entries.posts),
-    ...under('/', entries.pages),
+    ...under(
+      '/',
+      entries.pages.filter((page) => !ROUTES.has(page.slug.toLowerCase())),
+    ),
   ];
 }

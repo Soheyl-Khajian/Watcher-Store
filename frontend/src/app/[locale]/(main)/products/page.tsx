@@ -1,5 +1,6 @@
 // frontend/src/app/[locale]/(main)/products/page.tsx
 import { alternatesFor } from '@/lib/seo';
+import { parsePage } from '@/lib/utils/pagination';
 import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import { Link } from '@/i18n/navigation';
@@ -14,22 +15,24 @@ import type { Metadata } from 'next';
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams?: Promise<{ q?: string; onSale?: string }>;
+  searchParams?: Promise<{ q?: string; onSale?: string; page?: string }>;
 }): Promise<Metadata> {
   const awaited = await searchParams;
   const t = await getT();
   if (normalizeSearchQuery(awaited?.q)) {
     return { title: t('products.searchTitle'), robots: { index: false } };
   }
-  return awaited?.onSale === 'true'
-    ? {
-        title: t('products.specialsTitle'),
-        alternates: await alternatesFor('/products?onSale=true'),
-      }
-    : {
-        title: t('products.allTitle'),
-        alternates: await alternatesFor('/products'),
-      };
+  // Each page of the listing is its own page for search engines.
+  const onSale = awaited?.onSale === 'true';
+  const page = parsePage(awaited?.page);
+  const params = new URLSearchParams();
+  if (onSale) params.set('onSale', 'true');
+  if (page > 1) params.set('page', String(page));
+  const query = params.toString();
+  return {
+    title: onSale ? t('products.specialsTitle') : t('products.allTitle'),
+    alternates: await alternatesFor(`/products${query ? `?${query}` : ''}`),
+  };
 }
 
 export default async function AllProductsPage({
@@ -38,7 +41,7 @@ export default async function AllProductsPage({
   searchParams?: Promise<{ page?: string; onSale?: string; q?: string }>;
 }) {
   const awaitedSearchParams = await searchParams;
-  const page = Number(awaitedSearchParams?.page) || 1;
+  const page = parsePage(awaitedSearchParams?.page);
   const onSale = awaitedSearchParams?.onSale === 'true';
   const search = normalizeSearchQuery(awaitedSearchParams?.q);
 

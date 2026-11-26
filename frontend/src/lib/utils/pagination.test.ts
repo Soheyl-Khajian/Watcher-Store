@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageWindow } from './pagination';
+import { pageWindow, parsePage } from './pagination';
 
 describe('pageWindow', () => {
   it('shows every page when there are few', () => {
@@ -24,5 +24,19 @@ describe('pageWindow', () => {
     expect(pageWindow(99, 3)).toEqual([1, 2, 3]);
     expect(pageWindow(-5, 3)).toEqual([1, 2, 3]);
     expect(pageWindow(1, 0)).toEqual([1]);
+  });
+});
+
+describe('parsePage', () => {
+  it.each([
+    ['3', 3],
+    [undefined, 1],
+    ['0', 1],
+    ['-2', 1],
+    ['2.5', 1],
+    ['abc', 1],
+    ['10001', 1],
+  ])('reads %p as %p', (value, expected) => {
+    expect(parsePage(value)).toBe(expected);
   });
 });
