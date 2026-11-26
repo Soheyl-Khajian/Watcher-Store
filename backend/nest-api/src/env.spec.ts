@@ -86,6 +86,7 @@ describe('parseEnv', () => {
           POSTGRES_PASSWORD: 'a-strong-database-password',
           PAYMENT_GATEWAY: 'zarinpal',
           ZARINPAL_MERCHANT_ID: merchant,
+          ZARINPAL_BASE_URL: 'https://payment.zarinpal.com',
         };
         expect(() => parseEnv(production)).toThrow(/PAYMENT_CALLBACK_URL/);
         expect(
@@ -95,6 +96,27 @@ describe('parseEnv', () => {
           }).PAYMENT_CALLBACK_URL,
         ).toBe('https://shop.example/api/payment/callback');
       });
+    });
+
+    it('refuses the Zarinpal sandbox in production unless asked for', () => {
+      const production = {
+        ...validEnv,
+        NODE_ENV: 'production',
+        POSTGRES_PASSWORD: 'a-strong-database-password',
+        PAYMENT_GATEWAY: 'zarinpal',
+        ZARINPAL_MERCHANT_ID: '00000000-0000-4000-8000-000000000000',
+        PAYMENT_CALLBACK_URL: 'https://shop.example/api/payment/callback',
+      };
+      expect(() => parseEnv(production)).toThrow(/sandbox/);
+      expect(
+        parseEnv({ ...production, ZARINPAL_SANDBOX: 'true' }).ZARINPAL_BASE_URL,
+      ).toBe('https://sandbox.zarinpal.com');
+      expect(
+        parseEnv({
+          ...production,
+          ZARINPAL_BASE_URL: 'https://payment.zarinpal.com',
+        }).ZARINPAL_BASE_URL,
+      ).toBe('https://payment.zarinpal.com');
     });
 
     it('ignores ALLOW_MOCK_PAYMENT=false', () => {

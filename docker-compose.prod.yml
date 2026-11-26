@@ -81,7 +81,9 @@ x-nest-environment: &nest-environment
   PAYMENT_TIMEOUT_MS: ${PAYMENT_TIMEOUT_MS:-10000}
   PAYMENT_RECONCILE_AFTER_MINUTES: ${PAYMENT_RECONCILE_AFTER_MINUTES:-15}
   ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
-  ZARINPAL_BASE_URL: ${ZARINPAL_BASE_URL:-https://sandbox.zarinpal.com}
+  ZARINPAL_BASE_URL: ${ZARINPAL_BASE_URL:-https://payment.zarinpal.com}
+  # true only for a demo that takes payments on the Zarinpal sandbox.
+  ZARINPAL_SANDBOX: ${ZARINPAL_SANDBOX:-false}
 
 # The superuser connection, for the database and its two setup jobs only.
 x-db-admin-environment: &db-admin-environment
