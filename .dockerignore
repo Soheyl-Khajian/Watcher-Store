@@ -24,6 +24,7 @@
 backend/payload-cms/media
 
 # Tests (not part of any image)
+e2e
 backend/nest-api/test
 backend/payload-cms/tests
 **/*.test.ts

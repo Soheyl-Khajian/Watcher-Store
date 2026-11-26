@@ -8,7 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { tomanToRial } from '../common/money/toman';
 import { env } from '../env';
 import { OrdersService } from '../orders/orders.service';
@@ -21,6 +21,9 @@ import { ApiError } from '../common/http/api-error';
 // them, and an administrator should look instead.
 const RECONCILE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const RECONCILE_BATCH_SIZE = 50;
+// A payment claimed by one run is not claimed again for this long, so two
+// API instances running the job together never ask about the same one.
+const RECONCILE_CLAIM_MS = 30_000;
 
 @Injectable()
 export class PaymentService {
@@ -153,19 +156,38 @@ export class PaymentService {
       return 0;
     }
 
-    const stale = await this.paymentRepository.find({
-      where: {
-        gateway: gateway.name,
-        status: PaymentStatus.PENDING,
-        createdAt: Between(
-          new Date(now.getTime() - RECONCILE_WINDOW_MS),
-          new Date(
+    // Claimed in a short transaction: the rows are locked, skipping any that
+    // another API instance is claiming at the same moment, and stamped as
+    // checked now, so a run elsewhere picks other payments. The gateway is
+    // asked afterwards, without holding any lock.
+    const stale = await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Payment);
+      const claimed = await repository
+        .createQueryBuilder('p')
+        .where('p.gateway = :gateway', { gateway: gateway.name })
+        .andWhere('p.status = :pending', { pending: PaymentStatus.PENDING })
+        .andWhere('p.createdAt BETWEEN :from AND :to', {
+          from: new Date(now.getTime() - RECONCILE_WINDOW_MS),
+          to: new Date(
             now.getTime() - env.PAYMENT_RECONCILE_AFTER_MINUTES * 60_000,
           ),
-        ),
-      },
-      order: { lastCheckedAt: { direction: 'ASC', nulls: 'FIRST' }, id: 'ASC' },
-      take: RECONCILE_BATCH_SIZE,
+        })
+        .andWhere('(p.lastCheckedAt IS NULL OR p.lastCheckedAt < :claimed)', {
+          claimed: new Date(now.getTime() - RECONCILE_CLAIM_MS),
+        })
+        .orderBy('p.lastCheckedAt', 'ASC', 'NULLS FIRST')
+        .addOrderBy('p.id', 'ASC')
+        .limit(RECONCILE_BATCH_SIZE)
+        .setLock('pessimistic_write')
+        .setOnLocked('skip_locked')
+        .getMany();
+      if (claimed.length > 0) {
+        await repository.update(
+          { id: In(claimed.map((payment) => payment.id)) },
+          { lastCheckedAt: now },
+        );
+      }
+      return claimed;
     });
 
     let settled = 0;
@@ -174,10 +196,8 @@ export class PaymentService {
         await this.settle(payment, null, { cancelOnFailure: false });
         settled += 1;
       } catch (error) {
-        // Still pending; the next run asks again, after the others.
-        await this.paymentRepository.update(payment.id, {
-          lastCheckedAt: now,
-        });
+        // Still pending; the next run asks again, after the others (it was
+        // stamped as checked when claimed).
         this.logger.warn(
           `Could not reconcile payment ${payment.id}: ${
             error instanceof Error ? error.message : String(error)
@@ -242,6 +262,9 @@ export class PaymentService {
         result.paid,
         { cancelOnFailure: options.cancelOnFailure },
       );
+      if (outcome === 'refund_required') {
+        locked.refundRequired = true;
+      }
       await paymentRepository.save(locked);
 
       if (result.paid) {

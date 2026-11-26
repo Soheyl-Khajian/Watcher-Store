@@ -52,12 +52,12 @@ export function useAddToCart(productId: string | number, productName: string) {
 
     setIsAdding(true);
     try {
-      const updatedCart = await addToCart(String(productId), 1);
-      if (updatedCart) {
-        setCart(updatedCart);
+      const added = await addToCart(String(productId), 1);
+      if (added.ok) {
+        setCart(added.cart);
         toast.success(t('cart.added', { name: productName }));
       } else {
-        toast.error(t('cart.addFailed'));
+        toast.error(t.error(added.error, 'cart.addFailed'));
       }
     } finally {
       setIsAdding(false);

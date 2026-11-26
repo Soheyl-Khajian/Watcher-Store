@@ -74,23 +74,53 @@ const dateFormatter = new Intl.DateTimeFormat('fa-IR', {
   timeZone: 'Asia/Tehran',
 });
 
-// A refund the shop owes, so it cannot be missed in the list.
+// A refund the shop owes, so it cannot be missed in the list, with the
+// payments to send back (found in the gateway's panel by reference number).
 function RefundNote({
   refundStatus,
+  refunds,
 }: {
   refundStatus: NestOrder['refundStatus'];
+  refunds: NestOrder['refunds'];
 }) {
-  if (refundStatus === 'required') {
-    return (
-      <div style={{ color: 'var(--theme-error-500)', fontWeight: 600 }}>
-        نیاز به بازپرداخت
-      </div>
-    );
+  if (refundStatus === 'none') {
+    return null;
   }
-  if (refundStatus === 'refunded') {
-    return <div style={{ opacity: 0.7 }}>بازپرداخت شد</div>;
-  }
-  return null;
+  const owed = refunds.filter((refund) =>
+    refundStatus === 'required' ? !refund.refundedAt : true,
+  );
+  return (
+    <div
+      style={
+        refundStatus === 'required'
+          ? { color: 'var(--theme-error-500)', fontWeight: 600 }
+          : { opacity: 0.7 }
+      }
+    >
+      {refundStatus === 'required' ? 'نیاز به بازپرداخت' : 'بازپرداخت شد'}
+      {owed.length > 0 && (
+        <ul style={{ margin: 0, paddingInlineStart: '1rem', fontWeight: 400 }}>
+          {owed.map((refund) => (
+            <li key={refund.paymentId}>
+              {priceFormatter.format(refund.amount)} تومان
+              {refund.refId && (
+                <>
+                  {' '}
+                  — شماره پیگیری <bdi dir="ltr">{refund.refId}</bdi>
+                </>
+              )}
+              {refund.cardPan && (
+                <>
+                  {' '}
+                  — کارت <bdi dir="ltr">{refund.cardPan}</bdi>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 // The outcome of the last action (?order=&action=&result=, set by the
@@ -474,7 +504,10 @@ async function renderContent(
                       کد رهگیری: <bdi dir="ltr">{order.trackingCode}</bdi>
                     </div>
                   )}
-                  <RefundNote refundStatus={order.refundStatus} />
+                  <RefundNote
+                    refundStatus={order.refundStatus}
+                    refunds={order.refunds}
+                  />
                 </td>
                 <td style={cellStyle}>
                   <ul

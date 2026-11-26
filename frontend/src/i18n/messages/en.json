@@ -315,6 +315,7 @@
     "PRODUCT_DATA_INVALID": "A product has invalid information.",
     "OUT_OF_STOCK": "This product is out of stock.",
     "STOCK_LIMIT": "You can order at most {available} of this product.",
+    "CART_FULL": "Your cart can hold at most {max} different products.",
     "CART_LOAD_FAILED": "Your cart couldn't be loaded.",
     "CART_ITEM_NOT_FOUND": "That item isn't in your cart.",
     "CART_EMPTY": "Your cart is empty.",

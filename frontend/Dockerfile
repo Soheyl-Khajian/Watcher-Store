@@ -6,7 +6,7 @@
 # The first stages match the other two Dockerfiles line for line, so the
 # package download (pnpm fetch) is built once and shared by all three.
 
-FROM node:24-alpine AS base
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS base
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -46,7 +46,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm build
 
-FROM node:24-alpine AS runner
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS runner
 
 WORKDIR /app
 

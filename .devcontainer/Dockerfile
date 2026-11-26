@@ -14,7 +14,7 @@
 # - Final USER must be node (remoteUser + compose user).
 # - Do not npm install -g pnpm or corepack prepare in dev.sh.
 
-FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm
+FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm@sha256:b067c4021d2760daeb24de2580973033064b74c26037b6acd9b2a3268c2d3259
 
 USER root
 

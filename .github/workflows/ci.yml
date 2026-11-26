@@ -35,14 +35,13 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       # Version comes from "packageManager" in package.json.
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -71,7 +70,7 @@ jobs:
     # file creates and drops its own database on this server.
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:18-alpine@sha256:0115267ab5a509022df9319c77be365cef335adb71556c75f60f5360ee247e71
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -88,13 +87,12 @@ jobs:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -125,9 +123,16 @@ jobs:
       TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Keys, tokens and passwords committed by mistake (before .env is
+      # written below, so only the repository itself is scanned).
+      - name: Scan the repository for secrets (Trivy)
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro" "$TRIVY_IMAGE"
+          fs --no-progress --scanners secret --exit-code 1 /repo
 
       # A throwaway configuration: the documented example with fresh secrets
       # and database password, as a real deployment needs. (With
@@ -146,14 +151,13 @@ jobs:
           sed -i "s|^PAYLOAD_DB_PASSWORD=.*|PAYLOAD_DB_PASSWORD=$(openssl rand -hex 24)|" .env
           sed -i "s|^NEST_DB_PASSWORD=.*|NEST_DB_PASSWORD=$(openssl rand -hex 24)|" .env
 
-      - uses: docker/setup-buildx-action@v4
-
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       # The three images as docker-compose.prod.yml defines them, with layers
       # cached between runs (one cache per image). The migration jobs use the
       # same images.
       - name: Build images
         id: build
-        uses: docker/bake-action@v7
+        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
         with:
           source: .
           files: docker-compose.prod.yml
@@ -179,7 +183,8 @@ jobs:
           -e PAYLOAD_URL=http://payload-cms:3000
           -e NEST_URL=http://nest-api:3001
           -e FRONTEND_URL=http://frontend:3002
-          node:24-alpine node /scripts/smoke-check.mjs
+          node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
+          node /scripts/smoke-check.mjs
 
       # The demo store, with a demo administrator whose password exists
       # only for this run.
@@ -195,9 +200,8 @@ jobs:
             -e DEMO_ADMIN_PASSWORD="$admin_password" \
             payload-cms ./node_modules/.bin/payload run src/seed-demo.ts
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -214,7 +218,7 @@ jobs:
 
       - name: Upload end-to-end report
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-report
           path: |
@@ -234,7 +238,7 @@ jobs:
         run: docker compose down -v
 
       # Known vulnerabilities in the images: every HIGH and CRITICAL one is
-      # listed, and the job fails on a CRITICAL one that has a fix. Runs even
+      # listed, and the job fails on any of them that has a fix. Runs even
       # when the smoke test failed, as long as the images were built.
       - name: Scan images (Trivy)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -248,7 +252,7 @@ jobs:
           for image in watcher-store-frontend watcher-store-nest-api watcher-store-payload-cms; do
             echo "::group::$image"
             scan --severity HIGH,CRITICAL "$image"
-            scan --severity CRITICAL --ignore-unfixed --exit-code 1 --quiet \
+            scan --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --quiet \
               "$image" > /dev/null || status=1
             echo "::endgroup::"
           done
