@@ -22,11 +22,14 @@ import {
 } from './entities/order.entity';
 import { assertTransition, canTransition } from './order-state';
 import {
+  AdminOrdersResponseDto,
   PaginatedOrdersResponseDto,
   toOrderResponse,
 } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 import { ApiError } from '../common/http/api-error';
+import { env } from '../env';
+import { Payment, PaymentStatus } from '../payment/entities/payment.entity';
 
 // What a payment result did to its order.
 export type PaymentOutcome =
@@ -49,6 +52,9 @@ function isPostgresUniqueViolation(error: unknown): boolean {
 
 // Unpaid orders expired per transaction by expireStalePendingOrders.
 const EXPIRY_BATCH_SIZE = 100;
+// How much longer than the reconciliation delay an order with a payment in
+// progress is kept from expiring.
+const PAYMENT_GRACE_MINUTES = 45;
 
 interface CartLine {
   productId: string;
@@ -65,6 +71,18 @@ function sameCartContents(snapshot: CartLine[], items: CartLine[]): boolean {
       .join(',');
 
   return key(snapshot) === key(items);
+}
+
+// Product order for taking and returning stock: numeric ids, compared as
+// numbers.
+function byProduct(
+  a: { productId: string; id?: number },
+  b: { productId: string; id?: number },
+): number {
+  return (
+    a.productId.localeCompare(b.productId, 'en', { numeric: true }) ||
+    (a.id ?? 0) - (b.id ?? 0)
+  );
 }
 
 @Injectable()
@@ -333,7 +351,12 @@ export class OrdersService {
   async findPendingOrderForPayment(id: number, userId: number): Promise<Order> {
     const order = await this.findOne(id, userId);
 
-    if (order.status !== OrderStatus.PENDING) {
+    // An order already flagged for a refund (paid once, but sold out
+    // before it could be filled) must not take a second payment.
+    if (
+      order.status !== OrderStatus.PENDING ||
+      order.refundStatus !== OrderRefundStatus.NONE
+    ) {
       throw new ApiError(
         HttpStatus.CONFLICT,
         'ORDER_NOT_PAYABLE',
@@ -631,8 +654,11 @@ export class OrdersService {
   }
 
   // Expires unpaid orders older than ttlHours and releases their stock. Each
-  // batch locks its orders and skips ones another transaction holds (for
-  // example a payment in progress), so concurrent runs never collide.
+  // batch locks its orders and skips ones another transaction holds, so
+  // concurrent runs never collide. An order whose customer started paying
+  // recently is left alone until the payment settles (the callback, or the
+  // reconciliation job a little later), so it is not cancelled under a
+  // customer who is at the gateway.
   async expireStalePendingOrders(ttlHours: number): Promise<number> {
     let expired = 0;
 
@@ -644,6 +670,21 @@ export class OrdersService {
           .where('o.status = :pending', { pending: OrderStatus.PENDING })
           .andWhere('o.createdAt < now() - make_interval(hours => :ttl)', {
             ttl: ttlHours,
+          })
+          .andWhere((qb) => {
+            const paying = qb
+              .subQuery()
+              .select('1')
+              .from(Payment, 'p')
+              .where('p.orderId = o.id')
+              .andWhere('p.status = :paying')
+              .andWhere('p.createdAt > now() - make_interval(mins => :grace)')
+              .getQuery();
+            return `NOT EXISTS ${paying}`;
+          })
+          .setParameters({
+            paying: PaymentStatus.PENDING,
+            grace: env.PAYMENT_RECONCILE_AFTER_MINUTES + PAYMENT_GRACE_MINUTES,
           })
           .orderBy('o.id', 'ASC')
           .limit(EXPIRY_BATCH_SIZE)
@@ -670,14 +711,13 @@ export class OrdersService {
   }
 
   // Takes the stock for these lines in product order, so concurrent
-  // checkouts lock products in the same order and cannot deadlock.
+  // checkouts (and cancels, which use the same order) lock products in the
+  // same order and cannot deadlock.
   private async takeStock(
     manager: EntityManager,
     items: Array<{ productId: string; quantity: number }>,
   ): Promise<void> {
-    const sorted = [...items].sort((a, b) =>
-      a.productId.localeCompare(b.productId, 'en', { numeric: true }),
-    );
+    const sorted = [...items].sort(byProduct);
 
     for (const item of sorted) {
       const taken = await this.productsService.consumeStock(
@@ -715,8 +755,10 @@ export class OrdersService {
   ): Promise<void> {
     const orderItems = await manager.getRepository(OrderItem).find({
       where: { order: { id: orderId } },
-      order: { productId: 'ASC', id: 'ASC' },
     });
+    // The same order takeStock locks in. The column is text, so the
+    // database's own order would put "10" before "9".
+    orderItems.sort(byProduct);
 
     for (const item of orderItems) {
       const restored = await this.productsService.restoreStock(
@@ -735,11 +777,22 @@ export class OrdersService {
     }
   }
 
-  findOrdersForAdmin(
+  async findOrdersForAdmin(
     page: number,
     limit: number,
-  ): Promise<PaginatedOrdersResponseDto> {
-    return this.findOrdersPage({}, page, limit);
+    { refundRequired = false }: { refundRequired?: boolean } = {},
+  ): Promise<AdminOrdersResponseDto> {
+    const [list, refundsRequired] = await Promise.all([
+      this.findOrdersPage(
+        refundRequired ? { refundStatus: OrderRefundStatus.REQUIRED } : {},
+        page,
+        limit,
+      ),
+      this.orderRepository.count({
+        where: { refundStatus: OrderRefundStatus.REQUIRED },
+      }),
+    ]);
+    return { ...list, refundsRequired };
   }
 
   // A customer's own orders, newest first.
@@ -752,7 +805,7 @@ export class OrdersService {
   }
 
   private async findOrdersPage(
-    where: { userId?: number },
+    where: { userId?: number; refundStatus?: OrderRefundStatus },
     page: number,
     limit: number,
   ): Promise<PaginatedOrdersResponseDto> {

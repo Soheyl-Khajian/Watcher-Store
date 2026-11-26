@@ -2,6 +2,8 @@
 
 import type { PayloadRequest } from 'payload';
 import type { Product } from '../payload-types';
+import { MAX_PRICE } from '../collections/productValidation';
+import { requestRevalidation } from '../hooks/revalidateStorefront';
 import { collectCategoryIds, findAllCategories } from '../utils/categoryTree';
 
 const PAGE_SIZE = 100;
@@ -10,7 +12,11 @@ type AdjustmentAction = 'apply' | 'clear';
 
 type ProductPriceUpdate = Pick<
   Product,
-  'price' | 'priceAdjustmentBasePrice' | 'salePrice' | 'isOnSale'
+  | 'price'
+  | 'priceAdjustmentBasePrice'
+  | 'priceAdjustmentSalePrice'
+  | 'salePrice'
+  | 'isOnSale'
 >;
 
 async function readAction(
@@ -66,15 +72,98 @@ async function findAllProducts(
   return products;
 }
 
-// prevents the code from performing a database update when nothing actually needs to change.
+// Skips the write when nothing would change.
 function pricesMatch(product: Product, update: ProductPriceUpdate): boolean {
   return (
     product.price === update.price &&
     (product.priceAdjustmentBasePrice ?? null) ===
       (update.priceAdjustmentBasePrice ?? null) &&
+    (product.priceAdjustmentSalePrice ?? null) ===
+      (update.priceAdjustmentSalePrice ?? null) &&
     (product.salePrice ?? null) === (update.salePrice ?? null) &&
     Boolean(product.isOnSale) === Boolean(update.isOnSale)
   );
+}
+
+// Why a product was left as it is:
+// - manual_sale: it has a sale price set by hand, which the tool keeps;
+// - no_discount: the discounted price rounds to nothing, or to the price;
+// - too_expensive: the increased price is above the largest price allowed;
+// - sale_above_price: clearing an increase would put the price at or below
+//   the product's hand-set sale price.
+export type SkipReason =
+  'manual_sale' | 'no_discount' | 'too_expensive' | 'sale_above_price';
+
+type Plan = { data: ProductPriceUpdate } | { skip: SkipReason };
+
+// What the tool does to one product. The tool remembers the price it
+// started from (priceAdjustmentBasePrice) and the sale price it set
+// (priceAdjustmentSalePrice), so it undoes only its own changes: a sale
+// price an administrator set by hand is never overwritten or cleared.
+function plan(
+  product: Product,
+  action: AdjustmentAction,
+  adjustmentType: unknown,
+  adjustmentValue: unknown,
+): Plan {
+  const basePrice = product.priceAdjustmentBasePrice ?? product.price;
+  const toolSale = product.priceAdjustmentSalePrice ?? null;
+  const manualSale =
+    Boolean(product.isOnSale) &&
+    typeof product.salePrice === 'number' &&
+    product.salePrice !== toolSale;
+  // The sale fields as they are, minus the tool's own sale.
+  const withoutToolSale = manualSale
+    ? { salePrice: product.salePrice, isOnSale: true }
+    : { salePrice: null, isOnSale: false };
+
+  if (action === 'clear') {
+    if (manualSale && (product.salePrice as number) >= basePrice) {
+      return { skip: 'sale_above_price' };
+    }
+    return {
+      data: {
+        price: basePrice,
+        priceAdjustmentBasePrice: null,
+        priceAdjustmentSalePrice: null,
+        ...withoutToolSale,
+      },
+    };
+  }
+
+  const value = adjustmentValue as number;
+
+  if (adjustmentType === 'discount') {
+    if (manualSale) {
+      return { skip: 'manual_sale' };
+    }
+    const salePrice = Math.round(basePrice * (1 - value / 100));
+    if (salePrice < 1 || salePrice >= basePrice) {
+      return { skip: 'no_discount' };
+    }
+    return {
+      data: {
+        price: basePrice,
+        priceAdjustmentBasePrice: null,
+        priceAdjustmentSalePrice: salePrice,
+        salePrice,
+        isOnSale: true,
+      },
+    };
+  }
+
+  const price = Math.round(basePrice * (1 + value / 100));
+  if (price > MAX_PRICE) {
+    return { skip: 'too_expensive' };
+  }
+  return {
+    data: {
+      price,
+      priceAdjustmentBasePrice: basePrice,
+      priceAdjustmentSalePrice: null,
+      ...withoutToolSale,
+    },
+  };
 }
 
 export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
@@ -161,12 +250,14 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
       (typeof adjustmentValue !== 'number' ||
         !Number.isFinite(adjustmentValue) ||
         adjustmentValue <= 0 ||
-        adjustmentValue > 100)
+        adjustmentValue > 100 ||
+        (adjustmentType === 'discount' && adjustmentValue >= 100))
     ) {
       return Response.json(
         {
           success: false,
-          message: 'Adjustment value must be greater than 0 and at most 100.',
+          message:
+            'Adjustment value must be greater than 0 and at most 100, and a discount below 100.',
         },
         { status: 400 },
       );
@@ -180,6 +271,11 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
       id: Product['id'];
       data: ProductPriceUpdate;
     }> = [];
+    const skipped: Array<{
+      id: Product['id'];
+      name: string;
+      reason: SkipReason;
+    }> = [];
 
     let unchanged = 0;
 
@@ -192,42 +288,22 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
         throw new Error(`Product ${product.id} has an invalid price.`);
       }
 
-      const basePrice = product.priceAdjustmentBasePrice ?? product.price;
-
-      let data: ProductPriceUpdate;
-
-      if (action === 'clear') {
-        data = {
-          price: basePrice,
-          priceAdjustmentBasePrice: null,
-          salePrice: null,
-          isOnSale: false,
-        };
-      } else if (adjustmentType === 'discount') {
-        data = {
-          price: basePrice,
-          priceAdjustmentBasePrice: null,
-          salePrice: Math.round(basePrice * (1 - adjustmentValue! / 100)),
-          isOnSale: true,
-        };
-      } else {
-        data = {
-          price: Math.round(basePrice * (1 + adjustmentValue! / 100)),
-          priceAdjustmentBasePrice: basePrice,
-          salePrice: null,
-          isOnSale: false,
-        };
+      const planned = plan(product, action, adjustmentType, adjustmentValue);
+      if ('skip' in planned) {
+        skipped.push({
+          id: product.id,
+          name: product.name,
+          reason: planned.skip,
+        });
+        continue;
       }
 
-      if (pricesMatch(product, data)) {
+      if (pricesMatch(product, planned.data)) {
         unchanged += 1;
         continue;
       }
 
-      updates.push({
-        id: product.id,
-        data,
-      });
+      updates.push({ id: product.id, data: planned.data });
     }
 
     if (updates.length > 0) {
@@ -247,6 +323,9 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
             id: update.id,
             data: update.data,
             overrideAccess: false,
+            // One storefront refresh after the commit, not one per product
+            // before it (below).
+            context: { skipRevalidation: true },
             req,
           });
         }
@@ -258,6 +337,8 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
       } finally {
         delete req.transactionID;
       }
+
+      await requestRevalidation(['products'], req.payload.logger);
     }
 
     const operation =
@@ -275,6 +356,7 @@ export const applyPriceAdjustmentHandler = async (req: PayloadRequest) => {
       matchedProducts: products.length,
       updatedProducts: updates.length,
       unchangedProducts: unchanged,
+      skippedProducts: skipped,
       adjustment:
         action === 'apply'
           ? {

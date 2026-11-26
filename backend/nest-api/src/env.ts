@@ -8,6 +8,7 @@ config({ path: join(__dirname, '../../../.env') });
 
 // Values copied from .env.example. A deployment still using one would sign
 // tokens with a publicly known secret.
+const SANDBOX_HOST = 'sandbox.zarinpal.com';
 const PLACEHOLDER_SECRET = /replace[-_ ]?with|change[-_ ]?me|build[-_ ]?only/i;
 
 // Database passwords that appear in examples and default installs.
@@ -159,6 +160,10 @@ const envSchema = z
       .url()
       .default('https://sandbox.zarinpal.com')
       .transform((url) => url.replace(/\/+$/, '')),
+    // Lets a production deployment (a public demo) take payments on the
+    // Zarinpal sandbox, where no money moves. Without it, production
+    // refuses the sandbox: orders would be marked paid with nothing paid.
+    ZARINPAL_SANDBOX: z.enum(['true', 'false']).default('false'),
   })
   .superRefine((value, ctx) => {
     // An old setting that would otherwise be ignored without a word.
@@ -196,6 +201,19 @@ const envSchema = z
         path: ['PAYMENT_CALLBACK_URL'],
         message:
           'PAYMENT_CALLBACK_URL must be set in production: the public URL of GET /payment/callback.',
+      });
+    }
+
+    if (
+      value.PAYMENT_GATEWAY === 'zarinpal' &&
+      new URL(value.ZARINPAL_BASE_URL).hostname === SANDBOX_HOST &&
+      value.ZARINPAL_SANDBOX !== 'true'
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ZARINPAL_BASE_URL'],
+        message:
+          'ZARINPAL_BASE_URL is the Zarinpal sandbox, where no money moves. Use https://payment.zarinpal.com, or set ZARINPAL_SANDBOX=true for a demo.',
       });
     }
 

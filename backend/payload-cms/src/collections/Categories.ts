@@ -113,6 +113,17 @@ export const Categories: CollectionConfig = {
           type: 'number',
           min: 0,
           max: 100,
+          // A 100% discount would give products away.
+          validate: (
+            value: unknown,
+            { siblingData }: { siblingData: unknown },
+          ) =>
+            (siblingData as { adjustmentType?: string } | undefined)
+              ?.adjustmentType === 'discount' &&
+            typeof value === 'number' &&
+            value >= 100
+              ? 'درصد تخفیف باید کمتر از ۱۰۰ باشد.'
+              : true,
         },
       ],
     },

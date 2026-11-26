@@ -62,10 +62,14 @@ export async function requestRevalidation(
 }
 
 // Not awaited: the editor's save does not wait for the storefront.
+// A bulk change (the category price tool) passes
+// context.skipRevalidation and asks once, after its commit.
 export const revalidateAfterChange =
   (...tags: StorefrontCacheTag[]): CollectionAfterChangeHook =>
-  ({ doc, req }) => {
-    void requestRevalidation(tags, req.payload.logger);
+  ({ doc, req, context }) => {
+    if (!context?.skipRevalidation) {
+      void requestRevalidation(tags, req.payload.logger);
+    }
     return doc;
   };
 

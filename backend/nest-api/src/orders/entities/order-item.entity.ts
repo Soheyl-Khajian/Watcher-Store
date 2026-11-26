@@ -1,10 +1,19 @@
 // backend/nest-api/src/orders/entities/order-item.entity.ts
 
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { tomanColumnTransformer } from '../../common/money/toman';
 import { Order } from './order.entity';
 
 @Entity()
+// Postgres does not index a foreign key by itself, and every order is
+// loaded with its items.
+@Index('IDX_order_item_order', ['order'])
 export class OrderItem {
   @PrimaryGeneratedColumn()
   id!: number;

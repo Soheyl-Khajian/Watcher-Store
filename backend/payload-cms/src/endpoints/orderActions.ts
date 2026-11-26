@@ -88,6 +88,9 @@ export const orderActionsEndpoint: Endpoint = {
       action,
       result: outcome,
     });
+    if (form.get('refund') === 'required') {
+      back.set('refund', 'required');
+    }
     // 303: the browser follows with a GET, so reloading the page does not
     // submit the form again.
     return new Response(null, {

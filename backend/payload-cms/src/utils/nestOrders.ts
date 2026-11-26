@@ -37,6 +37,11 @@ const orderSchema = z.object({
   refundStatus: z.enum(['none', 'required', 'refunded']).catch('none'),
   // Set when the order was shipped with a tracking code.
   trackingCode: z.string().nullish(),
+  // Why a cancelled order was cancelled; anything unknown shows as none.
+  cancelReason: z
+    .enum(['customer_request', 'admin', 'expired', 'payment_failed'])
+    .nullish()
+    .catch(null),
   createdAt: z.string(),
   items: z.array(orderItemSchema),
   // Orders created before shipping details existed have only null columns, and
@@ -52,6 +57,8 @@ const ordersPageSchema = z.object({
   limit: z.number().int().positive(),
   totalItems: z.number().int().nonnegative(),
   totalPages: z.number().int().nonnegative(),
+  // Orders across all pages that still owe the customer a refund.
+  refundsRequired: z.number().int().nonnegative().catch(0),
 });
 
 export type NestOrder = z.infer<typeof orderSchema>;
@@ -115,9 +122,11 @@ export function parsePageParam(value: unknown): number {
 export async function fetchNestOrders(options: {
   token: string;
   page: number;
+  // Only orders that still owe the customer a refund.
+  refundsOnly?: boolean;
   logger: ErrorLogger;
 }): Promise<NestOrdersResult> {
-  const { token, page, logger } = options;
+  const { token, page, refundsOnly = false, logger } = options;
 
   if (!env.NEST_INTERNAL_URL) {
     return { ok: false, reason: 'not_configured' };
@@ -126,6 +135,9 @@ export async function fetchNestOrders(options: {
   const url = new URL('/admin/orders', env.NEST_INTERNAL_URL);
   url.searchParams.set('page', String(page));
   url.searchParams.set('limit', String(ORDERS_PAGE_SIZE));
+  if (refundsOnly) {
+    url.searchParams.set('refund', 'required');
+  }
 
   let response: Response;
 

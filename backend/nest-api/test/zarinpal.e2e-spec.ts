@@ -213,15 +213,28 @@ describe('Zarinpal payments (e2e)', () => {
       expect(Number(rows[0].stock)).toBe(10);
     });
 
-    it('cancels without asking Zarinpal when the customer cancelled (NOK)', async () => {
+    it('asks Zarinpal, then cancels, when the customer cancelled (NOK)', async () => {
       const { headers, orderId } = await placeOrder('zp-nok@example.test');
       const authority = await start(headers, orderId);
 
       await callback(authority, 'NOK').expect(302);
 
-      expect(verifyCalls(authority)).toBe(0);
+      expect(verifyCalls(authority)).toBe(1);
       expect((await paymentOf(orderId)).status).toBe('failed');
       expect(await orderStatus(orderId)).toBe('cancelled');
+    });
+
+    it('does not believe a NOK for a payment that went through', async () => {
+      const { headers, orderId } = await placeOrder(
+        'zp-forged-nok@example.test',
+      );
+      const authority = await start(headers, orderId);
+      zarinpal.pay(authority);
+
+      await callback(authority, 'NOK').expect(302);
+
+      expect((await paymentOf(orderId)).status).toBe('paid');
+      expect(await orderStatus(orderId)).toBe('processing');
     });
 
     it('refuses a payment of a different amount', async () => {
@@ -371,13 +384,59 @@ describe('Zarinpal payments (e2e)', () => {
       expect((await paymentOf(orderId)).status).toBe('paid');
     });
 
+    it('settles a payment the job marked failed when the customer comes back paid', async () => {
+      const { headers, orderId } = await placeOrder('zp-slow-otp@example.test');
+      const authority = await start(headers, orderId);
+      await backdate(orderId, 20);
+
+      // Still at the gateway when the job asks: not paid yet.
+      await reconcile();
+      expect((await paymentOf(orderId)).status).toBe('failed');
+      expect(await orderStatus(orderId)).toBe('pending');
+
+      zarinpal.pay(authority);
+      await callback(authority, 'OK').expect(302);
+
+      expect((await paymentOf(orderId)).status).toBe('paid');
+      expect(await orderStatus(orderId)).toBe('processing');
+    });
+
+    it('asks about payments it could not check after the others', async () => {
+      const { headers, orderId } = await placeOrder('zp-rotate@example.test');
+      await start(headers, orderId);
+      await backdate(orderId, 20);
+      zarinpal.mode = 'hang-up';
+
+      await reconcile();
+
+      const payment = await paymentOf(orderId);
+      expect(payment.status).toBe('pending');
+      expect(payment.lastCheckedAt).not.toBeNull();
+    });
+
+    it('does not expire an order whose customer is paying', async () => {
+      const { headers, orderId } = await placeOrder('zp-paying@example.test');
+      await start(headers, orderId);
+      await backdate(orderId, 5);
+      await t.db.query(
+        `UPDATE nest_schema."order" SET "createdAt" = now() - interval '25 hours' WHERE id = $1`,
+        [orderId],
+      );
+      const { OrdersService } = await import('../src/orders/orders.service');
+
+      await t.app.get(OrdersService).expireStalePendingOrders(24);
+
+      expect(await orderStatus(orderId)).toBe('pending');
+    });
+
     it('flags a refund when the order expired before Zarinpal confirmed', async () => {
       const { headers, orderId, productId } = await placeOrder(
         'zp-expired@example.test',
       );
       const authority = await start(headers, orderId);
       zarinpal.pay(authority);
-      await backdate(orderId, 20);
+      // Past the time an order with a payment in progress is kept.
+      await backdate(orderId, 120);
       await t.db.query(
         `UPDATE nest_schema."order" SET "createdAt" = now() - interval '25 hours' WHERE id = $1`,
         [orderId],

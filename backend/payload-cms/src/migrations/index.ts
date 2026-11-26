@@ -13,6 +13,7 @@ import * as migration_20260927_191809 from './20260927_191809';
 import * as migration_20261119_005011_payload_394_upgrade from './20261119_005011_payload_394_upgrade';
 import * as migration_20261120_161215_posts_author_optional from './20261120_161215_posts_author_optional';
 import * as migration_20261122_215142_media_storage_fields from './20261122_215142_media_storage_fields';
+import * as migration_20261126_012111_price_adjustment_sale_price from './20261126_012111_price_adjustment_sale_price';
 
 export const migrations = [
   {
@@ -89,5 +90,10 @@ export const migrations = [
     up: migration_20261122_215142_media_storage_fields.up,
     down: migration_20261122_215142_media_storage_fields.down,
     name: '20261122_215142_media_storage_fields',
+  },
+  {
+    up: migration_20261126_012111_price_adjustment_sale_price.up,
+    down: migration_20261126_012111_price_adjustment_sale_price.down,
+    name: '20261126_012111_price_adjustment_sale_price',
   },
 ];

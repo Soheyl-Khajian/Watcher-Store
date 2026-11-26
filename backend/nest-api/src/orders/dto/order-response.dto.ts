@@ -51,6 +51,12 @@ export class PaginatedOrdersResponseDto {
   totalPages!: number;
 }
 
+// The administrators' list also says how many orders, across all pages,
+// still owe the customer a refund.
+export class AdminOrdersResponseDto extends PaginatedOrdersResponseDto {
+  refundsRequired!: number;
+}
+
 // What an order looks like outside the API: an explicit allow-list, so
 // internal bookkeeping (checkoutKey, stockReserved) never leaves it.
 export function toOrderResponse(order: Order): OrderResponseDto {

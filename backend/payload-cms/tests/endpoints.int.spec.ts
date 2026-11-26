@@ -280,5 +280,87 @@ describe('Custom endpoints', () => {
       });
       expect(restored.price).toBe(1_000_000);
     });
+
+    async function adjustedCategory(
+      slug: string,
+      adjustmentType: 'discount' | 'increase',
+      adjustmentValue: number,
+    ) {
+      return t.payload.create({
+        collection: 'categories',
+        data: {
+          name: slug,
+          slug,
+          priceAdjustment: { adjustmentType, adjustmentValue },
+        },
+      });
+    }
+
+    const product = (id: number) =>
+      t.payload.findByID({ collection: 'products', id });
+
+    const run = (categoryId: number, action: 'apply' | 'clear') =>
+      t.api('POST', path(categoryId), {
+        token: admin.token,
+        body: { action },
+      });
+
+    it('leaves a hand-set sale price alone, on apply and on clear', async () => {
+      const category = await adjustedCategory('manual-sale', 'discount', 10);
+      const manual = await createProduct('manual-sale-product', 1_000_000, [
+        category.id,
+      ]);
+      await t.payload.update({
+        collection: 'products',
+        id: manual,
+        data: { isOnSale: true, salePrice: 700_000 },
+      });
+      const plain = await createProduct('plain-product', 1_000_000, [
+        category.id,
+      ]);
+
+      const applied = await run(category.id, 'apply');
+      expect(applied.status).toBe(200);
+      expect(applied.body.skippedProducts).toEqual([
+        expect.objectContaining({ id: manual, reason: 'manual_sale' }),
+      ]);
+      expect(await product(manual)).toMatchObject({ salePrice: 700_000 });
+      expect(await product(plain)).toMatchObject({ salePrice: 900_000 });
+
+      expect((await run(category.id, 'clear')).status).toBe(200);
+      expect(await product(manual)).toMatchObject({
+        salePrice: 700_000,
+        isOnSale: true,
+      });
+      expect(await product(plain)).toMatchObject({ isOnSale: false });
+    });
+
+    it('skips a product whose discount rounds to its price, and updates the rest', async () => {
+      const category = await adjustedCategory('tiny-discount', 'discount', 1);
+      const cheap = await createProduct('cheap-product', 10, [category.id]);
+      const normal = await createProduct('normal-product', 1_000_000, [
+        category.id,
+      ]);
+
+      const applied = await run(category.id, 'apply');
+
+      expect(applied.status).toBe(200);
+      expect(applied.body.skippedProducts).toEqual([
+        expect.objectContaining({ id: cheap, reason: 'no_discount' }),
+      ]);
+      expect(await product(normal)).toMatchObject({ salePrice: 990_000 });
+    });
+
+    it('refuses a 100% discount on the category', async () => {
+      const response = await t.api('POST', '/categories', {
+        token: admin.token,
+        body: {
+          name: 'Free',
+          slug: 'free',
+          priceAdjustment: { adjustmentType: 'discount', adjustmentValue: 100 },
+        },
+      });
+      expect(response.status).toBe(400);
+    });
   });
 });

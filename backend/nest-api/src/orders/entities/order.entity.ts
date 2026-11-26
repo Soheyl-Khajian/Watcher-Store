@@ -37,6 +37,12 @@ export enum OrderRefundStatus {
 @Index('UQ_order_user_checkout_key', ['userId', 'checkoutKey'], {
   unique: true,
 })
+// The order lists (newest first), a customer's own list, and the expiry
+// job's search for old unpaid orders.
+@Index('IDX_order_created_id', ['createdAt', 'id'])
+@Index('IDX_order_user_created', ['userId', 'createdAt'])
+@Index('IDX_order_status_created', ['status', 'createdAt'])
+@Index('IDX_order_refund_status', ['refundStatus'])
 export class Order {
   @PrimaryGeneratedColumn()
   id!: number;

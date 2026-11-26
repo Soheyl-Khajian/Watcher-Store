@@ -71,6 +71,53 @@ describe('fetchNestOrders', () => {
       'none',
     ]);
   });
+
+  it('passes the cancel reason through, and drops unknown ones', async () => {
+    respondWith(
+      pageOf([
+        { ...order, id: 1, cancelReason: 'expired' },
+        { ...order, id: 2, cancelReason: 'something-new' },
+        { ...order, id: 3 },
+      ]),
+    );
+
+    const result = await fetchNestOrders({ token: 't', page: 1, logger });
+
+    expect(result.ok && result.data.items.map((o) => o.cancelReason)).toEqual([
+      'expired',
+      null,
+      undefined,
+    ]);
+  });
+
+  it('reads the count of refunds owed, and asks for only those', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ ...pageOf([order]), refundsRequired: 3 }),
+          { status: 200 },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchNestOrders({
+      token: 't',
+      page: 2,
+      refundsOnly: true,
+      logger,
+    });
+
+    expect(result.ok && result.data.refundsRequired).toBe(3);
+    const [url] = fetchMock.mock.calls[0] as unknown as [URL];
+    expect(url.searchParams.get('refund')).toBe('required');
+    expect(url.searchParams.get('page')).toBe('2');
+  });
+
+  it('counts no refunds when an older Nest does not say', async () => {
+    respondWith(pageOf([order]));
+    const result = await fetchNestOrders({ token: 't', page: 1, logger });
+    expect(result.ok && result.data.refundsRequired).toBe(0);
+  });
 });
 
 // The admin Orders view's buttons (via the order-actions endpoint).

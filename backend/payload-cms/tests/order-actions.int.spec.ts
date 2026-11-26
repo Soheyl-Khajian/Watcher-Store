@@ -62,6 +62,17 @@ describe('POST /api/order-actions/:id/:action', () => {
     expect(JSON.parse(String(init.body))).toEqual({ trackingCode: 'TRK-99' });
   });
 
+  it('keeps the refunds-only list when coming back', async () => {
+    nest(200);
+    const res = await t.api('POST', '/order-actions/12/mark-refunded', {
+      token: admin.token,
+      form: form({ page: '1', refund: 'required' }),
+    });
+    expect(res.headers.get('location')).toBe(
+      '/admin/orders?page=1&order=12&action=mark-refunded&result=done&refund=required',
+    );
+  });
+
   it('reports a change the order’s status does not allow', async () => {
     nest(409);
     const res = await t.api('POST', '/order-actions/12/complete', {

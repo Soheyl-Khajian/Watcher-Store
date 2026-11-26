@@ -26,6 +26,7 @@ export enum PaymentStatus {
 @Index('UQ_payment_gateway_authority', ['gateway', 'authority'], {
   unique: true,
 })
+@Index('IDX_payment_status_created', ['status', 'createdAt'])
 export class Payment {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -79,4 +80,9 @@ export class Payment {
 
   @Column({ type: 'timestamptz', nullable: true })
   verifiedAt!: Date | null;
+
+  // When the gateway was last asked about this payment; the reconciliation
+  // job asks about the least recently checked first.
+  @Column({ type: 'timestamptz', nullable: true })
+  lastCheckedAt!: Date | null;
 }

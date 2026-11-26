@@ -139,4 +139,123 @@ describe('Admin orders (e2e)', () => {
       .send({ trackingCode: 'not valid!' })
       .expect(400);
   });
+
+  describe('refunds', () => {
+    const stockOf = async (productId: string | number) =>
+      Number(
+        (
+          await t.db.query(
+            'SELECT stock FROM payload_schema.products WHERE id = $1',
+            [productId],
+          )
+        ).rows[0].stock,
+      );
+
+    const productOf = async (orderId: number) =>
+      (
+        await t.db.query(
+          'SELECT "productId" FROM nest_schema.order_item WHERE "orderId" = $1',
+          [orderId],
+        )
+      ).rows[0].productId as string;
+
+    it('cancelling a paid order puts the stock back and flags a refund', async () => {
+      const orderId = await placeOrder(true);
+      const productId = await productOf(orderId);
+      expect(await stockOf(productId)).toBe(9);
+
+      const cancelled = await t
+        .http()
+        .post(`/admin/orders/${orderId}/cancel`)
+        .set(asAdmin())
+        .expect(200);
+
+      expect(cancelled.body).toMatchObject({
+        status: 'cancelled',
+        cancelReason: 'admin',
+        refundStatus: 'required',
+      });
+      expect(await stockOf(productId)).toBe(10);
+    });
+
+    it('counts and filters the orders that owe a refund', async () => {
+      const owed = await placeOrder(true);
+      await t
+        .http()
+        .post(`/admin/orders/${owed}/cancel`)
+        .set(asAdmin())
+        .expect(200);
+      await placeOrder(true);
+
+      const all = await t
+        .http()
+        .get('/admin/orders')
+        .set(asAdmin())
+        .expect(200);
+      const onlyRefunds = await t
+        .http()
+        .get('/admin/orders')
+        .query({ refund: 'required', limit: 100 })
+        .set(asAdmin())
+        .expect(200);
+
+      expect(all.body.refundsRequired).toBeGreaterThanOrEqual(1);
+      expect(onlyRefunds.body.totalItems).toBe(all.body.refundsRequired);
+      expect(
+        onlyRefunds.body.items.every(
+          (order: { refundStatus: string }) =>
+            order.refundStatus === 'required',
+        ),
+      ).toBe(true);
+      expect(
+        onlyRefunds.body.items.map((order: { id: number }) => order.id),
+      ).toContain(owed);
+
+      await t
+        .http()
+        .get('/admin/orders')
+        .query({ refund: 'yes' })
+        .set(asAdmin())
+        .expect(400);
+    });
+
+    it('records a refund once', async () => {
+      const orderId = await placeOrder(true);
+      await t
+        .http()
+        .post(`/admin/orders/${orderId}/cancel`)
+        .set(asAdmin())
+        .expect(200);
+
+      const refunded = await t
+        .http()
+        .post(`/admin/orders/${orderId}/mark-refunded`)
+        .set(asAdmin())
+        .expect(200);
+      expect(refunded.body.refundStatus).toBe('refunded');
+
+      const again = await t
+        .http()
+        .post(`/admin/orders/${orderId}/mark-refunded`)
+        .set(asAdmin())
+        .expect(409);
+      expect(again.body.code).toBe('ORDER_NO_REFUND_NEEDED');
+    });
+
+    it('does not take a payment for an order that owes a refund', async () => {
+      const orderId = await placeOrder(false);
+      await t.db.query(
+        `UPDATE nest_schema."order" SET "refundStatus" = 'required' WHERE id = $1`,
+        [orderId],
+      );
+
+      const response = await t
+        .http()
+        .post('/payment/initiate')
+        .set(customerHeaders)
+        .send({ orderId })
+        .expect(409);
+      expect(response.body.code).toBe('ORDER_NOT_PAYABLE');
+    });
+  });
 });

@@ -307,6 +307,7 @@ file hands each service only the settings it uses.
 | `JWT_SECRET` / `JWT_EXPIRES_IN`                               | Nest            | Signs storefront sessions, and their lifetime                         |
 | `PAYMENT_GATEWAY`                                             | Nest            | `none`, `zarinpal` or `mock` (development only)                       |
 | `ZARINPAL_MERCHANT_ID` / `ZARINPAL_BASE_URL`                  | Nest            | Zarinpal account and endpoint (sandbox by default)                    |
+| `ZARINPAL_SANDBOX`                                            | Nest            | `true` lets production use the sandbox (a demo); otherwise refused    |
 | `PAYMENT_CALLBACK_URL`                                        | Nest            | Where the gateway sends customers back (the storefront relays it)     |
 | `PAYMENT_RECONCILE_AFTER_MINUTES` / `PENDING_ORDER_TTL_HOURS` | Nest            | When pending payments are re-checked and unpaid orders cancelled      |
 | `RATE_LIMIT_*` / `TRUST_PROXY`                                | Nest            | Per-client limits, and which proxies may report the client address    |
