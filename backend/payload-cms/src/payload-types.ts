@@ -177,6 +177,9 @@ export interface Category {
    * نام آیکون را از سایت lucide.dev کپی کنید. مثال: Camera
    */
   icon?: string | null;
+  /**
+   * نشانی صفحه. اگر خالی بماند از روی عنوان ساخته می‌شود؛ فاصله‌ها و حروف بزرگ هنگام ذخیره یکدست می‌شوند.
+   */
   slug: string;
   parent?: (number | null) | Category;
   image?: (number | null) | Media;
@@ -263,6 +266,9 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  /**
+   * نشانی صفحه. اگر خالی بماند از روی عنوان ساخته می‌شود؛ فاصله‌ها و حروف بزرگ هنگام ذخیره یکدست می‌شوند.
+   */
   slug: string;
   status?: ('published' | 'draft') | null;
   price: number;
@@ -296,6 +302,9 @@ export interface Post {
       }[]
     | null;
   status?: ('draft' | 'published') | null;
+  /**
+   * اگر خالی بماند، هنگام انتشار تاریخ همان روز ثبت می‌شود.
+   */
   publishedDate?: string | null;
   /**
    * اگر حساب نویسنده حذف شود، نام او روی نوشته باقی می‌ماند و این فیلد خالی می‌شود.
@@ -306,6 +315,9 @@ export interface Post {
    */
   authorName?: string | null;
   thumbnail: number | Media;
+  /**
+   * نشانی صفحه. اگر خالی بماند از روی عنوان ساخته می‌شود؛ فاصله‌ها و حروف بزرگ هنگام ذخیره یکدست می‌شوند.
+   */
   slug: string;
   updatedAt: string;
   createdAt: string;
@@ -323,9 +335,9 @@ export interface Page {
       }[]
     | null;
   /**
-   * این فیلد به صورت خودکار از روی عنوان ساخته می‌شود، اما می‌توانید آن را ویرایش کنید.
+   * نشانی صفحه. اگر خالی بماند از روی عنوان ساخته می‌شود؛ فاصله‌ها و حروف بزرگ هنگام ذخیره یکدست می‌شوند.
    */
-  slug?: string | null;
+  slug: string;
   status: 'draft' | 'published';
   updatedAt: string;
   createdAt: string;

@@ -1,11 +1,46 @@
-// مسیر فایل: backend/payload-cms/src/collections/Categories.ts
+// backend/payload-cms/src/collections/Categories.ts
 
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, PayloadRequest } from 'payload';
+import { slugField } from '../fields/slug';
 import { applyPriceAdjustmentHandler } from '../endpoints/applyPriceAdjustmentHandler';
 import {
   revalidateAfterChange,
   revalidateAfterDelete,
 } from '../hooks/revalidateStorefront';
+
+// The deepest category tree followed when checking a parent.
+const MAX_TREE_DEPTH = 50;
+
+// A category may not sit under itself or under one of its own
+// subcategories: the tree would become a loop, and menus and breadcrumbs
+// that walk up it would never end.
+async function validateParent(
+  value: unknown,
+  { id, req }: { id?: number | string; req: PayloadRequest },
+): Promise<true | string> {
+  if (value === null || value === undefined || value === '' || !id) {
+    return true;
+  }
+  let current: unknown =
+    typeof value === 'object' ? (value as { id?: unknown }).id : value;
+  for (let step = 0; step < MAX_TREE_DEPTH && current; step += 1) {
+    if (String(current) === String(id)) {
+      return 'دسته نمی‌تواند زیرمجموعه خودش یا زیرمجموعه‌های خودش باشد.';
+    }
+    const parent = await req.payload.findByID({
+      collection: 'categories',
+      id: current as number | string,
+      depth: 0,
+      disableErrors: true,
+      req,
+    });
+    current =
+      parent && typeof parent.parent === 'object' && parent.parent !== null
+        ? parent.parent.id
+        : parent?.parent;
+  }
+  return true;
+}
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -16,14 +51,10 @@ export const Categories: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    // این ساختار صحیح بر اساس مستندات است
     components: {
       edit: {
-        // این جایگاه، کامپوننت ما را قبل از دکمه‌های "ذخیره" و "انتشار" قرار می‌دهد
-        beforeDocumentControls: [
-          // مسیر فایل کامپوننت از ریشه پوشه src در نظر گرفته می‌شود
-          '/components/ApplyPriceChangeButton',
-        ],
+        // The category price tool, before the save button (path from src/).
+        beforeDocumentControls: ['/components/ApplyPriceChangeButton'],
       },
     },
   },
@@ -31,7 +62,7 @@ export const Categories: CollectionConfig = {
     {
       path: '/:id/apply-price-adjustment',
       method: 'post',
-      handler: applyPriceAdjustmentHandler, // <-- ارجاع به تابع وارد شده
+      handler: applyPriceAdjustmentHandler,
     },
   ],
   access: {
@@ -55,22 +86,14 @@ export const Categories: CollectionConfig = {
         description: 'نام آیکون را از سایت lucide.dev کپی کنید. مثال: Camera',
       },
     },
-    {
-      name: 'slug',
-      label: 'اسلاگ (برای URL)',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-      },
-      required: true,
-      unique: true,
-    },
+    slugField('name'),
     {
       name: 'parent',
       label: 'دسته مادر (والد)',
       type: 'relationship',
       relationTo: 'categories',
       hasMany: false,
+      validate: validateParent,
       filterOptions: ({ id }) => {
         if (id) {
           return {

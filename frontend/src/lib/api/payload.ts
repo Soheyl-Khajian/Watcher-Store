@@ -310,11 +310,12 @@ export async function fetchSitemapEntries(): Promise<{
     publishedOnly: boolean,
     cache: CachePolicy,
   ): Promise<SitemapEntry[]> => {
-    // Every document, a page of 500 at a time (up to 50 000).
+    // Every document, 200 at a time (the most the CMS gives out in one
+    // answer), up to 50 000.
     const docs: SitemapEntry[] = [];
-    for (let page = 1; page <= 100; page += 1) {
+    for (let page = 1; page <= 250; page += 1) {
       const params = new URLSearchParams({
-        limit: '500',
+        limit: '200',
         page: String(page),
         depth: '0',
         'select[slug]': 'true',

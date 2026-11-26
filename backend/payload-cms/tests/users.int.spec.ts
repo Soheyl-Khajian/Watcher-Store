@@ -3,6 +3,7 @@ import {
   createTestPayload,
   TEST_PASSWORD,
   type TestPayload,
+  REGISTRATION_HEADERS,
 } from './helpers/test-payload';
 
 describe('Users', () => {
@@ -16,8 +17,57 @@ describe('Users', () => {
     await t?.close();
   });
 
-  it('lets anyone register as a customer', async () => {
+  it('refuses a sign-up sent straight to the CMS', async () => {
+    const attempts: Record<string, string>[] = [
+      {},
+      { 'X-Registration-Secret': 'wrong' },
+    ];
+    for (const headers of attempts) {
+      const response = await t.api('POST', '/users', {
+        headers,
+        body: { email: 'direct@example.test', password: TEST_PASSWORD },
+      });
+      expect(response.status).toBe(403);
+    }
+    const exists = await t.payload.find({
+      collection: 'users',
+      where: { email: { equals: 'direct@example.test' } },
+    });
+    expect(exists.totalDocs).toBe(0);
+  });
+
+  it('lets administrators create accounts', async () => {
+    const admin = await t.createUser('account-maker@example.test', 'admin');
     const response = await t.api('POST', '/users', {
+      token: admin.token,
+      body: { email: 'made-by-admin@example.test', password: TEST_PASSWORD },
+    });
+    expect(response.status).toBe(201);
+  });
+
+  it('has password reset turned off', async () => {
+    await t.createUser('forgetful@example.test');
+    const forgot = await t.api('POST', '/users/forgot-password', {
+      body: { email: 'forgetful@example.test' },
+    });
+    expect(forgot.status).toBe(403);
+
+    const reset = await t.api('POST', '/users/reset-password', {
+      body: { token: 'anything', password: 'new-password-123' },
+    });
+    expect(reset.status).toBe(403);
+
+    const stored = await t.payload.find({
+      collection: 'users',
+      where: { email: { equals: 'forgetful@example.test' } },
+      showHiddenFields: true,
+    });
+    expect(stored.docs[0]?.resetPasswordToken ?? null).toBeNull();
+  });
+
+  it('lets the storefront register customers', async () => {
+    const response = await t.api('POST', '/users', {
+      headers: REGISTRATION_HEADERS,
       body: {
         email: 'new-customer@example.test',
         password: TEST_PASSWORD,
@@ -36,6 +86,7 @@ describe('Users', () => {
 
   it('ignores a role chosen at registration', async () => {
     const response = await t.api('POST', '/users', {
+      headers: REGISTRATION_HEADERS,
       body: {
         email: 'wannabe-admin@example.test',
         password: TEST_PASSWORD,

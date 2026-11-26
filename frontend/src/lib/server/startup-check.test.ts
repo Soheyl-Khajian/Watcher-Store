@@ -4,6 +4,7 @@ import { startupProblems } from './startup-check';
 const fine = {
   NODE_ENV: 'production',
   NEXT_PUBLIC_FRONTEND_URL: 'https://shop.example',
+  REGISTRATION_SECRET: 'a'.repeat(64),
 } as NodeJS.ProcessEnv;
 
 describe('startup check', () => {
@@ -19,6 +20,12 @@ describe('startup check', () => {
     expect(problems).toEqual([
       expect.stringContaining('NEXT_PUBLIC_FRONTEND_URL'),
     ]);
+  });
+
+  it('needs the registration secret in production', () => {
+    expect(
+      startupProblems({ ...fine, REGISTRATION_SECRET: undefined }),
+    ).toEqual([expect.stringContaining('REGISTRATION_SECRET')]);
   });
 
   it('does not need it in development', () => {

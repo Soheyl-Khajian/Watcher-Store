@@ -2,12 +2,14 @@
 
 import type {
   CollectionBeforeChangeHook,
+  CollectionBeforeOperationHook,
   CollectionBeforeValidateHook,
   CollectionConfig,
   Access,
 } from 'payload';
-import { ValidationError } from 'payload';
+import { APIError, ValidationError } from 'payload';
 import { env } from '../env';
+import { canCreateUser } from '../access/registration';
 import {
   preventDeletingLastAdmin,
   preventDemotingLastAdmin,
@@ -40,8 +42,9 @@ const enforcePasswordLength: CollectionBeforeValidateHook = ({ data, req }) => {
 // The admin panel's first-user screen (POST /api/users/first-register) is
 // open only while no account exists. Whatever role is submitted there, that
 // account must be an administrator, or nobody could ever open the panel.
-// Ordinary sign-ups (POST /api/users) are unaffected, so on an empty
-// database the first shopper still becomes a customer.
+// Ordinary sign-ups (POST /api/users, access/registration.ts) are
+// unaffected, so on an empty database the first shopper still becomes a
+// customer.
 const FIRST_REGISTER_PATH = /\/users\/first-register\/?$/;
 
 const makeFirstRegisteredUserAdmin: CollectionBeforeChangeHook = ({
@@ -54,6 +57,24 @@ const makeFirstRegisteredUserAdmin: CollectionBeforeChangeHook = ({
   }
 
   return data;
+};
+
+// Password reset is turned off: the CMS sends no email, so a reset link
+// would only be written to the server log. An administrator sets a new
+// password for a customer in the admin panel instead.
+const refusePasswordReset: CollectionBeforeOperationHook = ({
+  args,
+  operation,
+}) => {
+  if (operation === 'forgotPassword' || operation === 'resetPassword') {
+    throw new APIError(
+      'بازیابی رمز عبور فعال نیست؛ از مدیر فروشگاه بخواهید رمز تازه‌ای برایتان بگذارد.',
+      403,
+      undefined,
+      true,
+    );
+  }
+  return args;
 };
 
 const isSelfOrAdmin: Access = ({ req: { user } }) => {
@@ -89,6 +110,7 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
   },
   hooks: {
+    beforeOperation: [refusePasswordReset],
     beforeValidate: [enforcePasswordLength],
     beforeChange: [makeFirstRegisteredUserAdmin, preventDemotingLastAdmin],
     beforeDelete: [preventDeletingLastAdmin],
@@ -98,7 +120,8 @@ export const Users: CollectionConfig = {
     // authenticate through the API for the storefront; this rule governs the
     // admin UI only.
     admin: ({ req: { user } }) => user?.role === 'admin',
-    create: () => true,
+    // Customers sign up through the storefront; administrators here.
+    create: canCreateUser,
     read: isSelfOrAdmin,
     update: isSelfOrAdmin,
     delete: ({ req: { user } }) => user?.role === 'admin',

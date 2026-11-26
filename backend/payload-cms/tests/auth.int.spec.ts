@@ -5,6 +5,7 @@ import {
   TEST_PASSWORD,
   TEST_SERVER_URL,
   type TestPayload,
+  REGISTRATION_HEADERS,
 } from './helpers/test-payload';
 
 describe('Authentication hardening', () => {
@@ -92,6 +93,7 @@ describe('Authentication hardening', () => {
   describe('passwords', () => {
     it('rejects a registration with a password shorter than 8 characters', async () => {
       const response = await t.api('POST', '/users', {
+        headers: REGISTRATION_HEADERS,
         body: { email: 'short@example.test', password: 'abc1234' },
       });
 
@@ -105,6 +107,7 @@ describe('Authentication hardening', () => {
 
     it('accepts a password of exactly 8 characters', async () => {
       const response = await t.api('POST', '/users', {
+        headers: REGISTRATION_HEADERS,
         body: { email: 'eight@example.test', password: 'abcd1234' },
       });
       expect(response.status).toBe(201);

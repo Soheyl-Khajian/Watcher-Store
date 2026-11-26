@@ -30,9 +30,5 @@
       ]
     }
   ],
-  "socialLinks": [
-    { "platform": "Instagram", "url": "https://instagram.com" },
-    { "platform": "Linkedin", "url": "https://linkedin.com" },
-    { "platform": "Telegram", "url": "https://telegram.org" }
-  ]
+  "socialLinks": []
 }

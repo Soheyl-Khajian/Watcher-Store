@@ -44,6 +44,7 @@ import { UploadElement as UploadElement_0b388c087d9de8c4f011dd323a130cfb } from 
 import { WithUpload as WithUpload_0b388c087d9de8c4f011dd323a130cfb } from '@payloadcms/richtext-slate/client';
 import { default as default_cf5682690eaedfd3bade4cefddd3ab16 } from '../../../components/OrdersNavLink';
 import { default as default_868e202c4d3f229544f40257555c9dbc } from '../../../views/OrdersView';
+import { default as default_efc457127fcde4156a807b69a3daac0e } from '../../../views/PasswordResetOff';
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc';
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client';
 
@@ -139,6 +140,7 @@ export const importMap = {
     WithUpload_0b388c087d9de8c4f011dd323a130cfb,
   '/components/OrdersNavLink#default': default_cf5682690eaedfd3bade4cefddd3ab16,
   '/views/OrdersView#default': default_868e202c4d3f229544f40257555c9dbc,
+  '/views/PasswordResetOff#default': default_efc457127fcde4156a807b69a3daac0e,
   '@payloadcms/next/rsc#CollectionCards':
     CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   '@payloadcms/storage-s3/client#S3ClientUploadHandler':

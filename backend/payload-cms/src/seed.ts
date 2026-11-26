@@ -2,8 +2,9 @@
 //
 // The category tree and the footer (src/seed/data/):
 //   pnpm --filter payload-cms seed
-// Existing categories are kept; the footer is replaced. For a full demo
-// store (products, posts, pages, accounts) use seed:demo instead.
+// Existing categories are kept. The footer is replaced, except in
+// production, where an existing footer is the shop's own and is kept. For
+// a full demo store (products, posts, pages, accounts) use seed:demo.
 
 import { getPayload } from 'payload';
 import configPromise from './payload.config';
@@ -17,8 +18,11 @@ try {
   console.log(
     `Categories: ${tally.created} created, ${tally.existing} already there.`,
   );
-  await seedFooter(payload, { overwrite: true });
-  console.log('Footer updated.');
+  const production = process.env.NODE_ENV === 'production';
+  await seedFooter(payload, { overwrite: !production });
+  console.log(
+    production ? 'Footer filled in if it was empty.' : 'Footer updated.',
+  );
 } catch (error) {
   console.error(error);
   exitCode = 1;

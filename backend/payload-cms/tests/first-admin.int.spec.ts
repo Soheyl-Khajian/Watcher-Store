@@ -4,6 +4,7 @@ import {
   createTestPayload,
   TEST_PASSWORD,
   type TestPayload,
+  REGISTRATION_HEADERS,
 } from './helpers/test-payload';
 
 describe('First administrator', () => {
@@ -81,6 +82,7 @@ describe('First administrator', () => {
   // administrator.
   it('keeps a storefront sign-up a customer even on an empty database', async () => {
     const response = await t.api('POST', '/users', {
+      headers: REGISTRATION_HEADERS,
       body: {
         email: 'first-shopper@example.test',
         password: 'shopper-password',

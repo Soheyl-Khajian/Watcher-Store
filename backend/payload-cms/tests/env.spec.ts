@@ -10,7 +10,15 @@ const base = {
   FRONTEND_URL: 'https://shop.example.test',
 };
 
-const production = { ...base, NODE_ENV: 'production' };
+// What production needs besides the basics.
+const production = {
+  ...base,
+  NODE_ENV: 'production',
+  PAYLOAD_PUBLIC_URL: 'https://cms.example.test/admin',
+  REGISTRATION_SECRET: randomBytes(32).toString('hex'),
+  REVALIDATE_SECRET: randomBytes(32).toString('hex'),
+  STOREFRONT_INTERNAL_URL: 'http://frontend:3002',
+};
 
 describe('Payload environment', () => {
   let parseEnv: typeof ParseEnv;
@@ -25,7 +33,14 @@ describe('Payload environment', () => {
     const env = parseEnv(production);
 
     expect(env.PAYLOAD_SCHEMA).toBe('payload_schema');
-    expect(env.PAYLOAD_PUBLIC_URL).toBe('http://localhost:3000');
+    // Reduced to its origin.
+    expect(env.PAYLOAD_PUBLIC_URL).toBe('https://cms.example.test');
+  });
+
+  it('serves on localhost when no public address is set, outside production', () => {
+    expect(
+      parseEnv({ ...base, PAYLOAD_PUBLIC_URL: '' }).PAYLOAD_PUBLIC_URL,
+    ).toBe('http://localhost:3000');
   });
 
   it('accepts postgresql:// database URLs', () => {
@@ -51,6 +66,26 @@ describe('Payload environment', () => {
   });
 
   describe('in production', () => {
+    it.each([
+      'PAYLOAD_PUBLIC_URL',
+      'REGISTRATION_SECRET',
+      'REVALIDATE_SECRET',
+      'STOREFRONT_INTERNAL_URL',
+    ])('requires %s', (key) => {
+      expect(() => parseEnv({ ...production, [key]: '' })).toThrow(
+        new RegExp(`${key} must be set in production`),
+      );
+    });
+
+    it('rejects a placeholder registration secret', () => {
+      expect(() =>
+        parseEnv({
+          ...production,
+          REGISTRATION_SECRET: 'CHANGE_ME-' + 'x'.repeat(32),
+        }),
+      ).toThrow(/REGISTRATION_SECRET/);
+    });
+
     it.each([
       'replace-with-64-char-hex-secret-from-openssl-rand-hex-32',
       'CHANGE_ME-CHANGE_ME-CHANGE_ME-CHANGE_ME',
@@ -126,6 +161,9 @@ describe('Payload environment', () => {
       expect(() =>
         parseEnv({ ...base, REVALIDATE_SECRET: 'too-short' }),
       ).toThrow(/REVALIDATE_SECRET/);
+      expect(() =>
+        parseEnv({ ...base, REGISTRATION_SECRET: 'too-short' }),
+      ).toThrow(/REGISTRATION_SECRET/);
     });
 
     it('refuses a placeholder secret in production', () => {
