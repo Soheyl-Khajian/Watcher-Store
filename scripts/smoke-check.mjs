@@ -152,32 +152,53 @@ await check('frontend: static assets are served', async () => {
   expectStatus(await request(`${FRONTEND}/images/placeholder.png`), 200);
 });
 
-await check('register in Payload, log in through Nest', async () => {
-  const email = `smoke-${randomBytes(4).toString('hex')}@example.test`;
-  const password = randomBytes(12).toString('base64url');
-
-  const registered = await request(`${PAYLOAD}/api/users`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Origin: FRONTEND },
-    body: JSON.stringify({ email, password, displayName: 'Smoke test' }),
-  });
-  expectStatus(registered, 201);
-
-  const login = await request(`${NEST}/auth/login`, {
+// Accounts are created only through the storefront, which sends the shared
+// REGISTRATION_SECRET; Payload refuses a sign-up sent straight to it.
+await check('payload: refuses a sign-up sent straight to it', async () => {
+  const refused = await request(`${PAYLOAD}/api/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email: `smoke-direct-${randomBytes(4).toString('hex')}@example.test`,
+      password: randomBytes(12).toString('base64url'),
+    }),
   });
-  expectStatus(login, 200);
-  const token = login.json?.access_token;
-  if (typeof token !== 'string') throw new Error('no access token');
-
-  const profile = await request(`${NEST}/auth/profile`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  expectStatus(profile, 200);
-  if (profile.json?.email !== email) throw new Error('wrong profile');
+  expectStatus(refused, 403);
 });
+
+await check(
+  'register through the storefront, log in through Nest',
+  async () => {
+    const email = `smoke-${randomBytes(4).toString('hex')}@example.test`;
+    const password = randomBytes(12).toString('base64url');
+
+    const registered = await request(`${FRONTEND}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: FRONTEND_ORIGIN,
+        'x-watcher-csrf': '1',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    expectStatus(registered, 201);
+
+    const login = await request(`${NEST}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    expectStatus(login, 200);
+    const token = login.json?.access_token;
+    if (typeof token !== 'string') throw new Error('no access token');
+
+    const profile = await request(`${NEST}/auth/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expectStatus(profile, 200);
+    if (profile.json?.email !== email) throw new Error('wrong profile');
+  },
+);
 
 // The storefront's own server holds the session (an httpOnly cookie) and
 // calls Nest on the customer's behalf.
