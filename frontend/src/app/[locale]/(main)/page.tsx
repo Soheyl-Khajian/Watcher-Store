@@ -1,5 +1,6 @@
 // frontend/src/app/[locale]/(main)/page.tsx
 import type { Metadata } from 'next';
+import { toCardProduct } from '@/lib/product-card';
 import { alternatesFor } from '@/lib/seo';
 import { getT } from '@/i18n/server';
 import { HeroSection } from '@/components/sections/hero-section';
@@ -45,7 +46,7 @@ export default async function HomePage() {
       {/* featured products page */}
       <ProductCarousel
         title={t('nav.specials')}
-        products={featuredProducts}
+        products={featuredProducts.map(toCardProduct)}
         viewAllLink="/products?onSale=true"
       />
 
@@ -54,7 +55,7 @@ export default async function HomePage() {
       {/* all products page */}
       <ProductCarousel
         title={t('nav.allProducts')}
-        products={allProducts}
+        products={allProducts.map(toCardProduct)}
         viewAllLink="/products"
       />
 

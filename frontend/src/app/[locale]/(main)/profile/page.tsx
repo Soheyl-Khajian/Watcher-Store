@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormatter, useT } from '@/i18n/client';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { OrderCard } from '@/components/orders/order-card';
@@ -17,11 +17,12 @@ import {
 import { fetchProductsByIds } from '@/lib/api/payload';
 import { useRequireSession } from '@/lib/hooks/use-require-session';
 import type { Order } from '@/types';
+import { parsePage } from '@/lib/utils/pagination';
 
 function OrderHistory() {
   const status = useRequireSession();
   const searchParams = useSearchParams();
-  const page = Math.max(1, Number(searchParams.get('page')) || 1);
+  const page = parsePage(searchParams.get('page') ?? undefined);
 
   const [orders, setOrders] = useState<OrdersPage | null>(null);
   const [failed, setFailed] = useState(false);
@@ -29,9 +30,14 @@ function OrderHistory() {
   const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
   const format = useFormatter();
   const t = useT();
+  // Only the latest load may show its answer: moving to another page while
+  // one is loading must not show the earlier page's orders.
+  const latestLoad = useRef(0);
 
   const load = useCallback(async () => {
+    const thisLoad = ++latestLoad.current;
     const result = await fetchOrdersPage(page);
+    if (thisLoad !== latestLoad.current) return;
     setFailed(result === null);
     setOrders(result);
     if (!result) return;
@@ -45,6 +51,7 @@ function OrderHistory() {
       ),
     ];
     const products = await fetchProductsByIds(ids);
+    if (thisLoad !== latestLoad.current) return;
     setProductNames(
       new Map((products ?? []).map((p) => [String(p.id), p.name])),
     );
@@ -54,6 +61,10 @@ function OrderHistory() {
     if (status === 'signed-in') {
       void load();
     }
+    return () => {
+      // Answers to a load started before leaving the page are ignored.
+      latestLoad.current += 1;
+    };
   }, [status, load]);
 
   const pay = async (order: Order) => {
@@ -134,7 +145,9 @@ export default function ProfilePage() {
       <h1 className="mb-8 text-3xl font-bold">{t('profile.title')}</h1>
       <Card>
         <CardHeader>
-          <CardTitle>{t('profile.history')}</CardTitle>
+          <CardTitle>
+            <h2>{t('profile.history')}</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Suspense fallback={<p role="status">{t('common.loading')}</p>}>

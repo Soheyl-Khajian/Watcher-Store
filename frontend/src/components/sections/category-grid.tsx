@@ -23,17 +23,16 @@ export async function CategoryGrid({ categories }: CategoryGridProps) {
         <h2 className="mb-8 text-center text-3xl font-bold">
           {t('home.shopByCategory')}
         </h2>
-        {/* ۱. گرید رسپانسیو: ۲ ستون در موبایل، ۴ ستون در تبلت، ۶ ستون در دسکتاپ */}
+        {/* Two columns on phones, four on tablets, six on large screens. */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
           {categories.map((category, index) => (
             <Link
-              href={`/categories/${category.slug}`}
+              href={`/categories/${encodeURIComponent(category.slug ?? '')}`}
               key={category.id}
-              // ۲. دو آیتم آخر در حالت تبلت (sm) مخفی می‌شوند
               className={cn(
                 'group hover:bg-accent hover:text-accent-foreground flex flex-col items-center gap-3 rounded-lg border p-4 text-center transition-all',
-                // Six on large screens, four below.
-                index >= 4 && 'hidden sm:flex',
+                // Tablets show one full row of four.
+                index >= 4 && 'sm:hidden lg:flex',
               )}
             >
               <div className="bg-muted group-hover:bg-primary/10 rounded-full p-3 transition-colors">

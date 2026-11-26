@@ -26,6 +26,7 @@ export function AddToCartButtonCard({
     <Button
       onClick={add}
       disabled={isAdding || !inStock}
+      variant={inStock ? 'default' : 'secondary'}
       aria-busy={isAdding}
       className="flex w-full items-center justify-center gap-2"
     >

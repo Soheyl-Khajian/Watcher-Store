@@ -57,9 +57,9 @@ export function OrderCard({
   return (
     <li className="rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">
+        <h3 className="font-semibold">
           {t('orders.title', { number: format.digits(order.id) })}
-        </h2>
+        </h3>
         <Badge variant={orderStatusVariant(order.status)}>
           {typeof status === 'string' ? status : t.ref(status)}
         </Badge>
@@ -114,7 +114,7 @@ export function OrderCard({
         </summary>
         <div className="mt-3 space-y-4 text-sm">
           <section>
-            <h3 className="mb-1 font-semibold">{t('orders.items')}</h3>
+            <h4 className="mb-1 font-semibold">{t('orders.items')}</h4>
             <ul className="space-y-1">
               {order.items.map((item) => (
                 <li key={item.id} className="flex justify-between gap-4">
@@ -135,7 +135,7 @@ export function OrderCard({
 
           {shipping?.recipientName ? (
             <section>
-              <h3 className="mb-1 font-semibold">{t('orders.shipTo')}</h3>
+              <h4 className="mb-1 font-semibold">{t('orders.shipTo')}</h4>
               <p>
                 <Bidi>{shipping.recipientName}</Bidi>
               </p>
@@ -164,7 +164,7 @@ export function OrderCard({
           ) : null}
 
           <section>
-            <h3 className="mb-1 font-semibold">{t('orders.timeline')}</h3>
+            <h4 className="mb-1 font-semibold">{t('orders.timeline')}</h4>
             <ul className="space-y-1">
               {timeline.map(([label, at]) => (
                 <li key={label} className="flex justify-between gap-4">

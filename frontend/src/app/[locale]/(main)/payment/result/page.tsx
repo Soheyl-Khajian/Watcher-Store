@@ -18,7 +18,7 @@ export default async function PaymentResultPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto py-24 text-center" role="status">
+        <div className="container mx-auto px-4 py-24 text-center" role="status">
           {t('common.loading')}
         </div>
       }

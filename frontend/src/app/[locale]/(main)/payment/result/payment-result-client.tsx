@@ -80,7 +80,7 @@ export default function PaymentResultClient() {
 
   if (outcome === 'loading') {
     return (
-      <div className="container mx-auto py-24 text-center" role="status">
+      <div className="container mx-auto px-4 py-24 text-center" role="status">
         {t('payment.checking')}
       </div>
     );

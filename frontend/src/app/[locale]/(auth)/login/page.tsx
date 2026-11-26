@@ -98,10 +98,12 @@ function LoginForm() {
 export default function LoginPage() {
   const t = useT();
   return (
-    <div className="bg-muted/40 flex min-h-screen items-center justify-center px-4">
+    <main className="bg-muted/40 flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{t('auth.loginTitle')}</CardTitle>
+          <CardTitle>
+            <h1 className="text-xl">{t('auth.loginTitle')}</h1>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Suspense fallback={null}>
@@ -109,6 +111,6 @@ export default function LoginPage() {
           </Suspense>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

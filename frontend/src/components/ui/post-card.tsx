@@ -4,7 +4,7 @@ import { getFormatter, getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
+import { FallbackImage } from '@/components/ui/fallback-image';
 import { mediaSrc } from '@/lib/utils/media';
 import {
   Card,
@@ -28,11 +28,14 @@ export async function PostCard({ post }: PostCardProps) {
   const publishedDate = (await getFormatter()).date(post.publishedDate);
 
   return (
-    <Link href={`/blog/${post.slug}`} className="group block">
+    <Link
+      href={`/blog/${encodeURIComponent(post.slug)}`}
+      className="group block"
+    >
       <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg">
         <CardHeader className="p-0">
           <div className="relative aspect-video w-full">
-            <Image
+            <FallbackImage
               src={imageUrl}
               alt={post.title}
               fill
@@ -43,9 +46,9 @@ export async function PostCard({ post }: PostCardProps) {
         </CardHeader>
 
         <CardContent className="flex-grow p-4">
-          <h3 className="text-lg leading-tight font-bold">
+          <h2 className="text-lg leading-tight font-bold">
             <Bidi>{post.title}</Bidi>
-          </h3>
+          </h2>
         </CardContent>
 
         <CardFooter className="text-muted-foreground p-4 pt-0 text-sm">

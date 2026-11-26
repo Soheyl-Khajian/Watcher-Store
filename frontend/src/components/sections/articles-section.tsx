@@ -5,7 +5,7 @@ import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
+import { FallbackImage } from '@/components/ui/fallback-image';
 import { mediaSrc } from '@/lib/utils/media';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -14,10 +14,14 @@ interface ArticlesSectionProps {
 }
 
 export async function ArticlesSection({ posts }: ArticlesSectionProps) {
+  if (posts.length === 0) {
+    return null;
+  }
   const t = await getT();
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
+        <h2 className="mb-8 text-3xl font-bold">{t('home.latestPosts')}</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {posts.map((post) => {
             const imageUrl = post.thumbnail?.url
@@ -26,14 +30,14 @@ export async function ArticlesSection({ posts }: ArticlesSectionProps) {
 
             return (
               <Link
-                href={`/blog/${post.slug}`}
+                href={`/blog/${encodeURIComponent(post.slug)}`}
                 key={post.id}
                 className="group block"
               >
                 <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg">
                   <CardHeader className="p-0">
                     <div className="relative h-52 w-full">
-                      <Image
+                      <FallbackImage
                         src={imageUrl}
                         alt={post.title}
                         fill

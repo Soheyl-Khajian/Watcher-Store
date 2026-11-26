@@ -10,7 +10,9 @@ import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import { StockNote } from '@/components/ui/stock-note';
 import { stockOf } from '@/lib/stock';
 import type { Metadata } from 'next';
+import { Breadcrumbs, type Crumb } from '@/components/ui/breadcrumbs';
 import {
+  breadcrumbJsonLd,
   jsonLdString,
   mediaImage,
   plainText,
@@ -67,15 +69,41 @@ export default async function ProductDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
+  const locale = await getLocale();
+  // Home > the product's first category > the product.
+  const category = (product.categories ?? []).find(
+    (item) => typeof item === 'object' && item !== null && item.slug,
+  );
+  const crumbs: Crumb[] = [
+    { name: t('nav.home'), path: '/' },
+    ...(typeof category === 'object' && category?.slug
+      ? [
+          {
+            name: category.name,
+            path: `/categories/${encodeURIComponent(category.slug)}`,
+          },
+        ]
+      : []),
+    {
+      name: product.name,
+      path: `/products/${encodeURIComponent(product.slug ?? slug)}`,
+    },
+  ];
+
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-12">
-      {/* Price and availability for search results. */}
+    <div className="container mx-auto max-w-6xl px-4 py-8 md:py-12">
+      {/* Price, availability and the page's place in the shop, for search
+          results. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonLdString(productJsonLd(product, await getLocale())),
+          __html: jsonLdString([
+            productJsonLd(product, locale),
+            breadcrumbJsonLd(crumbs, locale),
+          ]),
         }}
       />
+      <Breadcrumbs items={crumbs} className="mb-6" />
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
         <div>
           <ProductGallery
@@ -108,9 +136,9 @@ export default async function ProductDetailsPage({ params }: PageProps) {
 
           {product.features && product.features.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-lg font-semibold">
+              <h2 className="text-lg font-semibold">
                 {t('products.keyFeatures')}
-              </h3>
+              </h2>
               <ul className="mt-2 space-y-2">
                 {(product.features || []).map((item) => (
                   <li key={item.id} className="flex items-center gap-2">

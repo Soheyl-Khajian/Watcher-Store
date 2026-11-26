@@ -5,7 +5,7 @@ import { useT } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
 import { useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
-import { usePathname } from '@/i18n/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 import { loadSession, logoutUser } from '@/lib/api/nestjs';
 import { useCartRefresh } from '@/lib/hooks/use-cart-refresh';
@@ -21,8 +21,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function UserNav() {
-  const { user, clear } = useAuthStore();
+  const { user, status, clear } = useAuthStore();
   const pathname = usePathname();
+  const router = useRouter();
   const t = useT();
   // Back to this page after logging in or registering.
   const next =
@@ -31,15 +32,45 @@ export function UserNav() {
       : '';
 
   // The header is on every page, so it asks the server who is logged in.
+  // If the storefront server cannot answer, it asks again, waiting a
+  // little longer each time (up to a minute).
   useEffect(() => {
-    void loadSession();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const check = async (attempt: number) => {
+      await loadSession();
+      if (cancelled || useAuthStore.getState().status !== 'unknown') return;
+      const delay = Math.min(60_000, 2_000 * 2 ** attempt);
+      timer = setTimeout(() => void check(attempt + 1), delay);
+    };
+    void check(0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
   useCartRefresh();
 
   const logout = async () => {
-    await logoutUser();
-    clear();
+    try {
+      await logoutUser();
+    } finally {
+      clear();
+      // Account pages would otherwise send the customer to the login page.
+      router.push('/');
+    }
   };
+
+  // Not known yet: keep the space, so the header does not jump and a
+  // logged-in customer is not offered a login.
+  if (status === 'unknown') {
+    return (
+      <div
+        aria-hidden="true"
+        className="bg-muted h-8 w-8 animate-pulse rounded-full motion-reduce:animate-none"
+      />
+    );
+  }
 
   if (user) {
     return (
@@ -90,7 +121,9 @@ export function UserNav() {
       <Button asChild variant="ghost">
         <Link href={`/login${next}`}>{t('account.login')}</Link>
       </Button>
-      <Button asChild>
+      {/* On phones the login page links to registration; the bar has no
+          room for both. */}
+      <Button asChild className="hidden sm:inline-flex">
         <Link href={`/register${next}`}>{t('account.register')}</Link>
       </Button>
     </div>

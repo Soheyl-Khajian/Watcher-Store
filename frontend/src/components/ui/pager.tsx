@@ -1,6 +1,6 @@
 // frontend/src/components/ui/pager.tsx
 //
-// Page navigation for product and category listings. Previous/next are
+// Page navigation for listings (products, categories, blog, orders). Previous/next are
 // real links only when there is somewhere to go (never href="#"), the
 // current page is marked for screen readers, and numbers are in the page's
 // language. href is the listing's address; the pager adds ?page=.

@@ -153,11 +153,11 @@ export async function logoutUser(): Promise<void> {
 // not be checked (the storefront server is unreachable).
 export async function fetchCurrentUser(): Promise<AuthUser | null | undefined> {
   const result = await api('auth/me', {}, { redirectOnSignedOut: false });
-  if (result.status === 401) {
-    return null;
+  if (!result.ok) {
+    return result.status === 401 ? null : undefined;
   }
-  const user = (result.body as { user?: AuthUser } | null)?.user;
-  return result.ok && user ? user : undefined;
+  const user = (result.body as { user?: AuthUser | null } | null)?.user;
+  return user === null ? null : user || undefined;
 }
 
 // Loads the session once per page load (later calls share the answer).
