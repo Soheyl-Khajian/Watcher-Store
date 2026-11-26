@@ -29,6 +29,7 @@ export type ErrorCode =
   | 'OUT_OF_STOCK'
   | 'STOCK_LIMIT'
   // Cart
+  | 'CART_FULL'
   | 'CART_LOAD_FAILED'
   | 'CART_ITEM_NOT_FOUND'
   | 'CART_EMPTY'

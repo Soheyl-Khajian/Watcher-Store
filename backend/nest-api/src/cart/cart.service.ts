@@ -9,6 +9,10 @@ import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { ApiError } from '../common/http/api-error';
 
+// Different products one cart may hold. Far above a real order; it keeps a
+// single cart (and the order made from it) from growing without bound.
+export const MAX_CART_LINES = 50;
+
 @Injectable()
 export class CartService {
   constructor(
@@ -100,6 +104,17 @@ export class CartService {
       if (item) {
         item.quantity = requestedQuantity;
       } else {
+        const lines = await cartItemRepository.count({
+          where: { cart: { id: cart.id } },
+        });
+        if (lines >= MAX_CART_LINES) {
+          throw new ApiError(
+            HttpStatus.CONFLICT,
+            'CART_FULL',
+            `A cart can hold at most ${MAX_CART_LINES} different products.`,
+            { max: MAX_CART_LINES },
+          );
+        }
         item = cartItemRepository.create({
           productId,
           quantity: addToCartDto.quantity,

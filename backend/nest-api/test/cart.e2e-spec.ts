@@ -73,6 +73,33 @@ describe('Cart (e2e)', () => {
       .expect(409);
   });
 
+  it('holds at most 50 different products', async () => {
+    const full = await t.login(
+      await t.createUser({ email: 'cart-full@example.test' }),
+    );
+    for (let line = 0; line < 50; line += 1) {
+      const productId = await t.createProduct({ price: 1_000, stock: 5 });
+      await t
+        .http()
+        .post('/cart')
+        .set(auth(full))
+        .send({ productId, quantity: 1 })
+        .expect(201);
+    }
+
+    const extra = await t.createProduct({ price: 1_000, stock: 5 });
+    const refused = await t
+      .http()
+      .post('/cart')
+      .set(auth(full))
+      .send({ productId: extra, quantity: 1 })
+      .expect(409);
+    expect(refused.body).toMatchObject({
+      code: 'CART_FULL',
+      params: { max: 50 },
+    });
+  });
+
   it('treats draft and missing products as not found', async () => {
     const draftId = await t.createProduct({ price: 100_000, status: 'draft' });
 

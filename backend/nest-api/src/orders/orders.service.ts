@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   DataSource,
   EntityManager,
+  In,
+  IsNull,
   QueryFailedError,
   Repository,
 } from 'typeorm';
@@ -25,6 +27,7 @@ import {
   AdminOrdersResponseDto,
   PaginatedOrdersResponseDto,
   toOrderResponse,
+  toRefundResponse,
 } from './dto/order-response.dto';
 import { isTomanAmount } from '../common/money/toman';
 import { ApiError } from '../common/http/api-error';
@@ -628,6 +631,15 @@ export class OrdersService {
 
       if (order.status === OrderStatus.PROCESSING) {
         order.refundStatus = OrderRefundStatus.REQUIRED;
+        // The payment that paid for it goes back.
+        await manager.getRepository(Payment).update(
+          {
+            orderId: order.id,
+            status: PaymentStatus.PAID,
+            refundRequired: false,
+          },
+          { refundRequired: true },
+        );
       }
       await this.releaseStock(manager, order);
 
@@ -637,8 +649,9 @@ export class OrdersService {
     });
   }
 
+  // Every payment of the order still owed back is marked refunded with it.
   async markOrderRefunded(id: number): Promise<Order> {
-    return this.mutateOrder(id, (order) => {
+    return this.mutateOrder(id, async (order, manager) => {
       if (order.refundStatus !== OrderRefundStatus.REQUIRED) {
         throw new ApiError(
           HttpStatus.CONFLICT,
@@ -648,8 +661,12 @@ export class OrdersService {
       }
 
       order.refundStatus = OrderRefundStatus.REFUNDED;
-
-      return Promise.resolve();
+      await manager
+        .getRepository(Payment)
+        .update(
+          { orderId: order.id, refundRequired: true, refundedAt: IsNull() },
+          { refundedAt: new Date() },
+        );
     });
   }
 
@@ -792,7 +809,23 @@ export class OrdersService {
         where: { refundStatus: OrderRefundStatus.REQUIRED },
       }),
     ]);
-    return { ...list, refundsRequired };
+
+    // The payments each order on this page owes (or owed) back, so the
+    // administrator knows which ones to refund in the gateway's panel.
+    const orderIds = list.items.map((order) => order.id);
+    const flagged = orderIds.length
+      ? await this.dataSource.getRepository(Payment).find({
+          where: { orderId: In(orderIds), refundRequired: true },
+          order: { id: 'ASC' },
+        })
+      : [];
+    const items = list.items.map((order) => ({
+      ...order,
+      refunds: flagged
+        .filter((payment) => payment.orderId === order.id)
+        .map(toRefundResponse),
+    }));
+    return { ...list, items, refundsRequired };
   }
 
   // A customer's own orders, newest first.

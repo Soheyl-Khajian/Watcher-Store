@@ -219,6 +219,42 @@ describe('Admin orders (e2e)', () => {
         .expect(400);
     });
 
+    it('lists the payment to send back, and when it was refunded', async () => {
+      const orderId = await placeOrder(true);
+      await t
+        .http()
+        .post(`/admin/orders/${orderId}/cancel`)
+        .set(asAdmin())
+        .expect(200);
+
+      type Listed = {
+        id: number;
+        refunds: { amount: number; refundedAt: string | null }[];
+      };
+      const listed = async () =>
+        (
+          (
+            await t
+              .http()
+              .get('/admin/orders')
+              .query({ limit: 100 })
+              .set(asAdmin())
+              .expect(200)
+          ).body.items as Listed[]
+        ).find((order) => order.id === orderId);
+
+      expect((await listed())?.refunds).toEqual([
+        expect.objectContaining({ amount: 100_000, refundedAt: null }),
+      ]);
+
+      await t
+        .http()
+        .post(`/admin/orders/${orderId}/mark-refunded`)
+        .set(asAdmin())
+        .expect(200);
+      expect((await listed())?.refunds[0].refundedAt).not.toBeNull();
+    });
+
     it('records a refund once', async () => {
       const orderId = await placeOrder(true);
       await t

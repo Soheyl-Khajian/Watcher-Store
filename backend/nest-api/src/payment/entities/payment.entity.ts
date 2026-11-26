@@ -1,8 +1,10 @@
 // backend/nest-api/src/payment/entities/payment.entity.ts
 //
 // One attempt to pay an order through a gateway. An order may have several
-// (the customer cancels at the gateway and tries again); at most one ends
-// up paid.
+// (the customer cancels at the gateway and tries again). Normally at most
+// one ends up paid; one that arrives when the order cannot take it (paid
+// twice, cancelled meanwhile) is flagged for a refund, and so is the paid
+// one of an order an administrator cancels.
 
 import {
   Column,
@@ -27,6 +29,9 @@ export enum PaymentStatus {
   unique: true,
 })
 @Index('IDX_payment_status_created', ['status', 'createdAt'])
+@Index('IDX_payment_refund_due', ['orderId'], {
+  where: '"refundRequired" AND "refundedAt" IS NULL',
+})
 export class Payment {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -85,4 +90,12 @@ export class Payment {
   // job asks about the least recently checked first.
   @Column({ type: 'timestamptz', nullable: true })
   lastCheckedAt!: Date | null;
+
+  // The money must go back to the customer (by hand, in the gateway's
+  // panel), until an administrator marks it refunded.
+  @Column({ type: 'boolean', default: false })
+  refundRequired!: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  refundedAt!: Date | null;
 }

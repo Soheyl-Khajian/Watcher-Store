@@ -12,7 +12,14 @@ import type { AuthenticatedUser, JwtPayload, UserRole } from './auth.types';
 interface PayloadUserRow {
   id: number;
   email: string;
-  role: UserRole;
+  role: unknown;
+}
+
+// Only administrators get administrator rights here. Any other role,
+// including ones Payload may add later (writers, editors), shops as a
+// customer instead of being locked out.
+export function storefrontRole(role: unknown): UserRole {
+  return role === 'admin' ? 'admin' : 'customer';
 }
 
 @Injectable()
@@ -53,18 +60,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = users[0];
 
-    if (
-      !user ||
-      typeof user.email !== 'string' ||
-      (user.role !== 'admin' && user.role !== 'customer')
-    ) {
+    if (!user || typeof user.email !== 'string') {
       throw new UnauthorizedException();
     }
 
     return {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: storefrontRole(user.role),
     };
   }
 }

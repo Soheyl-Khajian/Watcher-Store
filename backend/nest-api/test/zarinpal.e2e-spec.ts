@@ -379,8 +379,25 @@ describe('Zarinpal payments (e2e)', () => {
       await expect(reconcile()).resolves.toBeGreaterThanOrEqual(0);
       expect((await paymentOf(orderId)).status).toBe('pending');
 
+      // The next run, a minute later (a payment just checked is left alone
+      // for half a minute).
       zarinpal.mode = 'normal';
-      await reconcile();
+      await paymentService.reconcilePendingPayments(
+        new Date(Date.now() + 60_000),
+      );
+      expect((await paymentOf(orderId)).status).toBe('paid');
+    });
+
+    it('asks about each payment once when two runs overlap', async () => {
+      const { headers, orderId } = await placeOrder('zp-replicas@example.test');
+      const authority = await start(headers, orderId);
+      zarinpal.pay(authority);
+      await backdate(orderId, 20);
+
+      // Two API instances running the job at the same moment.
+      await Promise.all([reconcile(), reconcile()]);
+
+      expect(verifyCalls(authority)).toBe(1);
       expect((await paymentOf(orderId)).status).toBe('paid');
     });
 
@@ -446,7 +463,10 @@ describe('Zarinpal payments (e2e)', () => {
 
       await reconcile();
 
-      expect((await paymentOf(orderId)).status).toBe('paid');
+      expect(await paymentOf(orderId)).toMatchObject({
+        status: 'paid',
+        refundRequired: true,
+      });
       const { rows } = await t.db.query(
         'SELECT status, "refundStatus" FROM nest_schema."order" WHERE id = $1',
         [orderId],

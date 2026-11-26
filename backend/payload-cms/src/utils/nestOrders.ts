@@ -27,6 +27,18 @@ const shippingSchema = z.object({
   deliveryNotes: z.string().nullable(),
 });
 
+// A payment the shop owes (or owed) back: which one to refund in the
+// gateway's panel.
+const refundSchema = z.object({
+  paymentId: z.number().int(),
+  amount: z.number().nonnegative(),
+  gateway: z.string(),
+  refId: z.string().nullish(),
+  cardPan: z.string().nullish(),
+  paidAt: z.string().nullish(),
+  refundedAt: z.string().nullish(),
+});
+
 const orderSchema = z.object({
   id: z.number().int(),
   userId: z.number().int(),
@@ -35,6 +47,8 @@ const orderSchema = z.object({
   // Money owed back to the customer: the order was cancelled after payment,
   // or received a payment it could not take. An older Nest may omit it.
   refundStatus: z.enum(['none', 'required', 'refunded']).catch('none'),
+  // The payments behind it. An older Nest omits them.
+  refunds: z.array(refundSchema).catch([]).default([]),
   // Set when the order was shipped with a tracking code.
   trackingCode: z.string().nullish(),
   // Why a cancelled order was cancelled; anything unknown shows as none.

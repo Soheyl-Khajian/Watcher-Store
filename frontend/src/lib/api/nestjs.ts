@@ -204,16 +204,18 @@ export async function fetchCart(): Promise<Cart | null> {
   return cartOf(await api('nest/cart'));
 }
 
+// The updated cart, or why the product could not be added (out of stock,
+// the stock limit, a full cart).
 export async function addToCart(
   productId: string,
   quantity: number,
-): Promise<Cart | null> {
-  return cartOf(
-    await api('nest/cart', {
-      method: 'POST',
-      body: { productId: String(productId), quantity: Number(quantity) },
-    }),
-  );
+): Promise<{ ok: true; cart: Cart } | { ok: false; error: ApiFailure }> {
+  const result = await api('nest/cart', {
+    method: 'POST',
+    body: { productId: String(productId), quantity: Number(quantity) },
+  });
+  const cart = cartOf(result);
+  return cart ? { ok: true, cart } : { ok: false, error: failureOf(result) };
 }
 
 // Sets how many of a product are in the cart. The server checks stock and
