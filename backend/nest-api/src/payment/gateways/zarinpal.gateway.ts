@@ -129,12 +129,10 @@ export class ZarinpalGateway implements PaymentGateway {
     };
   }
 
+  // Asks Zarinpal even when the customer came back with Status=NOK: the
+  // query string is the browser's word, and a forged NOK must not fail a
+  // payment that went through.
   async verify(input: VerifyPaymentInput): Promise<VerifyPaymentResult> {
-    // The customer cancelled or the payment failed at the gateway.
-    if (input.callbackStatus === 'NOK') {
-      return { paid: false, raw: { Status: 'NOK' } };
-    }
-
     const body = await this.post('/pg/v4/payment/verify.json', {
       merchant_id: this.config.merchantId,
       amount: input.amountRial,

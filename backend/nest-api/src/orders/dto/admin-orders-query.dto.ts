@@ -1,7 +1,7 @@
 // backend/nest-api/src/orders/dto/admin-orders-query.dto.ts
 
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export const ADMIN_ORDERS_DEFAULT_LIMIT = 25;
 export const ADMIN_ORDERS_MAX_LIMIT = 100;
@@ -21,4 +21,9 @@ export class AdminOrdersQueryDto {
   @Min(1)
   @Max(ADMIN_ORDERS_MAX_LIMIT)
   limit = ADMIN_ORDERS_DEFAULT_LIMIT;
+
+  // Only orders whose money must go back to the customer.
+  @IsOptional()
+  @IsIn(['required'])
+  refund?: 'required';
 }

@@ -106,13 +106,23 @@ export class PaymentService {
       return null;
     }
 
+    // The reconciliation job marked this payment failed while the customer
+    // was still at the gateway (a slow bank OTP, say), and they have now
+    // finished paying: ask again rather than lose the payment.
+    const recheck =
+      payment.status === PaymentStatus.FAILED && callbackStatus === 'OK';
+
     // A replayed or repeated callback: already settled.
-    if (payment.status !== PaymentStatus.PENDING) {
+    if (payment.status !== PaymentStatus.PENDING && !recheck) {
       return payment.orderId;
     }
 
     try {
-      await this.settle(payment, callbackStatus, { cancelOnFailure: true });
+      await this.settle(payment, callbackStatus, {
+        // A late recheck that still finds no payment changes nothing.
+        cancelOnFailure: !recheck,
+        recheck,
+      });
     } catch (error) {
       if (error instanceof HttpException) {
         this.logger.warn(
@@ -134,6 +144,9 @@ export class PaymentService {
   // happened to each. Paid ones are settled as usual; unpaid ones are marked
   // failed, and their order is left for the customer to retry or for the
   // expiry job. Returns how many were settled.
+  //
+  // The least recently checked come first, so payments the gateway cannot
+  // answer for move to the back instead of blocking newer ones.
   async reconcilePendingPayments(now = new Date()): Promise<number> {
     const gateway = this.gateway;
     if (!gateway) {
@@ -151,7 +164,7 @@ export class PaymentService {
           ),
         ),
       },
-      order: { id: 'ASC' },
+      order: { lastCheckedAt: { direction: 'ASC', nulls: 'FIRST' }, id: 'ASC' },
       take: RECONCILE_BATCH_SIZE,
     });
 
@@ -161,7 +174,10 @@ export class PaymentService {
         await this.settle(payment, null, { cancelOnFailure: false });
         settled += 1;
       } catch (error) {
-        // Still pending; the next run asks again.
+        // Still pending; the next run asks again, after the others.
+        await this.paymentRepository.update(payment.id, {
+          lastCheckedAt: now,
+        });
         this.logger.warn(
           `Could not reconcile payment ${payment.id}: ${
             error instanceof Error ? error.message : String(error)
@@ -174,11 +190,12 @@ export class PaymentService {
 
   // Asks the gateway whether the money arrived, then records the result on
   // the payment and its order together. Settling the same payment twice
-  // changes nothing the second time.
+  // changes nothing the second time. A recheck reopens a failed payment,
+  // but only when the gateway now says it was paid.
   private async settle(
     payment: Payment,
     callbackStatus: 'OK' | 'NOK' | null,
-    options: { cancelOnFailure: boolean },
+    options: { cancelOnFailure: boolean; recheck?: boolean },
   ): Promise<PaymentStatus> {
     const gateway = this.requireGateway();
 
@@ -196,10 +213,18 @@ export class PaymentService {
         lock: { mode: 'pessimistic_write' },
       });
 
-      if (!locked || locked.status !== PaymentStatus.PENDING) {
-        return locked?.status ?? PaymentStatus.FAILED;
+      if (!locked) {
+        return PaymentStatus.FAILED;
+      }
+      const reopened =
+        options.recheck === true &&
+        locked.status === PaymentStatus.FAILED &&
+        result.paid;
+      if (locked.status !== PaymentStatus.PENDING && !reopened) {
+        return locked.status;
       }
 
+      locked.lastCheckedAt = new Date();
       locked.gatewayResponse = result.raw;
       locked.verifiedAt = new Date();
 
@@ -215,7 +240,7 @@ export class PaymentService {
         manager,
         locked.orderId,
         result.paid,
-        options,
+        { cancelOnFailure: options.cancelOnFailure },
       );
       await paymentRepository.save(locked);
 

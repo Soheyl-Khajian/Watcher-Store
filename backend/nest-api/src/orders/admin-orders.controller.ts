@@ -17,8 +17,8 @@ import { PayloadAdminGuard } from '../auth/guards/payload-admin.guard';
 import { AdminOrdersQueryDto } from './dto/admin-orders-query.dto';
 import { OrderIdParamDto } from './dto/order-id-param.dto';
 import {
+  AdminOrdersResponseDto,
   OrderResponseDto,
-  PaginatedOrdersResponseDto,
   toOrderResponse,
 } from './dto/order-response.dto';
 import { ShipOrderDto } from './dto/ship-order.dto';
@@ -37,8 +37,10 @@ export class AdminOrdersController {
   @Get()
   getOrders(
     @Query() query: AdminOrdersQueryDto,
-  ): Promise<PaginatedOrdersResponseDto> {
-    return this.ordersService.findOrdersForAdmin(query.page, query.limit);
+  ): Promise<AdminOrdersResponseDto> {
+    return this.ordersService.findOrdersForAdmin(query.page, query.limit, {
+      refundRequired: query.refund === 'required',
+    });
   }
 
   @Post(':id/ship')

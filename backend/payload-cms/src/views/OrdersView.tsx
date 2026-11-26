@@ -48,10 +48,19 @@ const ACTION_DONE: Record<OrderAction, string> = {
   'mark-refunded': 'به‌عنوان «بازپرداخت شد» علامت خورد.',
 };
 
+const CANCEL_REASON_LABELS: Record<
+  NonNullable<NestOrder['cancelReason']>,
+  string
+> = {
+  customer_request: 'لغو توسط مشتری',
+  admin: 'لغو توسط مدیر',
+  expired: 'منقضی شد (پرداخت نشد)',
+  payment_failed: 'پرداخت ناموفق',
+};
+
 const ACTION_FAILED: Record<Exclude<OrderActionOutcome, 'done'>, string> = {
   conflict: 'این کار در وضعیت فعلی سفارش ممکن نیست؛ صفحه را تازه کنید.',
-  invalid:
-    'کد رهگیری نامعتبر است: فقط حروف انگلیسی، رقم، نقطه، خط تیره و زیرخط.',
+  invalid: 'درخواست نامعتبر بود.',
   not_found: 'سفارش پیدا نشد.',
   forbidden: 'نشست شما معتبر نیست یا اجازه این کار را ندارید.',
   unavailable: 'سرویس سفارش‌ها در دسترس نیست. کمی بعد دوباره تلاش کنید.',
@@ -103,6 +112,10 @@ function ActionNotice({
     return null;
   }
   const done = result === 'done';
+  const failure =
+    result === 'invalid' && action === 'ship'
+      ? 'کد رهگیری نامعتبر است: فقط حروف انگلیسی، رقم، نقطه، خط تیره و زیرخط.'
+      : ACTION_FAILED[result as Exclude<OrderActionOutcome, 'done'>];
   return (
     <div
       role="status"
@@ -114,9 +127,7 @@ function ActionNotice({
       }}
     >
       سفارش {priceFormatter.format(order)}{' '}
-      {done
-        ? ACTION_DONE[action]
-        : ACTION_FAILED[result as Exclude<OrderActionOutcome, 'done'>]}
+      {done ? ACTION_DONE[action] : failure}
     </div>
   );
 }
@@ -138,10 +149,12 @@ function OrderActions({
   order,
   apiRoute,
   page,
+  refundsOnly,
 }: {
   order: NestOrder;
   apiRoute: string;
   page: number;
+  refundsOnly: boolean;
 }) {
   const formFor = (action: OrderAction, children: React.ReactNode) => (
     <form
@@ -150,19 +163,37 @@ function OrderActions({
       style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
     >
       <input type="hidden" name="page" value={page} />
+      {refundsOnly && <input type="hidden" name="refund" value="required" />}
       {children}
     </form>
   );
 
-  // Cancelling cannot be undone: it sits behind a second click.
-  const cancel = formFor(
+  // Actions that cannot be undone sit behind a second click, with what
+  // they will do spelled out.
+  const confirmed = (
+    action: OrderAction,
+    label: string,
+    consequence: string,
+    confirmLabel: string,
+  ) =>
+    formFor(
+      action,
+      <details>
+        <summary style={{ cursor: 'pointer' }}>{label}</summary>
+        <p style={{ margin: '0.5rem 0', maxWidth: '18rem' }}>{consequence}</p>
+        <button type="submit" style={buttonStyle}>
+          {confirmLabel} {priceFormatter.format(order.id)}
+        </button>
+      </details>,
+    );
+
+  const cancel = confirmed(
     'cancel',
-    <details>
-      <summary style={{ cursor: 'pointer' }}>لغو سفارش</summary>
-      <button type="submit" style={buttonStyle}>
-        تأیید لغو سفارش {priceFormatter.format(order.id)}
-      </button>
-    </details>,
+    'لغو سفارش',
+    order.status === 'processing'
+      ? 'این سفارش پرداخت شده است: با لغو، موجودی کالاها به انبار برمی‌گردد و سفارش برای بازپرداخت به مشتری علامت می‌خورد.'
+      : 'سفارش پرداخت‌نشده لغو می‌شود و موجودی کالاها به انبار برمی‌گردد.',
+    'تأیید لغو سفارش',
   );
 
   const actions: React.ReactNode[] = [];
@@ -190,21 +221,21 @@ function OrderActions({
     actions.push(cancel);
   } else if (order.status === 'shipped') {
     actions.push(
-      formFor(
+      confirmed(
         'complete',
-        <button type="submit" style={buttonStyle}>
-          ثبت تحویل
-        </button>,
+        'ثبت تحویل',
+        'سفارش «تکمیل‌شده» می‌شود و دیگر لغو نمی‌شود.',
+        'تأیید تحویل سفارش',
       ),
     );
   }
   if (order.refundStatus === 'required') {
     actions.push(
-      formFor(
+      confirmed(
         'mark-refunded',
-        <button type="submit" style={buttonStyle}>
-          بازپرداخت انجام شد
-        </button>,
+        'بازپرداخت انجام شد',
+        'فقط وقتی تأیید کنید که مبلغ واقعاً به مشتری برگشته است؛ این کار برگشت‌پذیر نیست.',
+        'تأیید بازپرداخت سفارش',
       ),
     );
   }
@@ -325,9 +356,11 @@ async function renderContent(
     return <Notice>{FAILURE_MESSAGES.unauthorized}</Notice>;
   }
 
+  const refundsOnly = searchParams?.refund === 'required';
   const result = await fetchNestOrders({
     token,
     page: parsePageParam(searchParams?.page),
+    refundsOnly,
     logger: payload.logger,
   });
 
@@ -335,17 +368,59 @@ async function renderContent(
     return <Notice>{FAILURE_MESSAGES[result.reason]}</Notice>;
   }
 
-  const { items: orders, page, totalItems, totalPages } = result.data;
+  const {
+    items: orders,
+    page,
+    totalItems,
+    totalPages,
+    refundsRequired,
+  } = result.data;
   const adminRoute = payload.config.routes.admin;
   const ordersPath = `${adminRoute}/orders`;
+  const refundsPath = `${ordersPath}?refund=required`;
+  const pagePath = (n: number) =>
+    `${ordersPath}?${refundsOnly ? 'refund=required&' : ''}page=${n}`;
+
+  const heading = (
+    <>
+      <h1>{refundsOnly ? 'سفارش‌های نیازمند بازپرداخت' : 'سفارش‌ها'}</h1>
+      <ActionNotice searchParams={searchParams} />
+      {refundsOnly ? (
+        <p>
+          <a href={ordersPath}>همه سفارش‌ها</a>
+        </p>
+      ) : (
+        refundsRequired > 0 && (
+          <p
+            role="status"
+            style={{
+              padding: '0.75rem 1rem',
+              border: '1px solid var(--theme-error-500)',
+              borderRadius: 4,
+            }}
+          >
+            <strong style={{ color: 'var(--theme-error-500)' }}>
+              {priceFormatter.format(refundsRequired)} سفارش نیاز به بازپرداخت
+              دارد.
+            </strong>{' '}
+            <a href={refundsPath}>نمایش این سفارش‌ها</a>
+          </p>
+        )
+      )}
+    </>
+  );
 
   if (orders.length === 0) {
     return (
       <>
-        <h1>سفارش‌ها</h1>
+        {heading}
         <Notice>
           سفارشی در این صفحه یافت نشد.{' '}
-          {totalItems > 0 && <a href={ordersPath}>بازگشت به صفحه اول</a>}
+          {totalItems > 0 && (
+            <a href={refundsOnly ? refundsPath : ordersPath}>
+              بازگشت به صفحه اول
+            </a>
+          )}
         </Notice>
       </>
     );
@@ -355,8 +430,7 @@ async function renderContent(
 
   return (
     <>
-      <h1>سفارش‌ها</h1>
-      <ActionNotice searchParams={searchParams} />
+      {heading}
       <p style={{ marginBottom: '1rem' }}>
         مجموع سفارش‌ها: {priceFormatter.format(totalItems)}
       </p>
@@ -390,6 +464,11 @@ async function renderContent(
                 </td>
                 <td style={cellStyle}>
                   {STATUS_LABELS[order.status] ?? order.status}
+                  {order.status === 'cancelled' && order.cancelReason && (
+                    <div style={{ opacity: 0.7 }}>
+                      {CANCEL_REASON_LABELS[order.cancelReason]}
+                    </div>
+                  )}
                   {order.trackingCode && (
                     <div>
                       کد رهگیری: <bdi dir="ltr">{order.trackingCode}</bdi>
@@ -425,6 +504,7 @@ async function renderContent(
                     order={order}
                     apiRoute={payload.config.routes.api}
                     page={page}
+                    refundsOnly={refundsOnly}
                   />
                 </td>
               </tr>
@@ -434,14 +514,12 @@ async function renderContent(
       </div>
 
       <nav style={{ display: 'flex', gap: '1rem', paddingTop: '1rem' }}>
-        {page > 1 && <a href={`${ordersPath}?page=${page - 1}`}>صفحه قبل</a>}
+        {page > 1 && <a href={pagePath(page - 1)}>صفحه قبل</a>}
         <span>
           صفحه {priceFormatter.format(page)} از{' '}
           {priceFormatter.format(Math.max(totalPages, 1))}
         </span>
-        {page < totalPages && (
-          <a href={`${ordersPath}?page=${page + 1}`}>صفحه بعد</a>
-        )}
+        {page < totalPages && <a href={pagePath(page + 1)}>صفحه بعد</a>}
       </nav>
     </>
   );
