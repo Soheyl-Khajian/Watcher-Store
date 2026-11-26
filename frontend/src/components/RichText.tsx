@@ -9,7 +9,7 @@
 // URLs, see safeUrl), uploaded images and indentation. Leaves: bold, italic,
 // underline, strikethrough and inline code.
 
-import Image from 'next/image';
+import { FallbackImage } from '@/components/ui/fallback-image';
 import { Fragment, type ReactNode } from 'react';
 import type { RichTextNode } from '@/types';
 import { mediaSrc } from '@/lib/utils/media';
@@ -59,7 +59,7 @@ function renderUpload(node: RichTextNode, key: number): ReactNode {
   const height = value.height ?? 800;
   return (
     <figure key={key}>
-      <Image
+      <FallbackImage
         src={mediaSrc(value.url)}
         alt={value.alt ?? ''}
         width={width}

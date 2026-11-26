@@ -33,6 +33,7 @@
     "about": "About us",
     "contact": "Contact us",
     "home": "Home",
+    "breadcrumb": "You are here",
     "allInCategory": "All {name}",
     "language": "Language"
   },
@@ -80,7 +81,8 @@
   "home": {
     "heroTitle": "Smart security, lasting peace of mind",
     "heroText": "Get the right security and smart building equipment from Watcher, with expert advice and genuine-product guarantees.",
-    "shopByCategory": "Shop by category"
+    "shopByCategory": "Shop by category",
+    "latestPosts": "Latest articles"
   },
   "products": {
     "searchTitle": "Product search",
@@ -179,6 +181,7 @@
     "gatewayUnreachable": "We couldn't reach the payment gateway. Your order is saved, and you can try paying again.",
     "retryPayment": "Try paying again",
     "connecting": "Connecting…",
+    "redirecting": "Taking you to the payment gateway…",
     "backToShop": "Back to the shop",
     "placed": "Order placed. Taking you to the payment gateway…",
     "gatewayError": "We couldn't reach the payment gateway.",

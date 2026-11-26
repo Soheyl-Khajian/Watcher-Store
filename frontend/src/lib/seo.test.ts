@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   absoluteUrl,
+  breadcrumbJsonLd,
   jsonLdString,
   languageAlternates,
   plainText,
@@ -124,5 +125,30 @@ describe('languageAlternates', () => {
       canonical: '/fa/blog',
       languages: { fa: '/fa/blog', 'x-default': '/fa/blog' },
     });
+  });
+});
+
+describe('breadcrumbJsonLd', () => {
+  it('lists the trail in order with full addresses', () => {
+    const data = breadcrumbJsonLd(
+      [
+        { name: 'Home', path: '/' },
+        { name: 'Cameras', path: '/categories/cameras' },
+      ],
+      'en',
+    );
+    expect(data['@type']).toBe('BreadcrumbList');
+    expect(data.itemListElement).toEqual([
+      expect.objectContaining({
+        position: 1,
+        name: 'Home',
+        item: expect.stringMatching(/^https?:\/\/[^/]+\/en$/),
+      }),
+      expect.objectContaining({
+        position: 2,
+        name: 'Cameras',
+        item: expect.stringMatching(/\/en\/categories\/cameras$/),
+      }),
+    ]);
   });
 });

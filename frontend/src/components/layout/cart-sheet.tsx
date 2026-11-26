@@ -1,7 +1,8 @@
 // frontend/src/components/layout/cart-sheet.tsx
 'use client';
 
-import { useFormatter, useT } from '@/i18n/client';
+import { useFormatter, useLocale, useT } from '@/i18n/client';
+import { LOCALE_INFO } from '@/i18n/config';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -15,6 +16,8 @@ export function CartSheet() {
   const [isOpen, setIsOpen] = useState(false);
   const format = useFormatter();
   const t = useT();
+  // The cart opens from the end of the page, the side its button is on.
+  const side = LOCALE_INFO[useLocale()].dir === 'rtl' ? 'left' : 'right';
 
   const totalQuantity = useMemo(() => {
     return cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
@@ -27,7 +30,7 @@ export function CartSheet() {
           {totalQuantity > 0 && (
             <span
               aria-hidden="true"
-              className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs"
+              className="bg-primary text-primary-foreground absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs"
             >
               {format.number(totalQuantity)}
             </span>
@@ -40,7 +43,7 @@ export function CartSheet() {
           </span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex flex-col p-4 sm:p-6">
+      <SheetContent side={side} className="flex flex-col p-4 sm:p-6">
         <CartContent onClose={() => setIsOpen(false)} />
       </SheetContent>
     </Sheet>

@@ -28,6 +28,7 @@ export function AddToCartButton({
       className="w-full"
       onClick={add}
       disabled={isAdding || !inStock}
+      variant={inStock ? 'default' : 'secondary'}
       aria-busy={isAdding}
     >
       <ShoppingCart className="me-2 h-5 w-5" aria-hidden="true" />

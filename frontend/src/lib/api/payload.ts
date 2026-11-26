@@ -245,12 +245,28 @@ export async function fetchProductsAndCategoryBySlug(slug: string, page = 1) {
 //------------------------------------------------------------
 // CONTENT METHODS (POSTS, PAGES, FOOTER)
 //------------------------------------------------------------
+// The newest published posts (for the home page).
 export async function fetchPosts() {
   const data = await fetchPayloadAPI(
-    `/posts?${PUBLISHED_STATUS_FILTER}&limit=10&depth=2`,
+    `/posts?${PUBLISHED_STATUS_FILTER}&sort=-createdAt&limit=10&depth=2`,
     cacheFor('posts'),
   );
   return data?.docs || [];
+}
+
+// One page of published posts, newest first (the blog).
+export async function fetchPostsPage({
+  page = 1,
+  limit = 12,
+}: { page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams({
+    'where[status][equals]': 'published',
+    sort: '-createdAt',
+    page: String(page),
+    limit: String(limit),
+    depth: '2',
+  });
+  return fetchPayloadAPI(`/posts?${params.toString()}`, cacheFor('posts'));
 }
 
 export async function fetchPostBySlug(slug: string) {

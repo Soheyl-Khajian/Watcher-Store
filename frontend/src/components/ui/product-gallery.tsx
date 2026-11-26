@@ -5,7 +5,7 @@
 import { useT } from '@/i18n/client';
 import type { Media } from '@payload-types';
 import { useState } from 'react';
-import Image from 'next/image';
+import { FallbackImage } from '@/components/ui/fallback-image';
 import { cn } from '@/lib/utils';
 import { mediaSrc } from '@/lib/utils/media';
 
@@ -57,7 +57,7 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
       {/*main image*/}
       <div className="aspect-square w-full overflow-hidden rounded-lg border">
         <div className="relative h-full w-full">
-          <Image
+          <FallbackImage
             src={getImageUrl(selectedImage)}
             alt={
               typeof selectedImage === 'object'
@@ -98,7 +98,7 @@ export function ProductGallery({ gallery, productName }: ProductGalleryProps) {
                 )}
               >
                 <div className="relative h-full w-full">
-                  <Image
+                  <FallbackImage
                     src={imageUrl}
                     alt=""
                     fill

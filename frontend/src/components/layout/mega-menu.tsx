@@ -137,7 +137,7 @@ export function MegaMenu({ categories }: MegaMenuProps) {
       </PopoverTrigger>
 
       <PopoverContent
-        className="bg-background/80 w-[800px] rounded-xl border p-4 shadow-lg backdrop-blur-lg"
+        className="bg-background/80 w-[min(800px,calc(100vw-2rem))] rounded-xl border p-4 shadow-lg backdrop-blur-lg"
         align="start"
         onKeyDown={(event) => {
           touch.current = false;

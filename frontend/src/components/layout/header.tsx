@@ -22,13 +22,16 @@ import { MegaMenu } from './mega-menu';
 import { MobileNav } from './mobile-nav';
 import { fetchCategoryTree } from '@/lib/api/payload';
 import { LogoMark } from '@/components/brand/logo';
+import { cn } from '@/lib/utils';
 
-const NAV_LINKS: { href: string; label: MessageKey }[] = [
+// wide: only in the bar on large screens (tablets have no room; the links
+// are in the footer and the phone menu too).
+const NAV_LINKS: { href: string; label: MessageKey; wide?: boolean }[] = [
   { href: '/products', label: 'nav.allProducts' },
   { href: '/products?onSale=true', label: 'nav.specials' },
   { href: '/blog', label: 'nav.blog' },
-  { href: '/about-us', label: 'nav.about' },
-  { href: '/contact-us', label: 'nav.contact' },
+  { href: '/about-us', label: 'nav.about', wide: true },
+  { href: '/contact-us', label: 'nav.contact', wide: true },
 ];
 
 export async function Header() {
@@ -40,18 +43,19 @@ export async function Header() {
   ]);
   // The menu sheet opens from the side the menu button is on: the start.
   const menuSide = LOCALE_INFO[locale].dir === 'rtl' ? 'right' : 'left';
-  const navLinks = NAV_LINKS.map(({ href, label }) => ({
+  const navLinks = NAV_LINKS.map(({ href, label, wide }) => ({
     href,
     label: t(label),
+    wide,
   }));
 
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
-      <div className="container flex h-16 items-center px-2">
-        <div className="ms-4 me-10 hidden md:flex">
-          <Link href="/" className="ms-6 flex items-center gap-2">
+      <div className="container mx-auto flex h-16 items-center gap-2 px-4">
+        <div className="me-4 hidden md:flex lg:me-8">
+          <Link href="/" className="flex items-center gap-2">
             <LogoMark className="h-7 w-7" />
-            <span className="hidden font-bold sm:inline-block">
+            <span className="hidden font-bold whitespace-nowrap lg:inline-block">
               {t('site.shortName')}
             </span>
           </Link>
@@ -60,7 +64,7 @@ export async function Header() {
         {/* Main menu, from tablets up. */}
         <nav
           aria-label={t('nav.main')}
-          className="hidden items-center gap-6 text-sm font-medium md:flex"
+          className="hidden items-center gap-4 text-sm font-medium md:flex lg:gap-6"
         >
           <MegaMenu categories={categoryTree} />
 
@@ -68,7 +72,10 @@ export async function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="hover:text-foreground/80 text-foreground/60 transition-colors"
+              className={cn(
+                'hover:text-foreground/80 text-foreground/60 whitespace-nowrap transition-colors',
+                link.wide && 'hidden lg:inline',
+              )}
             >
               {link.label}
             </Link>
@@ -80,7 +87,7 @@ export async function Header() {
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
+                <Menu className="h-5 w-5" aria-hidden="true" />
                 <span className="sr-only">{t('nav.openMenu')}</span>
               </Button>
             </SheetTrigger>
@@ -98,7 +105,7 @@ export async function Header() {
         </div>
 
         {/* Theme, account and cart, at the end of the bar. */}
-        <div className="flex flex-1 items-center justify-end gap-4">
+        <div className="flex flex-1 items-center justify-end gap-1 sm:gap-3">
           <LanguageSwitcher />
           <ModeToggle />
           <UserNav />

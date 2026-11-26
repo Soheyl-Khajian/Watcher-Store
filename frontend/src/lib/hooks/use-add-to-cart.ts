@@ -9,11 +9,10 @@ import { useT } from '@/i18n/client';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { addToCart } from '../api/nestjs';
+import { addToCart, loadSession } from '../api/nestjs';
 import { useAuthStore } from '../store/auth';
 
 export function useAddToCart(productId: string | number, productName: string) {
-  const status = useAuthStore((state) => state.status);
   const setCart = useAuthStore((state) => state.setCart);
   const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
@@ -22,6 +21,21 @@ export function useAddToCart(productId: string | number, productName: string) {
 
   const add = async () => {
     if (isAdding) return;
+    // A click before the page has asked the server who is logged in waits
+    // for that answer instead of asking a logged-in customer to log in.
+    if (useAuthStore.getState().status === 'unknown') {
+      setIsAdding(true);
+      try {
+        await loadSession();
+      } finally {
+        setIsAdding(false);
+      }
+    }
+    const status = useAuthStore.getState().status;
+    if (status === 'unknown') {
+      toast.error(t('cart.addFailed'));
+      return;
+    }
     if (status !== 'signed-in') {
       // Logging in brings the customer back to this page.
       toast.info(t('cart.loginToAdd'), {

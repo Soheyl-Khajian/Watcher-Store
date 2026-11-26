@@ -32,7 +32,7 @@ export async function Footer() {
       <div className="container mx-auto px-2 py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="md:col-span-1">
-            <h4 className="mb-4 text-lg font-bold">{t('site.shortName')}</h4>
+            <h2 className="mb-4 text-lg font-bold">{t('site.shortName')}</h2>
             {/* A paragraph from the CMS keeps its own direction. */}
             <p dir="auto" className="text-muted-foreground text-sm">
               {description}
@@ -60,9 +60,9 @@ export async function Footer() {
 
           {(linkColumns ?? []).map((column) => (
             <div key={column.id}>
-              <h4 className="mb-4 text-lg font-bold">
+              <h2 className="mb-4 text-lg font-bold">
                 <Bidi>{column.title}</Bidi>
-              </h4>
+              </h2>
               <ul className="space-y-3">
                 {(column.links ?? []).map((link) => {
                   const href = safeUrl(link.url);

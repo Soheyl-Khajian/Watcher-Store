@@ -1,5 +1,6 @@
 // frontend/src/app/[locale]/(main)/products/page.tsx
 import { alternatesFor } from '@/lib/seo';
+import { toCardProduct } from '@/lib/product-card';
 import { parsePage } from '@/lib/utils/pagination';
 import { getT } from '@/i18n/server';
 import { Bidi } from '@/components/ui/bidi';
@@ -91,7 +92,11 @@ export default async function AllProductsPage({
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {products.map((product: Product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={toCardProduct(product)}
+                headingLevel="h2"
+              />
             ))}
           </div>
           <div className="mt-12">

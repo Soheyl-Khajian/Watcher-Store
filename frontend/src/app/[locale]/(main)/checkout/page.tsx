@@ -134,6 +134,9 @@ export default function CheckoutPage() {
   // Set once the order exists on the server. From then on the page only
   // retries payment for this order and never creates another one.
   const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
+  // Set when the gateway could not be reached for the placed order. Until
+  // then the page says it is on its way to the gateway.
+  const [paymentFailed, setPaymentFailed] = useState(false);
 
   const checkoutKeyRef = useRef<string | null>(null);
 
@@ -150,17 +153,24 @@ export default function CheckoutPage() {
   }, [status, cart, router, isProcessing, placedOrderId]);
 
   useEffect(() => {
+    // A newer cart replaces this fetch; its answer must not overwrite the
+    // newer one.
+    let cancelled = false;
     const getProducts = async () => {
       if (!cart) return;
       if (cart.items.length > 0) {
         const productIds = cart.items.map((item: CartItem) => item.productId);
         const fetchedProducts = await fetchProductsByIds(productIds);
+        if (cancelled) return;
         setProducts(fetchedProducts ?? []);
         setProductsFailed(fetchedProducts === null);
       }
       setIsLoading(false);
     };
     getProducts();
+    return () => {
+      cancelled = true;
+    };
   }, [cart]);
 
   const unavailableItems = useMemo(() => {
@@ -193,9 +203,10 @@ export default function CheckoutPage() {
     });
   };
 
-  const fieldProps = (field: ShippingField) => ({
+  const fieldProps = (field: ShippingField, required = false) => ({
     id: `shipping-${field}`,
     name: field,
+    'aria-required': required || undefined,
     value: form[field],
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       handleChange(field, event.target.value),
@@ -213,6 +224,7 @@ export default function CheckoutPage() {
 
   const startPayment = async (orderId: number) => {
     setIsProcessing(true);
+    setPaymentFailed(false);
 
     const paymentData = await initiatePayment(orderId);
 
@@ -222,6 +234,7 @@ export default function CheckoutPage() {
     }
 
     toast.error(t('checkout.gatewayError'));
+    setPaymentFailed(true);
     setIsProcessing(false);
   };
 
@@ -280,10 +293,12 @@ export default function CheckoutPage() {
 
   if (placedOrderId !== null) {
     return (
-      <div className="container mx-auto max-w-2xl py-12">
+      <div className="container mx-auto max-w-2xl px-4 py-12">
         <Card>
           <CardHeader>
-            <CardTitle>{t('checkout.placedTitle')}</CardTitle>
+            <CardTitle>
+              <h1 className="text-xl">{t('checkout.placedTitle')}</h1>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p>
@@ -292,31 +307,42 @@ export default function CheckoutPage() {
                 {format.digits(placedOrderId)}
               </span>
             </p>
-            <p className="text-muted-foreground text-sm">
-              {t('checkout.gatewayUnreachable')}
+            <p className="text-muted-foreground text-sm" role="status">
+              {paymentFailed
+                ? t('checkout.gatewayUnreachable')
+                : t('checkout.redirecting')}
             </p>
           </CardContent>
-          <CardFooter className="flex gap-2">
-            <Button
-              className="cursor-pointer"
-              onClick={() => startPayment(placedOrderId)}
-              disabled={isProcessing}
-            >
-              {isProcessing
-                ? t('checkout.connecting')
-                : t('checkout.retryPayment')}
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/">{t('checkout.backToShop')}</Link>
-            </Button>
-          </CardFooter>
+          {paymentFailed ? (
+            <CardFooter className="flex flex-wrap gap-2">
+              <Button
+                className="cursor-pointer"
+                onClick={() => startPayment(placedOrderId)}
+                disabled={isProcessing}
+              >
+                {isProcessing
+                  ? t('checkout.connecting')
+                  : t('checkout.retryPayment')}
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/">{t('checkout.backToShop')}</Link>
+              </Button>
+            </CardFooter>
+          ) : null}
         </Card>
       </div>
     );
   }
 
   if (isLoading || !cart) {
-    return <div role="status">{t('checkout.loading')}</div>;
+    return (
+      <div
+        role="status"
+        className="text-muted-foreground container mx-auto max-w-2xl px-4 py-12"
+      >
+        {t('checkout.loading')}
+      </div>
+    );
   }
 
   return (
@@ -328,7 +354,9 @@ export default function CheckoutPage() {
       <h1 className="text-3xl font-bold">{t('checkout.title')}</h1>
       <Card>
         <CardHeader>
-          <CardTitle>{t('checkout.shipping')}</CardTitle>
+          <CardTitle>
+            <h2>{t('checkout.shipping')}</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <FormField
@@ -337,7 +365,7 @@ export default function CheckoutPage() {
             required
             error={errors.recipientName}
           >
-            <Input {...fieldProps('recipientName')} autoComplete="name" />
+            <Input {...fieldProps('recipientName', true)} autoComplete="name" />
           </FormField>
 
           <FormField
@@ -348,7 +376,7 @@ export default function CheckoutPage() {
             error={errors.phone}
           >
             <Input
-              {...fieldProps('phone')}
+              {...fieldProps('phone', true)}
               dir="ltr"
               inputMode="tel"
               autoComplete="tel"
@@ -361,7 +389,10 @@ export default function CheckoutPage() {
             required
             error={errors.province}
           >
-            <Input {...fieldProps('province')} autoComplete="address-level1" />
+            <Input
+              {...fieldProps('province', true)}
+              autoComplete="address-level1"
+            />
           </FormField>
 
           <FormField
@@ -370,7 +401,10 @@ export default function CheckoutPage() {
             required
             error={errors.city}
           >
-            <Input {...fieldProps('city')} autoComplete="address-level2" />
+            <Input
+              {...fieldProps('city', true)}
+              autoComplete="address-level2"
+            />
           </FormField>
 
           <FormField
@@ -381,7 +415,7 @@ export default function CheckoutPage() {
             className="sm:col-span-2"
           >
             <Textarea
-              {...fieldProps('address')}
+              {...fieldProps('address', true)}
               rows={3}
               autoComplete="street-address"
             />
@@ -395,7 +429,7 @@ export default function CheckoutPage() {
             error={errors.postalCode}
           >
             <Input
-              {...fieldProps('postalCode')}
+              {...fieldProps('postalCode', true)}
               dir="ltr"
               inputMode="numeric"
               autoComplete="postal-code"
@@ -432,7 +466,9 @@ export default function CheckoutPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('checkout.summary')}</CardTitle>
+          <CardTitle>
+            <h2>{t('checkout.summary')}</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-4">

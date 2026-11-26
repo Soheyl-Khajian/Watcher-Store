@@ -172,6 +172,24 @@ export function productJsonLd(product: ProductForJsonLd, locale: Locale) {
   };
 }
 
+// The page's place in the shop (Home > category > product) for search
+// results. paths are storefront paths without the language prefix.
+export function breadcrumbJsonLd(
+  items: { name: string; path: string }[],
+  locale: Locale,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(localizeHref(locale, item.path)),
+    })),
+  };
+}
+
 // JSON for a <script type="application/ld+json">. "<" is escaped so CMS
 // text such as "</script>" cannot end the script element.
 export function jsonLdString(data: unknown): string {

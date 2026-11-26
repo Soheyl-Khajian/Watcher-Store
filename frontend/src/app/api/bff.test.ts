@@ -264,10 +264,11 @@ describe('GET /api/auth/me', () => {
     expect(await response.json()).toEqual({ user: USER });
   });
 
-  it('answers 401 without a session, without calling Nest', async () => {
+  it('answers no user without a session, without calling Nest', async () => {
     upstream({});
     const response = await me(fromStorefront('/api/auth/me'));
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ user: null });
     expect(calls).toHaveLength(0);
   });
 
@@ -280,7 +281,8 @@ describe('GET /api/auth/me', () => {
       fromStorefront('/api/auth/me', { cookie: 'stale' }),
     );
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ user: null });
     expect(sessionCookieOf(response).header).toMatch(/Max-Age=0/);
   });
 });

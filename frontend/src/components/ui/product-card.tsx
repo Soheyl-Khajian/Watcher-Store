@@ -4,10 +4,9 @@
 
 import { useFormatter } from '@/i18n/client';
 import { Bidi } from '@/components/ui/bidi';
-import type { Product } from '@/types';
-import Image from 'next/image';
+import type { CardProduct } from '@/lib/product-card';
+import { FallbackImage } from './fallback-image';
 import { Link } from '@/i18n/navigation';
-import { mediaSrc } from '@/lib/utils/media';
 import {
   Card,
   CardContent,
@@ -17,22 +16,21 @@ import {
 } from '@/components/ui/card';
 import { AddToCartButtonCard } from '../cart/add-to-cart-button-card';
 import { StockNote } from './stock-note';
-import { stockOf } from '@/lib/stock';
 
 interface ProductCardProps {
-  product: Product;
+  // lib/product-card.ts toCardProduct
+  product: CardProduct;
+  // h2 when the cards sit right under the page's h1, h3 under a section's
+  // h2.
+  headingLevel?: 'h2' | 'h3';
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({
+  product,
+  headingLevel: Heading = 'h3',
+}: ProductCardProps) {
   const format = useFormatter();
   const formatPrice = format.number;
-  const mainImage =
-    typeof product.gallery?.[0]?.image === 'object'
-      ? product.gallery[0].image
-      : null;
-  const imageUrl = mainImage?.url
-    ? mediaSrc(mainImage.url)
-    : '/images/placeholder.png';
 
   return (
     <div className="group h-full">
@@ -42,8 +40,8 @@ export function ProductCard({ product }: ProductCardProps) {
       <Card className="relative flex h-full flex-col gap-3 overflow-hidden pt-0 pb-1 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
         <CardHeader className="p-0">
           <div className="relative aspect-[4/3] w-full">
-            <Image
-              src={imageUrl}
+            <FallbackImage
+              src={product.imageUrl}
               // The title link names the card; the image adds nothing.
               alt=""
               fill
@@ -55,22 +53,20 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <CardContent className="my-0 flex flex-grow flex-col justify-center px-1 py-0">
           <CardTitle className="line-clamp-2 text-center text-sm leading-tight font-semibold sm:text-base md:text-lg">
-            <h3>
+            <Heading>
               <Link
-                href={`/products/${encodeURIComponent(product.slug ?? '')}`}
+                href={`/products/${encodeURIComponent(product.slug)}`}
                 className="after:focus-visible:ring-ring after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none after:focus-visible:ring-2"
               >
                 <Bidi>{product.name}</Bidi>
               </Link>
-            </h3>
+            </Heading>
           </CardTitle>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-1 px-2 py-1 pt-0">
           <div className="flex flex-col items-center font-bold">
-            {product.isOnSale &&
-            typeof product.salePrice === 'number' &&
-            product.salePrice > 0 ? (
+            {product.salePrice !== null ? (
               <>
                 <span className="text-primary text-base sm:text-lg md:text-xl lg:text-2xl">
                   {formatPrice(product.salePrice)}
@@ -87,13 +83,13 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
           </div>
-          <StockNote stock={stockOf(product)} className="text-xs" />
+          <StockNote stock={product.stock} className="text-xs" />
           {/* Above the stretched link, so it stays clickable. */}
           <div className="relative z-10 w-full">
             <AddToCartButtonCard
               productId={product.id}
               productName={product.name}
-              inStock={stockOf(product) > 0}
+              inStock={product.stock > 0}
             />
           </div>
         </CardFooter>

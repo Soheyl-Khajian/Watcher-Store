@@ -7,7 +7,8 @@
 
 /* Theme "Signal": cool slate with a green accent, in light and dark.
    Neither theme is the main one; they share hues and contrast (every text
-   colour on its background is at least 4.5:1). Green is the accent;
+   colour on its background is at least 4.5:1, and form field borders
+   and the focus ring at least 3:1). Green is the accent;
    success and warning are for states (paid, in stock, low stock). */
 :root {
   --radius: 0.75rem;
@@ -26,10 +27,11 @@
   --accent: #e8edf3;
   --accent-foreground: #111723;
   --destructive: #b42318;
+  --destructive-foreground: #ffffff;
   --success: #12805c;
   --warning: #9a5b00;
   --border: #dce2ea;
-  --input: #dce2ea;
+  --input: #848e9e;
   --ring: #12805c;
   --wash-accent: rgb(18 128 92 / 8%);
   --wash-cool: rgb(70 110 170 / 8%);
@@ -64,10 +66,11 @@
   --accent: #1b2130;
   --accent-foreground: #e8ecf3;
   --destructive: #f07a7a;
+  --destructive-foreground: #2a0707;
   --success: #34c38f;
   --warning: #f2b84b;
   --border: #262e3d;
-  --input: #262e3d;
+  --input: #626c7e;
   --ring: #34c38f;
   --wash-accent: rgb(52 195 143 / 11%);
   --wash-cool: rgb(70 110 170 / 14%);
@@ -132,7 +135,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   /* Tailwind 4 leaves buttons with the default arrow cursor: every enabled
      button shows the pointer, so none needs cursor-pointer by hand. */
@@ -158,5 +161,17 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+  }
+  /* For people who asked their system for less motion: no animations or
+     smooth scrolling, only the end state. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

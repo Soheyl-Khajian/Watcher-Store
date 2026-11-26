@@ -1,6 +1,7 @@
 // frontend/src/app/[locale]/(main)/categories/[slug]/page.tsx
 
 import { getT } from '@/i18n/server';
+import { toCardProduct } from '@/lib/product-card';
 import { parsePage } from '@/lib/utils/pagination';
 import { Bidi } from '@/components/ui/bidi';
 import { fetchProductsAndCategoryBySlug } from '@/lib/api/payload';
@@ -75,7 +76,7 @@ export default async function CategoryPage({
   const listHref = `/categories/${encodeURIComponent(slug)}`;
 
   return (
-    <div className="container mx-auto py-12">
+    <div className="container mx-auto px-4 py-12">
       <h1 className="mb-8 text-3xl font-bold md:text-4xl">
         {t.rich('category.heading', { name: <Bidi>{category.name}</Bidi> })}
       </h1>
@@ -84,7 +85,11 @@ export default async function CategoryPage({
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {products.map((product: Product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={toCardProduct(product)}
+                headingLevel="h2"
+              />
             ))}
           </div>
 

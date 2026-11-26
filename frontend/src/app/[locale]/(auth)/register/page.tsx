@@ -166,10 +166,12 @@ function RegisterForm() {
 export default function RegisterPage() {
   const t = useT();
   return (
-    <div className="bg-muted/40 flex min-h-screen items-center justify-center px-4">
+    <main className="bg-muted/40 flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{t('auth.registerTitle')}</CardTitle>
+          <CardTitle>
+            <h1 className="text-xl">{t('auth.registerTitle')}</h1>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Suspense fallback={null}>
@@ -177,6 +179,6 @@ export default function RegisterPage() {
           </Suspense>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

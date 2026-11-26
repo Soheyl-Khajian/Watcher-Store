@@ -5,7 +5,7 @@ import { Bidi } from '@/components/ui/bidi';
 import type { Post } from '@/types';
 import { fetchPostBySlug } from '@/lib/api/payload';
 import { RichText } from '@/components/RichText';
-import Image from 'next/image';
+import { FallbackImage } from '@/components/ui/fallback-image';
 import { mediaSrc } from '@/lib/utils/media';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -70,7 +70,7 @@ export default async function PostPage({ params }: PageProps) {
   const publishedDate = (await getFormatter()).date(post.publishedDate);
 
   return (
-    <article className="container mx-auto max-w-4xl py-12">
+    <article className="container mx-auto max-w-4xl px-4 py-12">
       {/*header*/}
       <header className="mb-8">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
@@ -86,7 +86,7 @@ export default async function PostPage({ params }: PageProps) {
 
       {/*image*/}
       <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
-        <Image
+        <FallbackImage
           src={imageUrl}
           alt={post.title}
           fill
