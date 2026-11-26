@@ -32,6 +32,10 @@ services:
       ZARINPAL_BASE_URL: http://zarinpal-mock:4010
       # Any UUID: the mock does not check it.
       ZARINPAL_MERCHANT_ID: 00000000-0000-4000-8000-000000000000
+      # Without a proxy in front, every storefront login counts as one
+      # client, and the tests log in more than 5 times a minute. The limit
+      # itself is tested in nest-api's API tests.
+      RATE_LIMIT_LOGIN_PER_MINUTE: 30
     depends_on:
       zarinpal-mock:
         condition: service_healthy

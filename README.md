@@ -11,8 +11,9 @@ Zarinpal gateway, in a pnpm workspace on one PostgreSQL 18 database.
 
 ![A purchase from search to delivery](assets/demo.gif)
 
-- **Live demo:** _link to be added after deployment_
-- **Demo accounts:** _to be added with the live demo_ (a local stack gets its own, see [Production stack](#production-stack))
+There is no public deployment; [the Dev Container](#running-it-locally)
+runs the whole shop, with demo data and accounts of your own, in a few
+minutes.
 
 > This is a portfolio project. The products, prices and contact details are
 > fictional; payments run against Zarinpal's sandbox or a local mock.
@@ -38,8 +39,8 @@ Zarinpal gateway, in a pnpm workspace on one PostgreSQL 18 database.
 
 **Storefront** (Next.js 15, React 19, Tailwind CSS 4)
 
-- Category tree, product pages with gallery, specifications and sale
-  prices, product search, blog and CMS pages.
+- Category tree, product pages with gallery, specifications, sale prices
+  and a breadcrumb, product search, a paged blog and CMS pages.
 - Persian (right to left) and English, each at its own address (`/fa/…`,
   `/en/…`), with a language switcher. Each deployment chooses the
   languages it offers and its default. Every language's text is written by
@@ -47,6 +48,8 @@ Zarinpal gateway, in a pnpm workspace on one PostgreSQL 18 database.
   and posts show as entered in the CMS. Numbers, dates (Persian or
   Gregorian calendar) and prices (toman) follow the page's language, and
   mixed Persian and English text stays readable in either direction.
+- Accounts created through the storefront only; the session lives in an
+  httpOnly cookie, never in the page's JavaScript.
 - Cart with quantity controls checked against stock; checkout with an
   Iranian address and phone validation; payment through Zarinpal.
 - Order history with details, tracking codes, cancel and pay-again for
@@ -56,14 +59,20 @@ Zarinpal gateway, in a pnpm workspace on one PostgreSQL 18 database.
   in every language, and robots.txt.
 - Error and not-found pages that answer with the right status codes, and a
   readiness endpoint that checks the services behind it.
+- Accessible: landmarks and a heading order on every page, labelled and
+  described form fields, a visible focus ring, contrast of at least 4.5:1
+  for text and 3:1 for field borders, reduced motion when the system asks
+  for it; light and dark themes following the system.
 
 **Administration** (Payload CMS 3)
 
-- Products, categories, posts, pages, media and the footer, with an admin
-  panel in Persian or English.
+- Products, categories, posts, pages, media and the footer. The admin
+  panel's interface switches between Persian and English; its field labels
+  are in Persian.
 - An Orders view with each order's items, shipping details and refund
   status, and the actions its status allows: ship with a tracking code,
-  record delivery, cancel, mark refunded.
+  record delivery, cancel, mark refunded. Each order owing a refund lists
+  the payments to send back, with their reference numbers.
 - Bulk price changes for a category and everything under it.
 - Content edits appear on the storefront at once (tag revalidation).
 
@@ -72,8 +81,9 @@ Zarinpal gateway, in a pnpm workspace on one PostgreSQL 18 database.
 - Carts, idempotent order placement, stock reserved at order time and
   released on cancellation or expiry.
 - Zarinpal v4 payments, verified server to server; a reconciliation job
-  for customers who pay and never come back; refunds flagged when money
-  arrives for a cancelled order.
+  for customers who pay and never come back, safe to run on several API
+  instances; a refund flagged on each payment that cannot be kept (the
+  order was cancelled, or paid twice).
 - Structured JSON logs with request ids, health and readiness checks,
   per-client rate limits.
 
@@ -196,6 +206,10 @@ pnpm or PostgreSQL on your machine.
    without a gateway account (every payment then succeeds at once). The
    rest works as it is for development.
 
+   Coming from a version before PostgreSQL 18? The container's database is
+   a new, empty volume; [docs/operations.md](docs/operations.md#moving-to-postgres-18)
+   shows how to bring your data over.
+
 2. Open the folder in the editor and run **Dev Containers: Reopen in
    Container**. On every start the container runs one script,
    `.devcontainer/dev.sh boot`, in order: the database schemas, the
@@ -240,17 +254,19 @@ works there).
 
 Useful commands (repository root, inside the container):
 
-| Command                                                | Purpose                                                    |
-| ------------------------------------------------------ | ---------------------------------------------------------- |
-| `pnpm start:all`                                       | Run the three apps in one terminal (outside the container) |
-| `pnpm start:payload` / `start:nest` / `start:frontend` | Run one app                                                |
-| `pnpm lint` · `pnpm typecheck` · `pnpm format:check`   | Static checks                                              |
-| `pnpm build`                                           | Production builds of all apps                              |
-| `pnpm --filter payload-cms migrate`                    | Apply Payload migrations                                   |
-| `pnpm --filter payload-cms generate:migration`         | Create a Payload migration                                 |
-| `pnpm --filter nest-api migration:generate`            | Create a Nest migration                                    |
-| `pnpm --filter payload-cms seed:demo`                  | Demo data                                                  |
-| `pnpm --filter payload-cms seed:admin`                 | Create the administrator from `ADMIN_*`                    |
+| Command                                                                    | Purpose                                                    |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `pnpm start:all`                                                           | Run the three apps in one terminal (outside the container) |
+| `pnpm start:payload` / `start:nest` / `start:frontend`                     | Run one app                                                |
+| `pnpm lint` · `pnpm typecheck` · `pnpm format:check`                       | Static checks                                              |
+| `pnpm build`                                                               | Production builds of all apps                              |
+| `pnpm --filter payload-cms migrate`                                        | Apply Payload migrations                                   |
+| `pnpm --filter payload-cms generate:migration <name>`                      | Create a Payload migration                                 |
+| `pnpm --filter payload-cms generate:types`                                 | Regenerate Payload's types after a schema change           |
+| `pnpm sync:payload-types`                                                  | Copy those types to the storefront                         |
+| `pnpm --filter nest-api migration:generate src/database/migrations/<Name>` | Create a Nest migration                                    |
+| `pnpm --filter payload-cms seed:demo`                                      | Demo data                                                  |
+| `pnpm --filter payload-cms seed:admin`                                     | Create the administrator from `ADMIN_*`                    |
 
 **Locked out of the admin panel?** The panel never lets the last
 administrator be demoted or deleted, or anyone change their own role, but
@@ -313,32 +329,40 @@ configuration at startup and names anything missing.
 
 All settings live in one `.env` at the repository root;
 [`.env.example`](.env.example) documents each one. The production Compose
-file hands each service only the settings it uses.
+file hands each service only the settings it uses. In production the
+services refuse to start without their secrets (`PAYLOAD_SECRET`,
+`JWT_SECRET`, `REVALIDATE_SECRET`, `REGISTRATION_SECRET`, the database
+passwords) and their public addresses.
 
-| Setting                                                       | Used by         | Purpose                                                               |
-| ------------------------------------------------------------- | --------------- | --------------------------------------------------------------------- |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`         | database        | Superuser, used only by the database and its setup jobs in production |
-| `PAYLOAD_DB_PASSWORD` / `NEST_DB_PASSWORD`                    | production      | Passwords of the services' own database roles                         |
-| `PAYLOAD_SECRET`                                              | Payload         | Signs Payload sessions (32+ characters)                               |
-| `DATABASE_URI` / `PAYLOAD_SCHEMA`                             | Payload         | Database connection and schema (development)                          |
-| `PAYLOAD_PUBLIC_URL`                                          | Payload         | Where browsers reach the CMS; the only origin trusted for its cookie  |
-| `JWT_SECRET` / `JWT_EXPIRES_IN`                               | Nest            | Signs storefront sessions, and their lifetime                         |
-| `PAYMENT_GATEWAY`                                             | Nest            | `none`, `zarinpal` or `mock` (development only)                       |
-| `ZARINPAL_MERCHANT_ID` / `ZARINPAL_BASE_URL`                  | Nest            | Zarinpal account and endpoint (sandbox by default)                    |
-| `ZARINPAL_SANDBOX`                                            | Nest            | `true` lets production use the sandbox (a demo); otherwise refused    |
-| `PAYMENT_CALLBACK_URL`                                        | Nest            | Where the gateway sends customers back (the storefront relays it)     |
-| `PAYMENT_RECONCILE_AFTER_MINUTES` / `PENDING_ORDER_TTL_HOURS` | Nest            | When pending payments are re-checked and unpaid orders cancelled      |
-| `RATE_LIMIT_*` / `TRUST_PROXY`                                | Nest            | Per-client limits, and which proxies may report the client address    |
-| `NEXT_PUBLIC_PAYLOAD_URL` / `NEXT_PUBLIC_FRONTEND_URL`        | Storefront      | Public addresses, built into the browser bundle                       |
-| `PAYLOAD_INTERNAL_URL` / `NEST_INTERNAL_URL`                  | Storefront, CMS | Server-to-server addresses                                            |
-| `TRUSTED_PROXY_HOPS`                                          | Storefront      | Reverse proxies in front of the storefront (0 or 1)                   |
-| `DEFAULT_LOCALE` / `ENABLED_LOCALES`                          | Storefront      | The languages offered (`fa`, `en`) and the one bare addresses open in |
-| `STORE_TIME_ZONE`                                             | Storefront      | The time zone order and post times are shown in                       |
-| `REVALIDATE_SECRET` / `STOREFRONT_INTERNAL_URL`               | CMS, Storefront | Instant cache refresh after content edits                             |
-| `REGISTRATION_SECRET`                                         | CMS, Storefront | Lets only the storefront create customer accounts                     |
-| `S3_*`                                                        | Payload         | Media in an S3-compatible bucket instead of a volume                  |
-| `ADMIN_*` / `DEMO_*` / `ALLOW_DEMO_SEED`                      | seed scripts    | The administrator, and the demo data                                  |
-| `LOG_LEVEL`                                                   | Nest            | Log verbosity (JSON in production)                                    |
+| Setting                                                       | Used by          | Purpose                                                               |
+| ------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`         | database         | Superuser, used only by the database and its setup jobs in production |
+| `PAYLOAD_DB_PASSWORD` / `NEST_DB_PASSWORD`                    | production       | Passwords of the services' own database roles                         |
+| `PAYLOAD_SECRET`                                              | Payload          | Signs Payload sessions (32+ characters)                               |
+| `DATABASE_URI` / `PAYLOAD_SCHEMA`                             | Payload          | Database connection and schema (development)                          |
+| `PAYLOAD_PUBLIC_URL`                                          | Payload          | Where browsers reach the CMS; the only origin trusted for its cookie  |
+| `NEST_SCHEMA` / `PORT` / `MIGRATIONS_RUN_ON_BOOT`             | Nest             | Its schema, port, and whether it migrates itself (development only)   |
+| `JWT_SECRET` / `JWT_EXPIRES_IN`                               | Nest             | Signs storefront sessions, and their lifetime                         |
+| `PAYMENT_GATEWAY`                                             | Nest             | `none`, `zarinpal` or `mock` (development only)                       |
+| `ZARINPAL_MERCHANT_ID` / `ZARINPAL_BASE_URL`                  | Nest             | Zarinpal account and endpoint (sandbox by default)                    |
+| `ZARINPAL_SANDBOX`                                            | Nest             | `true` lets production use the sandbox (a demo); otherwise refused    |
+| `PAYMENT_CALLBACK_URL`                                        | Nest             | Where the gateway sends customers back (the storefront relays it)     |
+| `PAYMENT_RECONCILE_AFTER_MINUTES` / `PENDING_ORDER_TTL_HOURS` | Nest             | When pending payments are re-checked and unpaid orders cancelled      |
+| `PAYMENT_TIMEOUT_MS` / `PAYLOAD_TIMEOUT_MS`                   | Nest             | How long Nest waits for the gateway and for Payload                   |
+| `RATE_LIMIT_*` / `TRUST_PROXY`                                | Nest             | Per-client limits, and which proxies may report the client address    |
+| `NEXT_PUBLIC_PAYLOAD_URL` / `NEXT_PUBLIC_FRONTEND_URL`        | Storefront       | Public addresses, built into the browser bundle                       |
+| `PAYLOAD_INTERNAL_URL`                                        | Storefront, Nest | Where the servers reach Payload's API                                 |
+| `NEST_INTERNAL_URL`                                           | Storefront, CMS  | Where the servers reach Nest (the BFF, the admin's Orders view)       |
+| `TRUSTED_PROXY_HOPS`                                          | Storefront       | Reverse proxies in front of the storefront (0 or 1)                   |
+| `DEFAULT_LOCALE` / `ENABLED_LOCALES`                          | Storefront       | The languages offered (`fa`, `en`) and the one bare addresses open in |
+| `STORE_TIME_ZONE`                                             | Storefront       | The time zone order and post times are shown in                       |
+| `REVALIDATE_SECRET` / `STOREFRONT_INTERNAL_URL`               | CMS, Storefront  | Instant cache refresh after content edits                             |
+| `REGISTRATION_SECRET`                                         | CMS, Storefront  | Lets only the storefront create customer accounts                     |
+| `S3_*`                                                        | Payload          | Media in an S3-compatible bucket instead of a volume                  |
+| `ADMIN_*` / `DEMO_*` / `ALLOW_DEMO_SEED`                      | seed scripts     | The administrator, and the demo data                                  |
+| `LOG_LEVEL`                                                   | Nest             | Log verbosity (JSON in production)                                    |
+| `AUTOSTART_SERVERS`                                           | Dev Container    | Whether the apps start with the container                             |
+| `TEST_DATABASE_URL`                                           | test suites      | A Postgres server where the tests may create their databases          |
 
 ### Languages
 
@@ -357,12 +381,12 @@ message file, and list it in `ENABLED_LOCALES`.
 
 ## Testing
 
-| Suite                  | Command                   | What it covers                                                                                                         |
-| ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Unit and integration   | `pnpm test`               | Storefront (Vitest), Payload against a real PostgreSQL (Vitest), Nest units (Jest)                                     |
-| API end-to-end         | `pnpm test:e2e`           | Nest against PostgreSQL with stub Payload and Zarinpal servers: auth, carts, orders, payments, concurrency, limits     |
-| Browser end-to-end     | `pnpm test:stack`         | The production stack in a browser: a purchase in each language, the admin shipping it ([e2e/README.md](e2e/README.md)) |
-| Production smoke check | `scripts/smoke-check.mjs` | Every service answers and works with the others ([how to run it](docs/operations.md#checking-a-deployment))            |
+| Suite                  | Command                   | What it covers                                                                                                                                                                         |
+| ---------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit and integration   | `pnpm test`               | Storefront (Vitest), Payload against a real PostgreSQL (Vitest), Nest units (Jest)                                                                                                     |
+| API end-to-end         | `pnpm test:e2e`           | Nest against PostgreSQL with stub Payload and Zarinpal servers: auth, carts, orders, payments, concurrency, limits                                                                     |
+| Browser end-to-end     | `pnpm test:stack`         | The production stack in a browser: a purchase in each language, a cancelled payment, logging out and in, the admin shipping, cancelling and refunding ([e2e/README.md](e2e/README.md)) |
+| Production smoke check | `scripts/smoke-check.mjs` | Every service answers and works with the others ([how to run it](docs/operations.md#checking-a-deployment))                                                                            |
 
 The integration suites need a PostgreSQL where they may create databases:
 set `TEST_DATABASE_URL` (the Dev Container's database works).
@@ -388,10 +412,13 @@ Watcher-Store/
 │   └── nest-api/              # NestJS API: cart, orders, payment, jobs
 ├── e2e/                       # Playwright tests and the mock Zarinpal gateway
 ├── deploy/postgres/           # Database roles and grants for production
-├── docs/architecture.md       # Flows and state machines
+├── docs/
+│   ├── architecture.md        # Flows and state machines
+│   └── operations.md          # Admin account, backups, upgrades, checks
 ├── scripts/                   # Smoke check, type sync
 ├── .devcontainer/             # Development container
 ├── docker-compose.prod.yml    # Production stack
+├── CHANGELOG.md · SECURITY.md
 └── .github/                   # CI, CodeQL, Dependabot
 ```
 
@@ -399,7 +426,8 @@ Watcher-Store/
 
 ## License and credits
 
-The code is released under the [MIT License](LICENSE). The product and
+The code is released under the [MIT License](LICENSE). Found a security
+problem? See [SECURITY.md](SECURITY.md). The product and
 blog photos in the demo data are openly licensed photos from Wikimedia
 Commons; each one's author and license is listed in
 [`credits.json`](backend/payload-cms/src/seed/demo-images/credits.json) and

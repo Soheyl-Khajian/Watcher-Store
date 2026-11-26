@@ -115,9 +115,12 @@ test('the administrator ships the order in Payload', async ({ page }) => {
   await page.getByLabel(`کد رهگیری سفارش ${orderId}`).fill(trackingCode);
   await page.getByLabel(`کد رهگیری سفارش ${orderId}`).press('Enter');
 
-  await expect(page.getByRole('status')).toContainText(
-    `سفارش ${persianDigits(orderId)} به «ارسال‌شده» تغییر کرد.`,
-  );
+  // Payload has a status region of its own; this is the Orders view's.
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: `سفارش ${persianDigits(orderId)}` }),
+  ).toContainText(`سفارش ${persianDigits(orderId)} به «ارسال‌شده» تغییر کرد.`);
 });
 
 test('the customer sees the order shipped, with its tracking code', async ({

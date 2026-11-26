@@ -6,8 +6,10 @@ export const CMS_URL = process.env.E2E_CMS_URL ?? 'http://localhost:3000';
 
 // The gateway address Nest hands to browsers (ZARINPAL_BASE_URL in
 // docker-compose.e2e.yml) is a container name; the tests' browser reaches
-// the same mock at its published port.
-export const GATEWAY_IN_STACK = 'http://zarinpal-mock:4010';
+// the same mock at its published port. E2E_GATEWAY_IN_STACK: the address
+// Nest uses, when the apps run outside Docker.
+export const GATEWAY_IN_STACK =
+  process.env.E2E_GATEWAY_IN_STACK ?? 'http://zarinpal-mock:4010';
 export const GATEWAY_FROM_TESTS =
   process.env.E2E_GATEWAY_URL ?? 'http://localhost:4010';
 

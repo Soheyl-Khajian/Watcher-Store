@@ -6,7 +6,7 @@
 //     pnpm --filter e2e exec playwright test --config capture/capture.config.ts
 // then build the images with capture/build-assets.mjs.
 
-import { test, type Page } from '@playwright/test';
+import { test, type BrowserContext, type Page } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import {
@@ -31,8 +31,21 @@ async function shot(page: Page, name: string, fullPage = false) {
   });
 }
 
+// Next.js shows a badge in a corner of every page when the apps run in
+// development; it does not belong in the README's pictures.
+async function hideDevBadge(context: BrowserContext) {
+  await context.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = 'nextjs-portal { display: none !important; }';
+      document.head.append(style);
+    });
+  });
+}
+
 test('capture the demo store', async ({ page, browser }) => {
   test.setTimeout(180_000);
+  await hideDevBadge(page.context());
   await page.route(`${GATEWAY_IN_STACK}/**`, (route) =>
     route.continue({
       url: route.request().url().replace(GATEWAY_IN_STACK, GATEWAY_FROM_TESTS),
@@ -76,7 +89,10 @@ test('capture the demo store', async ({ page, browser }) => {
       name: 'یکی بیشتر از پنل خورشیدی مونوکریستال ۴۵۰ وات',
     })
     .click();
-  await page.getByRole('dialog').getByText('۲', { exact: true }).waitFor();
+  await page
+    .getByRole('group', { name: 'تعداد پنل خورشیدی مونوکریستال ۴۵۰ وات' })
+    .getByText('۲', { exact: true })
+    .waitFor();
   await shot(page, 'cart');
 
   await page.getByRole('link', { name: 'ادامه و تسویه حساب' }).click();
@@ -109,6 +125,7 @@ test('capture the demo store', async ({ page, browser }) => {
     viewport: { width: 1280, height: 800 },
     colorScheme: 'dark',
   });
+  await hideDevBadge(adminContext);
   const adminPage = await adminContext.newPage();
   await adminPage.goto(`${CMS_URL}/admin/login`);
   await adminPage.locator('input[name="email"]').fill(admin.email);
@@ -120,7 +137,11 @@ test('capture the demo store', async ({ page, browser }) => {
   await adminPage.getByLabel(`کد رهگیری سفارش ${orderId}`).fill('IR1234567890');
   await shot(adminPage, 'admin-orders');
   await adminPage.getByLabel(`کد رهگیری سفارش ${orderId}`).press('Enter');
-  await adminPage.getByRole('status').waitFor();
+  // Payload has a status region of its own; this is the Orders view's.
+  await adminPage
+    .getByRole('status')
+    .filter({ hasText: 'ارسال‌شده' })
+    .waitFor();
   await shot(adminPage, 'admin-shipped');
   await adminContext.close();
 
