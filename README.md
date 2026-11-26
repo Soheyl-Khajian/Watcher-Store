@@ -7,7 +7,7 @@
 A Persian (right-to-left) online shop for security, CCTV, smart-home and
 solar equipment: a Next.js storefront, Payload CMS for the catalog and
 content, and a NestJS API for carts, orders and payments through the
-Zarinpal gateway, in a pnpm workspace on one PostgreSQL database.
+Zarinpal gateway, in a pnpm workspace on one PostgreSQL 18 database.
 
 ![A purchase from search to delivery](assets/demo.gif)
 
@@ -158,8 +158,11 @@ login flow, the payment sequence, and the order and payment state machines.
   its trusted proxies reported (`TRUSTED_PROXY_HOPS`), so clients cannot
   pick their own.
 - **Hardened containers.** Non-root images without npm, read-only app
-  files, per-service secrets in Compose, memory limits, capped logs; Trivy
-  scans every image in CI, with Dependabot and CodeQL alongside.
+  files, no Linux capabilities and no privilege escalation, per-service
+  secrets in Compose (database passwords never on a command line), memory
+  limits, capped logs; base images pinned by digest and CI actions by
+  commit; Trivy scans every image in CI, with Dependabot and CodeQL
+  alongside.
 - **Fail fast on bad configuration.** Every service validates its
   environment at startup and refuses placeholder secrets, default database
   passwords and half-configured features in production.
@@ -282,14 +285,22 @@ cp .env.example .env
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Then create the administrator (or the whole demo store):
+Then create the administrator, with the password read into a variable so
+it stays out of the shell history:
 
 ```bash
+read -rsp 'Administrator password: ' ADMIN_PASSWORD && export ADMIN_PASSWORD
 docker compose -f docker-compose.prod.yml exec \
-  -e ALLOW_DEMO_SEED=true \
-  -e DEMO_ADMIN_EMAIL=admin@example.com -e DEMO_ADMIN_PASSWORD=<password> \
-  payload-cms ./node_modules/.bin/payload run src/seed-demo.ts
+  -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD \
+  payload-cms ./node_modules/.bin/payload run src/seed-admin.ts
 ```
+
+For a demo deployment, `src/seed-demo.ts` with `-e ALLOW_DEMO_SEED=true`
+fills the whole store instead ([`DEMO_*` settings](.env.example)).
+
+Backups, restoring, moving an older deployment to Postgres 18, checking a
+deployment and the reverse proxy settings are in
+[docs/operations.md](docs/operations.md).
 
 For a real deployment, put a reverse proxy in front (and set
 `TRUSTED_PROXY_HOPS=1`), choose `PAYMENT_GATEWAY=zarinpal` with your
@@ -346,12 +357,12 @@ message file, and list it in `ENABLED_LOCALES`.
 
 ## Testing
 
-| Suite                  | Command                        | What it covers                                                                                                         |
-| ---------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Unit and integration   | `pnpm test`                    | Storefront (Vitest), Payload against a real PostgreSQL (Vitest), Nest units (Jest)                                     |
-| API end-to-end         | `pnpm test:e2e`                | Nest against PostgreSQL with stub Payload and Zarinpal servers: auth, carts, orders, payments, concurrency, limits     |
-| Browser end-to-end     | `pnpm test:stack`              | The production stack in a browser: a purchase in each language, the admin shipping it ([e2e/README.md](e2e/README.md)) |
-| Production smoke check | `node scripts/smoke-check.mjs` | Every service answers and works with the others                                                                        |
+| Suite                  | Command                   | What it covers                                                                                                         |
+| ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Unit and integration   | `pnpm test`               | Storefront (Vitest), Payload against a real PostgreSQL (Vitest), Nest units (Jest)                                     |
+| API end-to-end         | `pnpm test:e2e`           | Nest against PostgreSQL with stub Payload and Zarinpal servers: auth, carts, orders, payments, concurrency, limits     |
+| Browser end-to-end     | `pnpm test:stack`         | The production stack in a browser: a purchase in each language, the admin shipping it ([e2e/README.md](e2e/README.md)) |
+| Production smoke check | `scripts/smoke-check.mjs` | Every service answers and works with the others ([how to run it](docs/operations.md#checking-a-deployment))            |
 
 The integration suites need a PostgreSQL where they may create databases:
 set `TEST_DATABASE_URL` (the Dev Container's database works).
@@ -360,8 +371,10 @@ set `TEST_DATABASE_URL` (the Dev Container's database works).
 formatting, lint, typecheck and builds; the unit, integration and API
 end-to-end tests against PostgreSQL; the production images built with
 Buildx, smoke-tested, tested in a browser with Playwright and scanned with
-Trivy; and CodeQL. Dependabot keeps dependencies, base images and actions
-up to date.
+Trivy (failing on any fixable high or critical vulnerability), the
+repository scanned for committed secrets; and CodeQL. Actions are pinned by
+commit and base images by digest; Dependabot proposes their updates, and
+the dependencies'.
 
 ---
 

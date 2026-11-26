@@ -14,6 +14,14 @@
 # reach it through the storefront (its /api routes), Payload's admin on the
 # internal network.
 
+# Containers get no Linux capabilities and cannot gain privileges (setuid
+# binaries); the apps run as the unprivileged node user and need none.
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
 x-logging:
   &logging # Docker keeps container logs on disk; cap them per container.
   driver: json-file
@@ -97,15 +105,31 @@ x-db-admin-environment: &db-admin-environment
 
 services:
   db:
-    image: postgres:14-alpine
+    image: postgres:18-alpine@sha256:0115267ab5a509022df9319c77be365cef335adb71556c75f60f5360ee247e71
     restart: unless-stopped
     logging: *logging
+    # The entrypoint prepares the data directory as root, then runs
+    # Postgres as the postgres user: only the capabilities for that.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-watcher_store}
+    # Postgres 18 keeps its data in a subdirectory per major version
+    # (/var/lib/postgresql/18/docker), so the volume is mounted one level
+    # up. A volume from an older major version is not reused: see
+    # docs/operations.md for moving its data over.
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres18-data:/var/lib/postgresql
     healthcheck:
       test:
         [
@@ -126,23 +150,24 @@ services:
   # roles and schemas (and their passwords), before any migration
   # (deploy/postgres/roles.sql).
   db-roles:
-    image: postgres:14-alpine
+    image: postgres:18-alpine@sha256:0115267ab5a509022df9319c77be365cef335adb71556c75f60f5360ee247e71
     logging: *logging
+    <<: *hardening
     environment:
       <<: *db-admin-environment
       PAYLOAD_DB_PASSWORD: ${PAYLOAD_DB_PASSWORD:?Set PAYLOAD_DB_PASSWORD in .env}
       NEST_DB_PASSWORD: ${NEST_DB_PASSWORD:?Set NEST_DB_PASSWORD in .env}
     volumes:
       - ./deploy/postgres:/sql:ro
-    # $$: expanded inside the container, so the passwords never appear on
-    # the command line.
+    # One transaction: all of it or nothing. The passwords are read from
+    # the environment inside psql (\getenv), never put on a command line
+    # where other processes could see them. $$: expanded in the container.
     command:
       - sh
       - -c
       - >-
-        psql -X -q -v dbname="$$PGDATABASE" -v payload_schema="$$PAYLOAD_SCHEMA"
-        -v nest_schema="$$NEST_SCHEMA" -v payload_password="$$PAYLOAD_DB_PASSWORD"
-        -v nest_password="$$NEST_DB_PASSWORD" -f /sql/roles.sql
+        psql -X -q -1 -v dbname="$$PGDATABASE" -v payload_schema="$$PAYLOAD_SCHEMA"
+        -v nest_schema="$$NEST_SCHEMA" -f /sql/roles.sql
     depends_on:
       db:
         condition: service_healthy
@@ -151,6 +176,7 @@ services:
     image: watcher-store-payload-cms
     build: *payload-build
     logging: *logging
+    <<: *hardening
     environment: *payload-environment
     command: ['./node_modules/.bin/payload', 'migrate']
     depends_on:
@@ -160,15 +186,16 @@ services:
   # db-grants: Nest's access to the Payload tables it uses, once Payload's
   # migrations have created them (deploy/postgres/nest-access.sql).
   db-grants:
-    image: postgres:14-alpine
+    image: postgres:18-alpine@sha256:0115267ab5a509022df9319c77be365cef335adb71556c75f60f5360ee247e71
     logging: *logging
+    <<: *hardening
     environment: *db-admin-environment
     volumes:
       - ./deploy/postgres:/sql:ro
     command:
       - sh
       - -c
-      - psql -X -q -v payload_schema="$$PAYLOAD_SCHEMA" -f /sql/nest-access.sql
+      - psql -X -q -1 -v payload_schema="$$PAYLOAD_SCHEMA" -f /sql/nest-access.sql
     depends_on:
       payload-migrate:
         condition: service_completed_successfully
@@ -178,6 +205,7 @@ services:
     build: *payload-build
     restart: unless-stopped
     logging: *logging
+    <<: *hardening
     ports:
       - '127.0.0.1:3000:3000'
     environment: *payload-environment
@@ -200,6 +228,7 @@ services:
     image: watcher-store-nest-api
     build: *nest-build
     logging: *logging
+    <<: *hardening
     environment: *nest-environment
     command: ['node', 'dist/database/migrate.js']
     depends_on:
@@ -211,6 +240,7 @@ services:
     build: *nest-build
     restart: unless-stopped
     logging: *logging
+    <<: *hardening
     environment: *nest-environment
     depends_on:
       nest-migrate:
@@ -235,6 +265,7 @@ services:
         NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:?Set NEXT_PUBLIC_FRONTEND_URL in .env}
     restart: unless-stopped
     logging: *logging
+    <<: *hardening
     ports:
       - '127.0.0.1:3002:3002'
     environment:
@@ -264,5 +295,5 @@ services:
           memory: 768m
 
 volumes:
-  postgres-data:
+  postgres18-data:
   payload-media:

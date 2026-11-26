@@ -15,10 +15,13 @@
 -- Neither role can create schemas, reach the other's schema (beyond those
 -- grants), or create anything in public.
 --
--- psql variables (set by the job):
---   dbname, payload_schema, nest_schema, payload_password, nest_password
+-- psql variables (set by the job): dbname, payload_schema, nest_schema
+-- Environment: PAYLOAD_DB_PASSWORD, NEST_DB_PASSWORD (read here, so they
+-- never appear on a command line)
 
 \set ON_ERROR_STOP on
+\getenv payload_password PAYLOAD_DB_PASSWORD
+\getenv nest_password NEST_DB_PASSWORD
 
 -- Roles: created once, password set every run (so changing it in the
 -- environment and redeploying rotates it).
