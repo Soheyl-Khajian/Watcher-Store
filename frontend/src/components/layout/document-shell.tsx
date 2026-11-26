@@ -6,7 +6,7 @@
 // for addresses that match no route.
 
 import { headers } from 'next/headers';
-import { Vazirmatn } from 'next/font/google';
+import { Inter, Vazirmatn } from 'next/font/google';
 import '@/app/globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
@@ -16,11 +16,19 @@ import { messagesFor } from '@/i18n/catalog';
 import { I18nProvider } from '@/i18n/client';
 import { localeSettings } from '@/i18n/settings';
 
-// Vazirmatn has both Persian and Latin letters, so English pages and
-// English product names on Persian pages share one typeface.
-const vazirFont = Vazirmatn({
-  subsets: ['arabic', 'latin'],
-  variable: '--font-sans',
+// Latin letters and digits are set in Inter, Persian letters and digits
+// in Vazirmatn, on pages in either language: the browser picks the face
+// per character (globals.css puts Inter first). Inter gets no metric
+// fallback, because that fallback is a system font with Persian letters,
+// which would take Persian text away from Vazirmatn.
+const latinFont = Inter({
+  subsets: ['latin'],
+  variable: '--font-latin',
+  adjustFontFallback: false,
+});
+const persianFont = Vazirmatn({
+  subsets: ['arabic'],
+  variable: '--font-persian',
 });
 
 export async function DocumentShell({
@@ -38,7 +46,8 @@ export async function DocumentShell({
       <body
         className={cn(
           'bg-background min-h-screen font-sans antialiased',
-          vazirFont.variable,
+          latinFont.variable,
+          persianFont.variable,
         )}
       >
         <I18nProvider

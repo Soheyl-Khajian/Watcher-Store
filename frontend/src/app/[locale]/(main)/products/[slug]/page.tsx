@@ -114,7 +114,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
               <ul className="mt-2 space-y-2">
                 {(product.features || []).map((item) => (
                   <li key={item.id} className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-green-500" />
+                    <Check className="text-success h-5 w-5" />
                     <span className="text-muted-foreground">
                       <Bidi>{item.feature}</Bidi>
                     </span>
