@@ -90,24 +90,24 @@ export default function PaymentResultClient() {
 
   const view = {
     paid: {
-      icon: <CheckCircle className="mb-4 h-16 w-16 text-green-500" />,
+      icon: <CheckCircle className="text-success mb-4 h-16 w-16" />,
       title: t('payment.paidTitle'),
       text: t('payment.paidText', { number }),
     },
     failed: {
-      icon: <XCircle className="mb-4 h-16 w-16 text-red-500" />,
+      icon: <XCircle className="text-destructive mb-4 h-16 w-16" />,
       title: t('payment.failedTitle'),
       text: t('payment.failedText'),
     },
     pending: {
-      icon: <Clock className="mb-4 h-16 w-16 text-amber-500" />,
+      icon: <Clock className="text-warning mb-4 h-16 w-16" />,
       title: t('payment.pendingTitle'),
       text: stillChecking
         ? t('payment.pendingChecking')
         : t('payment.pendingLater'),
     },
     unknown: {
-      icon: <XCircle className="mb-4 h-16 w-16 text-red-500" />,
+      icon: <XCircle className="text-destructive mb-4 h-16 w-16" />,
       title: t('payment.notFoundTitle'),
       text: t('payment.notFoundText'),
     },

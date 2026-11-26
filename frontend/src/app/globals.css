@@ -5,76 +5,91 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Theme "Signal": cool slate with a green accent, in light and dark.
+   Neither theme is the main one; they share hues and contrast (every text
+   colour on its background is at least 4.5:1). Green is the accent;
+   success and warning are for states (paid, in stock, low stock). */
 :root {
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.705 0.213 47.604);
-  --primary-foreground: oklch(0.98 0.016 73.684);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.213 47.604);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.705 0.213 47.604);
-  --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.213 47.604);
+  --radius: 0.75rem;
+  --background: #f3f5f8;
+  --foreground: #111723;
+  --card: #ffffff;
+  --card-foreground: #111723;
+  --popover: #ffffff;
+  --popover-foreground: #111723;
+  --primary: #12805c;
+  --primary-foreground: #ffffff;
+  --secondary: #e8edf3;
+  --secondary-foreground: #111723;
+  --muted: #e8edf3;
+  --muted-foreground: #566173;
+  --accent: #e8edf3;
+  --accent-foreground: #111723;
+  --destructive: #b42318;
+  --success: #12805c;
+  --warning: #9a5b00;
+  --border: #dce2ea;
+  --input: #dce2ea;
+  --ring: #12805c;
+  --wash-accent: rgb(18 128 92 / 8%);
+  --wash-cool: rgb(70 110 170 / 8%);
+  --chart-1: #12805c;
+  --chart-2: #3b6fb6;
+  --chart-3: #9a5b00;
+  --chart-4: #6b5bd2;
+  --chart-5: #b42318;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111723;
+  --sidebar-primary: #12805c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8edf3;
+  --sidebar-accent-foreground: #111723;
+  --sidebar-border: #dce2ea;
+  --sidebar-ring: #12805c;
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.646 0.222 41.116);
-  --primary-foreground: oklch(0.98 0.016 73.684);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.646 0.222 41.116);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.646 0.222 41.116);
-  --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.646 0.222 41.116);
+  --background: #0b0e14;
+  --foreground: #e8ecf3;
+  --card: #141922;
+  --card-foreground: #e8ecf3;
+  --popover: #141922;
+  --popover-foreground: #e8ecf3;
+  --primary: #34c38f;
+  --primary-foreground: #052a1d;
+  --secondary: #1b2130;
+  --secondary-foreground: #e8ecf3;
+  --muted: #1b2130;
+  --muted-foreground: #9aa4b5;
+  --accent: #1b2130;
+  --accent-foreground: #e8ecf3;
+  --destructive: #f07a7a;
+  --success: #34c38f;
+  --warning: #f2b84b;
+  --border: #262e3d;
+  --input: #262e3d;
+  --ring: #34c38f;
+  --wash-accent: rgb(52 195 143 / 11%);
+  --wash-cool: rgb(70 110 170 / 14%);
+  --chart-1: #34c38f;
+  --chart-2: #6f9be0;
+  --chart-3: #f2b84b;
+  --chart-4: #a397ff;
+  --chart-5: #f07a7a;
+  --sidebar: #141922;
+  --sidebar-foreground: #e8ecf3;
+  --sidebar-primary: #34c38f;
+  --sidebar-primary-foreground: #052a1d;
+  --sidebar-accent: #1b2130;
+  --sidebar-accent-foreground: #e8ecf3;
+  --sidebar-border: #262e3d;
+  --sidebar-ring: #34c38f;
 }
 
 @theme inline {
+  /* Inter for Latin letters, Vazirmatn for Persian letters and digits
+     (components/layout/document-shell.tsx loads both). */
+  --font-sans: var(--font-latin), var(--font-persian), system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -91,6 +106,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -124,10 +141,20 @@
     cursor: pointer;
   }
   body {
-    /* استایل پایه برای حالت روشن */
     @apply bg-background text-foreground;
-    /* بازنویسی با گرادینت فقط در حالت دارک */
-    @apply dark:bg-gradient-to-bl dark:from-slate-900 dark:to-black;
+    /* Two soft washes at the top of the page, in both themes. */
+    background-image:
+      radial-gradient(
+        70rem 32rem at 85% -12rem,
+        var(--wash-accent),
+        transparent 70%
+      ),
+      radial-gradient(
+        56rem 30rem at 0% -8rem,
+        var(--wash-cool),
+        transparent 70%
+      );
+    background-repeat: no-repeat;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
