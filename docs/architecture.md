@@ -13,7 +13,7 @@ flowchart TB
   payload["Payload CMS 3 · admin + API<br/>published :3000"]
   nest["Nest API · NestJS 10<br/>internal :3001"]
   gateway{{"Zarinpal gateway"}}
-  db[("PostgreSQL 14<br/>payload_schema · nest_schema")]
+  db[("PostgreSQL 18<br/>payload_schema · nest_schema")]
   media[("Media<br/>volume or S3 bucket")]
 
   browser -->|pages, /api BFF routes, /uploads| storefront
@@ -43,10 +43,21 @@ Migrations run as one-off jobs before the services start (`payload-migrate`,
 `nest-migrate`), after `db-roles` has created the roles and schemas
 (`deploy/postgres/`).
 
-## Logging in (backend-for-frontend)
+Payload's API is public (the admin panel and the storefront's browser code
+use it), so it is closed down where it matters: accounts are created only
+through the storefront (next section), password reset is off, and anyone
+but an administrator gets at most 200 documents and two levels of related
+data per request.
+
+## Signing up and logging in (backend-for-frontend)
 
 The browser never holds a token. The storefront's own `/api` routes keep
 Nest's JWT in an httpOnly cookie and call Nest on the customer's behalf.
+
+Signing up goes through the storefront too. It checks the form and creates
+the account in Payload with the shared `REGISTRATION_SECRET`; Payload
+refuses a sign-up without it, so its own checks cannot be skipped. The new
+customer is then logged in as below.
 
 ```mermaid
 sequenceDiagram
@@ -107,8 +118,11 @@ sequenceDiagram
 
 If the customer pays and closes the browser before coming back, the
 reconciliation job asks the gateway about payments still pending after
-`PAYMENT_RECONCILE_AFTER_MINUTES` and settles them the same way. A replayed
-callback changes nothing: the payment is no longer pending.
+`PAYMENT_RECONCILE_AFTER_MINUTES` and settles them the same way. It claims
+each batch first (`FOR UPDATE SKIP LOCKED`, then stamps it as checked), so
+several API instances can run it without asking about the same payment
+twice. A replayed callback changes nothing: the payment is no longer
+pending.
 
 ## Order states
 
@@ -132,10 +146,14 @@ stateDiagram-v2
 - Unpaid orders are cancelled after `PENDING_ORDER_TTL_HOURS` by the expiry
   job, which takes each order with `FOR UPDATE SKIP LOCKED`, so several API
   instances can run it at once.
-- A refund is tracked separately (`none`, `required`, `refunded`): an order
-  cancelled after payment, or a payment that arrives for an order already
-  cancelled, is marked `required` and shown in the admin's Orders view until
-  an administrator marks it refunded.
+- Refunds are tracked beside the status. The order says whether it owes
+  one (`none`, `required`, `refunded`); each payment says whether it must
+  go back and when it did. Cancelling a paid order flags its payment; a
+  payment that arrives when the order cannot take it (cancelled meanwhile,
+  or already paid) is flagged itself. The admin's Orders view lists the
+  payments to send back, with their reference numbers, until an
+  administrator marks the order refunded. Refunds are made by hand in the
+  gateway's panel; the shop never moves money back itself.
 
 ## Payments
 
@@ -144,12 +162,20 @@ stateDiagram-v2
   [*] --> pending: initiated at the gateway
   pending --> paid: verified with the gateway
   pending --> failed: gateway says unpaid
+  failed --> paid: the customer comes back paid after all
   paid --> [*]
   failed --> [*]
 ```
 
+A payment the job marked failed while the customer was still at the
+gateway (a slow one-time password) is checked again when the customer
+comes back with a successful payment, and settled if the gateway confirms
+it.
+
 Amounts are kept in toman and sent to the gateway in rial (× 10); the
-verification must report the same amount.
+verification must report the same amount. Every callback is verified with
+the gateway, a "cancelled" one included, so a forged or mistaken status in
+the address changes nothing.
 
 ## Caching and content updates
 
