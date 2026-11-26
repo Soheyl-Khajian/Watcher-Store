@@ -1,6 +1,7 @@
 // frontend/src/app/[locale]/(main)/categories/[slug]/page.tsx
 
 import { getT } from '@/i18n/server';
+import { parsePage } from '@/lib/utils/pagination';
 import { Bidi } from '@/components/ui/bidi';
 import { fetchProductsAndCategoryBySlug } from '@/lib/api/payload';
 import { ProductCard } from '@/components/ui/product-card';
@@ -18,7 +19,7 @@ export async function generateMetadata({
   searchParams?: Promise<{ page?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const page = Number((await searchParams)?.page) || 1;
+  const page = parsePage((await searchParams)?.page);
   const { category } = await fetchProductsAndCategoryBySlug(slug, page).catch(
     () => ({ category: null }),
   );
@@ -56,7 +57,7 @@ export default async function CategoryPage({
   const awaitedParams = await params;
   const { slug } = awaitedParams;
   const awaitedSearchParams = await searchParams;
-  const page = Number(awaitedSearchParams?.page) || 1;
+  const page = parsePage(awaitedSearchParams?.page);
 
   const { category, productsResult } = await fetchProductsAndCategoryBySlug(
     slug,

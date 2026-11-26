@@ -131,7 +131,7 @@ await check('frontend: ready (Payload and Nest reachable)', async () => {
 let home = '/fa';
 await check('frontend: a bare address opens in a language', async () => {
   const result = await request(`${FRONTEND}/`);
-  expectStatus(result, 308);
+  expectStatus(result, 307);
   const location = result.headers.get('location') ?? '';
   const prefix = /^(?:https?:\/\/[^/]+)?(\/[a-z]{2})$/.exec(location);
   if (!prefix) throw new Error(`unexpected redirect: ${location}`);

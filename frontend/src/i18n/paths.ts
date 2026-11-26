@@ -6,8 +6,11 @@
 
 import { isLocale, type Locale } from './config';
 
-// Paths that never take a language prefix.
-const UNPREFIXED = /^\/(?:api|uploads|images|_next)(?:\/|$)|\.[a-z0-9]+$/i;
+// Paths that never take a language prefix: API routes, media, build files,
+// and files at the root (/sitemap.xml, /robots.txt). Only a root path
+// counts as a file: a page's slug may have a dot in it (/products/v2.0).
+const UNPREFIXED =
+  /^\/(?:api|uploads|images|_next)(?:\/|$)|^\/[^/]+\.[a-z0-9]+$/i;
 
 export function isUnprefixedPath(pathname: string): boolean {
   return UNPREFIXED.test(pathname);

@@ -34,6 +34,36 @@ const ALLOWED: ReadonlyArray<readonly [string, RegExp]> = [
 // Request headers Nest needs besides the token.
 const PASSED_HEADERS = ['content-type', 'idempotency-key'];
 
+// The largest body the storefront sends (a checkout with shipping details
+// is under 2 KB). Larger ones are refused before they are read into memory.
+const MAX_BODY_BYTES = 64 * 1024;
+
+// The body as text, or null when it is larger than MAX_BODY_BYTES (by its
+// Content-Length, or while reading one sent without it).
+async function readBody(request: NextRequest): Promise<string | null> {
+  const declared = Number(request.headers.get('content-length'));
+  if (declared > MAX_BODY_BYTES) {
+    return null;
+  }
+  if (!request.body) {
+    return '';
+  }
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
 type Context = { params: Promise<{ path: string[] }> };
 
 async function proxy(
@@ -72,12 +102,16 @@ async function proxy(
   }
 
   const hasBody = request.method !== 'GET' && request.method !== 'DELETE';
+  const body = hasBody ? await readBody(request) : undefined;
+  if (body === null) {
+    return errorResponse(413, 'PAYLOAD_TOO_LARGE', 'The request is too large.');
+  }
   const upstream = await callUpstream(
     `${serverEnv().nestUrl}/${joined}${request.nextUrl.search}`,
     {
       method: request.method,
       headers,
-      body: hasBody ? await request.text() : undefined,
+      body,
     },
   );
   if (!upstream) {

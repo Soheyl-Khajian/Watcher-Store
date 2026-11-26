@@ -33,6 +33,7 @@ interface CachePolicy {
 }
 
 const PRODUCTS: CachePolicy = { tags: ['products'], revalidate: 60 };
+const PAYLOAD_TIMEOUT_MS = 10_000;
 const HOUR = 60 * 60;
 const cacheFor = (...tags: CacheTag[]): CachePolicy => ({
   tags,
@@ -48,6 +49,9 @@ async function fetchPayloadAPI(
   const url = `${PAYLOAD_API_URL}${endpoint}`;
 
   const fetchOptions: RequestInit = {
+    // A slow or hung Payload must not hold every page render (and the
+    // sitemap) open: give up and show the error page instead.
+    signal: AbortSignal.timeout(PAYLOAD_TIMEOUT_MS),
     ...options,
     headers,
   };
@@ -290,22 +294,27 @@ export async function fetchSitemapEntries(): Promise<{
     publishedOnly: boolean,
     cache: CachePolicy,
   ): Promise<SitemapEntry[]> => {
-    const params = new URLSearchParams({
-      limit: '1000',
-      depth: '0',
-      'select[slug]': 'true',
-      'select[updatedAt]': 'true',
-    });
-    if (publishedOnly) {
-      params.set('where[status][equals]', 'published');
+    // Every document, a page of 500 at a time (up to 50 000).
+    const docs: SitemapEntry[] = [];
+    for (let page = 1; page <= 100; page += 1) {
+      const params = new URLSearchParams({
+        limit: '500',
+        page: String(page),
+        depth: '0',
+        'select[slug]': 'true',
+        'select[updatedAt]': 'true',
+      });
+      if (publishedOnly) {
+        params.set('where[status][equals]', 'published');
+      }
+      const data = await fetchPayloadAPI(
+        `/${collection}?${params.toString()}`,
+        cache,
+      );
+      docs.push(...((data?.docs ?? []) as SitemapEntry[]));
+      if (!data?.hasNextPage) break;
     }
-    const data = await fetchPayloadAPI(
-      `/${collection}?${params.toString()}`,
-      cache,
-    );
-    return ((data?.docs ?? []) as SitemapEntry[]).filter(
-      (doc) => typeof doc.slug === 'string' && doc.slug,
-    );
+    return docs.filter((doc) => typeof doc.slug === 'string' && doc.slug);
   };
 
   const [products, categories, posts, pages] = await Promise.all([

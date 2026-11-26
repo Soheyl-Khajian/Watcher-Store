@@ -390,6 +390,20 @@ describe('/api/nest proxy', () => {
     expect(response.headers.get('x-request-id')).toBe('req-1');
   });
 
+  it('refuses a body larger than any the storefront sends', async () => {
+    const big = 'x'.repeat(70 * 1024);
+    const response = await nest.POST(
+      fromStorefront('/api/nest/orders', {
+        method: 'POST',
+        cookie: jwt(60),
+        body: { note: big },
+      }),
+      params('orders'),
+    );
+    expect(response.status).toBe(413);
+    expect((await response.json()).code).toBe('PAYLOAD_TOO_LARGE');
+  });
+
   it('keeps the query string', async () => {
     upstream({
       [`GET ${NEST}/orders`]: (call) => {
@@ -489,8 +503,29 @@ describe('GET /api/payment/callback', () => {
   });
 
   it.each([
+    ['a trailing slash', `${ORIGIN}/payment/result/?orderId=7`],
+    [
+      'another host for the same page',
+      'http://shop.internal/payment/result?orderId=7',
+    ],
+  ])('keeps the order number through %s', async (_name, location) => {
+    upstream({
+      [`GET ${NEST}/payment/callback`]: () =>
+        new Response(null, { status: 302, headers: { Location: location } }),
+    });
+    const response = await callback();
+    expect(response.headers.get('location')).toBe(
+      `${ORIGIN}/payment/result?orderId=7`,
+    );
+  });
+
+  it.each([
     ['a redirect elsewhere', 'https://evil.example/phish'],
     ['a look-alike path', `${ORIGIN}/payment/resultX`],
+    [
+      'an order number that is not one',
+      `${ORIGIN}/payment/result?orderId=7%3Cx`,
+    ],
   ])('never follows %s', async (_name, location) => {
     upstream({
       [`GET ${NEST}/payment/callback`]: () =>
